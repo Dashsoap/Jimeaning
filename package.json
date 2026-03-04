@@ -6,16 +6,17 @@
     "node": ">=18.18.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently --kill-others \"npm run dev:next\" \"npm run dev:worker\"",
+    "dev:next": "next dev",
+    "dev:worker": "tsx watch src/lib/workers/index.ts",
     "build": "next build",
-    "start": "next start",
+    "start": "concurrently --kill-others \"npm run start:next\" \"npm run start:worker\"",
+    "start:next": "next start",
+    "start:worker": "tsx src/lib/workers/index.ts",
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
-    "worker": "tsx src/lib/workers/index.ts",
-    "build:worker": "node esbuild.worker.mjs",
-    "start:all": "concurrently \"npm run start\" \"npm run worker\""
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@fal-ai/client": "^1.2.0",
@@ -45,7 +46,6 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "concurrently": "^9.2.0",
-    "esbuild": "^0.27.3",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.2.0",
     "postcss": "^8.5.0",

@@ -43,10 +43,6 @@ next-env.d.ts
 /tmp/
 /docker-logs/
 
-# worker bundle
-/worker.js
-/worker.js.map
-
 # reference projects
 /waoowaoo/
 
