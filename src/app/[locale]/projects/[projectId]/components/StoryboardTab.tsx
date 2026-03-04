@@ -137,7 +137,11 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "image" }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const data = await res.json();
       setImageTaskIds(data.taskIds);
       toast.success(`已提交 ${data.count} 个图片生成任务`);
@@ -153,7 +157,11 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "video" }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const data = await res.json();
       setVideoTaskIds(data.taskIds);
       toast.success(`已提交 ${data.count} 个视频生成任务`);

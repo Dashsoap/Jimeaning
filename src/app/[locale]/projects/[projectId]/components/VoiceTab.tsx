@@ -84,7 +84,11 @@ export function VoiceTab({ project }: VoiceTabProps) {
       const res = await fetch(`/api/projects/${project.id}/voice/generate-all`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const data = await res.json();
       setBatchTaskIds(data.taskIds);
       toast.success(`已提交 ${data.count || voiceLinesToGenerate.length} 个配音任务`);
@@ -247,7 +251,11 @@ function VoiceLineRow({
       const res = await fetch(`/api/projects/${projectId}/voice/${voiceLine.id}`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const { taskId: tid } = await res.json();
       setTaskId(tid);
       toast.success("配音任务已提交");

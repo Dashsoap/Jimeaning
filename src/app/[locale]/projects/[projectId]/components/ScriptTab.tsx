@@ -61,7 +61,11 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sourceText: text }),
       });
-      if (!res.ok) throw new Error("Save failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       toast.success("已保存");
       queryClient.invalidateQueries({ queryKey: ["project", project.id] });
     } catch {
@@ -83,7 +87,11 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       const res = await fetch(`/api/projects/${project.id}/analyze`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Analyze failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const { taskId } = await res.json();
       setAnalyzeTaskId(taskId);
       toast.success("分析任务已提交，请等待...");

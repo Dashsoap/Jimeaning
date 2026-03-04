@@ -134,7 +134,11 @@ function EpisodeCompose({
         `/api/projects/${projectId}/episodes/${episode.id}/compose`,
         { method: "POST" }
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const { taskId } = await res.json();
       setComposeTaskId(taskId);
       toast.success("合成任务已提交");
@@ -148,7 +152,11 @@ function EpisodeCompose({
       const res = await fetch(
         `/api/projects/${projectId}/episodes/${episode.id}/srt`
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
