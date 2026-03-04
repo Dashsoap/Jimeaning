@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireProjectAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteParams = { params: Promise<{ projectId: string }> };
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
   const { projectId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId: session.user.id },
+    where: { id: projectId, userId: auth.session.user.id },
     include: {
       episodes: {
         include: {
@@ -31,24 +29,18 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (!project) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-
   return NextResponse.json(project);
-}
+});
 
-export async function PUT(req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const PUT = apiHandler(async (req: NextRequest, { params }: RouteParams) => {
   const { projectId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
+
   const data = await req.json();
 
-  const project = await prisma.project.updateMany({
-    where: { id: projectId, userId: session.user.id },
+  await prisma.project.update({
+    where: { id: projectId },
     data: {
       title: data.title,
       description: data.description,
@@ -58,28 +50,17 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     },
   });
 
-  if (project.count === 0) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-
   return NextResponse.json({ success: true });
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const DELETE = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
   const { projectId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
-  const result = await prisma.project.deleteMany({
-    where: { id: projectId, userId: session.user.id },
+  await prisma.project.delete({
+    where: { id: projectId },
   });
 
-  if (result.count === 0) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
-  }
-
   return NextResponse.json({ success: true });
-}
+});

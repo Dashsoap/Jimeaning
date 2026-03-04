@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteParams = { params: Promise<{ taskId: string }> };
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const { taskId } = await params;
 
   const task = await prisma.task.findFirst({
-    where: { id: taskId, userId: session.user.id },
+    where: { id: taskId, userId: auth.user.id },
     select: {
       id: true,
       type: true,
@@ -32,4 +31,4 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
   }
 
   return NextResponse.json(task);
-}
+});

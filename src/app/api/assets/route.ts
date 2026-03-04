@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = apiHandler(async (req: NextRequest) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const { searchParams } = new URL(req.url);
   const folderId = searchParams.get("folderId");
@@ -22,13 +21,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ assets, folders });
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = apiHandler(async (req: NextRequest) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const body = await req.json();
 
@@ -54,4 +51,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(asset, { status: 201 });
-}
+});

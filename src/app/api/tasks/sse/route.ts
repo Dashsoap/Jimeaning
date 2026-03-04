@@ -1,13 +1,12 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import Redis from "ioredis";
 import { TASK_PROGRESS_CHANNEL } from "@/lib/task/publisher";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+export const GET = apiHandler(async (req: NextRequest) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _projectId = new URL(req.url).searchParams.get("projectId");
@@ -60,4 +59,4 @@ export async function GET(req: NextRequest) {
       Connection: "keep-alive",
     },
   });
-}
+});

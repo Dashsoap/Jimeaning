@@ -1,19 +1,18 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 /**
  * Legacy preferences endpoint.
  * Returns basic user preferences (non-provider config).
  */
-export async function GET() {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = apiHandler(async () => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const pref = await prisma.userPreference.findUnique({
-    where: { userId: session.user.id },
+    where: { userId: auth.user.id },
   });
 
   return NextResponse.json({
@@ -24,13 +23,11 @@ export async function GET() {
       ttsVoice: pref?.ttsVoice ?? "alloy",
     },
   });
-}
+});
 
-export async function PUT(req: Request) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const PUT = apiHandler(async (req: Request) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const body = await req.json();
   const data: Record<string, string> = {};
@@ -43,10 +40,10 @@ export async function PUT(req: Request) {
   }
 
   await prisma.userPreference.upsert({
-    where: { userId: session.user.id },
+    where: { userId: auth.user.id },
     update: data,
-    create: { userId: session.user.id, ...data },
+    create: { userId: auth.user.id, ...data },
   });
 
   return NextResponse.json({ success: true });
-}
+});

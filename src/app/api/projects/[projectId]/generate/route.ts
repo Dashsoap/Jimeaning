@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireProjectAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { createTask } from "@/lib/task/service";
 import { TaskType } from "@/lib/task/types";
 
 type RouteParams = { params: Promise<{ projectId: string }> };
 
-export async function POST(req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams) => {
   const { projectId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
+
   const body = await req.json().catch(() => ({}));
   const generateType = body.type || "image"; // "image" | "video" | "both"
 
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (generateType === "image" || generateType === "both") {
       if (!panel.imageUrl) {
         const taskId = await createTask({
-          userId: session.user.id,
+          userId: auth.session.user.id,
           projectId,
           type: TaskType.GENERATE_PANEL_IMAGE,
           data: { panelId: panel.id },
@@ -44,7 +43,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     if (generateType === "video" || generateType === "both") {
       if (panel.imageUrl) {
         const taskId = await createTask({
-          userId: session.user.id,
+          userId: auth.session.user.id,
           projectId,
           type: TaskType.GENERATE_PANEL_VIDEO,
           data: { panelId: panel.id },
@@ -55,4 +54,4 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   }
 
   return NextResponse.json({ taskIds, count: taskIds.length });
-}
+});

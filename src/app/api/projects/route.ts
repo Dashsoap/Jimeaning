@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = apiHandler(async () => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const projects = await prisma.project.findMany({
-    where: { userId: session.user.id },
+    where: { userId: auth.user.id },
     orderBy: { updatedAt: "desc" },
     include: {
       _count: { select: { episodes: true } },
@@ -17,13 +16,11 @@ export async function GET() {
   });
 
   return NextResponse.json(projects);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = apiHandler(async (req: NextRequest) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
 
   const { title, description, style, aspectRatio } = await req.json();
 
@@ -36,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const project = await prisma.project.create({
     data: {
-      userId: session.user.id,
+      userId: auth.user.id,
       title,
       description,
       style: style || "realistic",
@@ -45,4 +42,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(project, { status: 201 });
-}
+});

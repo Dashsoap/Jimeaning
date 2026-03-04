@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireProjectAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -10,13 +11,10 @@ type RouteParams = {
 
 const STORAGE_PATH = process.env.LOCAL_STORAGE_PATH || "./data";
 
-export async function POST(req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { episodeId } = await params;
+export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams) => {
+  const { projectId, episodeId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -39,15 +37,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ bgmUrl: filePath });
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { episodeId } = await params;
+export const DELETE = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
+  const { projectId, episodeId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
   await prisma.composition.updateMany({
     where: { episodeId },
@@ -55,4 +50,4 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ success: true });
-}
+});

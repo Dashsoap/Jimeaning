@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireProjectAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { createTask } from "@/lib/task/service";
 import { TaskType } from "@/lib/task/types";
@@ -8,46 +9,38 @@ type RouteParams = {
   params: Promise<{ projectId: string; episodeId: string }>;
 };
 
-export async function POST(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
   const { projectId, episodeId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
   const taskId = await createTask({
-    userId: session.user.id,
+    userId: auth.session.user.id,
     projectId,
     type: TaskType.COMPOSE_VIDEO,
     data: { episodeId },
   });
 
   return NextResponse.json({ taskId });
-}
+});
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { episodeId } = await params;
+export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
+  const { projectId, episodeId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
   const composition = await prisma.composition.findUnique({
     where: { episodeId },
   });
 
   return NextResponse.json(composition || { status: "none" });
-}
+});
 
-export async function PUT(req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const PUT = apiHandler(async (req: NextRequest, { params }: RouteParams) => {
+  const { projectId, episodeId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
-  const { episodeId } = await params;
   const body = await req.json();
 
   const composition = await prisma.composition.upsert({
@@ -68,4 +61,4 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json(composition);
-}
+});

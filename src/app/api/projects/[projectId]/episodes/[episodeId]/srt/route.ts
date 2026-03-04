@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "@/lib/auth";
+import { apiHandler } from "@/lib/api-errors";
+import { requireProjectAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteParams = {
   params: Promise<{ projectId: string; episodeId: string }>;
 };
 
-export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { episodeId } = await params;
+export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams) => {
+  const { projectId, episodeId } = await params;
+  const auth = await requireProjectAuth(projectId);
+  if (isErrorResponse(auth)) return auth;
 
   const composition = await prisma.composition.findUnique({
     where: { episodeId },
@@ -29,4 +27,4 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
       "Content-Disposition": `attachment; filename="episode_${episodeId}.srt"`,
     },
   });
-}
+});
