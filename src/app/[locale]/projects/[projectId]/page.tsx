@@ -56,7 +56,7 @@ export default function ProjectWorkspacePage() {
           {TABS.map(({ key, icon: Icon }) => (
             <button
               key={key}
-              onClick={() => setActiveTab(key)}
+              onClick={() => setActiveTab(key as TabKey)}
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
                 activeTab === key
