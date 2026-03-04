@@ -13,7 +13,9 @@ import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 
 export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
-  const { userId, projectId } = payload;
+  const { userId, projectId: _projectId } = payload;
+  if (!_projectId) throw new Error("projectId is required");
+  const projectId = _projectId;
 
   // 1. Get project source text
   const project = await prisma.project.findUniqueOrThrow({

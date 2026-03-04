@@ -29,6 +29,19 @@ export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams)
     },
   });
 
+  // Replace base64 data URLs with proxy URLs to reduce response size
+  if (project?.episodes) {
+    for (const ep of project.episodes) {
+      for (const clip of ep.clips) {
+        for (const panel of clip.panels) {
+          if (panel.imageUrl?.startsWith("data:")) {
+            panel.imageUrl = `/api/panels/${panel.id}/image`;
+          }
+        }
+      }
+    }
+  }
+
   return NextResponse.json(project);
 });
 

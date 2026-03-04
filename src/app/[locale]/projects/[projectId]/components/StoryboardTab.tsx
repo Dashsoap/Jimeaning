@@ -378,17 +378,18 @@ function PanelCard({ panel, projectId }: { panel: PanelData; projectId: string }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         toast.error(err.error || "提交失败");
+        setRegenerating(null);
         return;
       }
-      toast.success(type === "image" ? "图片重新生成中..." : "视频重新生成中...");
-      // Poll until task completes, then refresh
       const { taskId } = await res.json();
-      pollTask(taskId, () => {
-        queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      toast.success(type === "image" ? "图片重新生成中..." : "视频重新生成中...");
+      pollTask(taskId, async () => {
+        await queryClient.refetchQueries({ queryKey: ["project", projectId] });
         setRegenerating(null);
       });
     } catch {
       toast.error("提交失败");
+      setRegenerating(null);
     }
   };
 
@@ -540,24 +541,24 @@ function PanelCard({ panel, projectId }: { panel: PanelData; projectId: string }
 }
 
 // Simple polling helper for single-panel regeneration
-function pollTask(taskId: string, onDone: () => void) {
+function pollTask(taskId: string, onDone: () => void | Promise<void>) {
   const interval = setInterval(async () => {
     try {
       const res = await fetch(`/api/tasks/${taskId}`);
-      if (!res.ok) { clearInterval(interval); onDone(); return; }
+      if (!res.ok) { clearInterval(interval); await onDone(); return; }
       const task = await res.json();
       if (task.status === "completed") {
         clearInterval(interval);
         toast.success("生成完成");
-        onDone();
+        await onDone();
       } else if (task.status === "failed") {
         clearInterval(interval);
         toast.error(task.error || "生成失败");
-        onDone();
+        await onDone();
       }
     } catch {
       clearInterval(interval);
-      onDone();
+      await onDone();
     }
   }, 3000);
 }
