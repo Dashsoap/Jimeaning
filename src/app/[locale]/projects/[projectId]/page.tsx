@@ -1,14 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   FileText,
-  Image,
+  Image as ImageIcon,
   LayoutPanelTop,
   Mic,
   Film,
@@ -27,8 +27,6 @@ type TabKey = (typeof TABS)[number]["key"];
 export default function ProjectWorkspacePage() {
   const t = useTranslations("project");
   const { projectId } = useParams<{ projectId: string }>();
-  const pathname = usePathname();
-  const locale = pathname.split("/")[1] || "zh";
   const [activeTab, setActiveTab] = useState<TabKey>("script");
 
   const { data: project, isLoading } = useQuery({
@@ -73,7 +71,7 @@ export default function ProjectWorkspacePage() {
         {/* Tab Content */}
         <div>
           {activeTab === "script" && (
-            <ScriptTab project={project} locale={locale} />
+            <ScriptTab project={project} />
           )}
           {activeTab === "assets" && <AssetsTab project={project} />}
           {activeTab === "storyboard" && <StoryboardTab project={project} />}
@@ -86,7 +84,7 @@ export default function ProjectWorkspacePage() {
 }
 
 // Placeholder tab components — will be fleshed out in Phase 3-5
-function ScriptTab({ project, locale }: { project: { id: string; sourceText?: string }; locale: string }) {
+function ScriptTab({ project }: { project: { id: string; sourceText?: string } }) {
   const [text, setText] = useState(project?.sourceText || "");
 
   return (
@@ -126,14 +124,14 @@ function ScriptTab({ project, locale }: { project: { id: string; sourceText?: st
 function AssetsTab({ project }: { project: { characters?: unknown[]; locations?: unknown[] } }) {
   return (
     <div className="text-gray-500 text-center py-12">
-      <Image size={48} className="mx-auto mb-4 text-gray-300" />
+      <ImageIcon size={48} className="mx-auto mb-4 text-gray-300" />
       <p>角色 ({project?.characters?.length ?? 0}) / 场景 ({project?.locations?.length ?? 0})</p>
       <p className="text-sm mt-2">AI 分析剧本后自动提取</p>
     </div>
   );
 }
 
-function StoryboardTab({ project }: { project: { episodes?: unknown[] } }) {
+function StoryboardTab({ project: _project }: { project: { episodes?: unknown[] } }) {
   return (
     <div className="text-gray-500 text-center py-12">
       <LayoutPanelTop size={48} className="mx-auto mb-4 text-gray-300" />
@@ -143,7 +141,7 @@ function StoryboardTab({ project }: { project: { episodes?: unknown[] } }) {
   );
 }
 
-function VoiceTab({ project }: { project: unknown }) {
+function VoiceTab({ project: _project }: { project: unknown }) {
   return (
     <div className="text-gray-500 text-center py-12">
       <Mic size={48} className="mx-auto mb-4 text-gray-300" />
@@ -153,7 +151,7 @@ function VoiceTab({ project }: { project: unknown }) {
   );
 }
 
-function ComposeTab({ project }: { project: unknown }) {
+function ComposeTab({ project: _project }: { project: unknown }) {
   return (
     <div className="text-gray-500 text-center py-12">
       <Film size={48} className="mx-auto mb-4 text-gray-300" />

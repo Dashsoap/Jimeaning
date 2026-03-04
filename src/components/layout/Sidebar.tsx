@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   FolderOpen,
-  Image,
+  Image as ImageIcon,
   Settings,
   LogOut,
   Film,
@@ -41,7 +41,7 @@ export function Sidebar() {
     },
     {
       href: `/${locale}/assets`,
-      icon: <Image size={20} />,
+      icon: <ImageIcon size={20} />,
       labelKey: "assets",
     },
     {

@@ -142,7 +142,7 @@ function buildFFmpegArgs(params: {
   // Mix all audio streams
   if (audioInputs > 0) {
     const audioLabels = Array.from({ length: audioInputs }, (_, i) => `[a${i}]`).join("");
-    let mixLabel = "[voice_mix]";
+    const mixLabel = "[voice_mix]";
     filterParts.push(`${audioLabels}amix=inputs=${audioInputs}:normalize=0${mixLabel}`);
 
     if (params.bgmFile) {

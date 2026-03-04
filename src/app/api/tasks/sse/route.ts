@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const projectId = new URL(req.url).searchParams.get("projectId");
+  const _projectId = new URL(req.url).searchParams.get("projectId");
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
