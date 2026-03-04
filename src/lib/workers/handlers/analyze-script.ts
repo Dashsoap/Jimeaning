@@ -9,34 +9,34 @@ import {
   EXTRACT_ENTITIES_USER,
 } from "@/lib/llm/prompts/extract-entities";
 import { resolveLlmConfig } from "@/lib/providers/resolve";
-import { updateTaskProgress, completeTask, failTask } from "@/lib/task/service";
+import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 
-export async function handleAnalyzeScript(payload: TaskPayload) {
-  const { taskId, userId, projectId } = payload;
+export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
+  const { userId, projectId } = payload;
+
+  // 1. Get project source text
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
+  });
+
+  if (!project.sourceText) {
+    throw new Error("No source text in project");
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { status: "analyzing" },
+  });
 
   try {
-    // 1. Get project source text
-    const project = await prisma.project.findUniqueOrThrow({
-      where: { id: projectId },
-    });
-
-    if (!project.sourceText) {
-      throw new Error("No source text in project");
-    }
-
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { status: "analyzing" },
-    });
-
     // 2. Get LLM config
     const llmCfg = await resolveLlmConfig(userId);
     const client = createLLMClient(llmCfg);
     const model = llmCfg.model;
 
     // 3. Analyze script — break into episodes + clips
-    await updateTaskProgress(taskId, 10);
+    await ctx.reportProgress(10);
     const scriptResult = await chatCompletion(client, {
       model,
       systemPrompt: ANALYZE_SCRIPT_SYSTEM,
@@ -45,7 +45,7 @@ export async function handleAnalyzeScript(payload: TaskPayload) {
     });
 
     const parsed = JSON.parse(scriptResult);
-    await updateTaskProgress(taskId, 50);
+    await ctx.reportProgress(50);
 
     // 4. Extract characters + locations
     const entityResult = await chatCompletion(client, {
@@ -56,7 +56,7 @@ export async function handleAnalyzeScript(payload: TaskPayload) {
     });
 
     const entities = JSON.parse(entityResult);
-    await updateTaskProgress(taskId, 70);
+    await ctx.reportProgress(70);
 
     // 5. Save to database
     // Create characters
@@ -107,23 +107,24 @@ export async function handleAnalyzeScript(payload: TaskPayload) {
       }
     }
 
-    await updateTaskProgress(taskId, 90);
+    await ctx.reportProgress(90);
 
     await prisma.project.update({
       where: { id: projectId },
       data: { status: "ready" },
     });
 
-    await completeTask(taskId, {
+    return {
       episodeCount: parsed.episodes?.length ?? 0,
       characterCount: entities.characters?.length ?? 0,
       locationCount: entities.locations?.length ?? 0,
-    });
+    };
   } catch (error) {
-    await failTask(taskId, error instanceof Error ? error.message : String(error));
+    // Reset project status on failure
     await prisma.project.update({
       where: { id: projectId },
       data: { status: "draft" },
     });
+    throw error;
   }
-}
+});
