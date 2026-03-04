@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { createTask } from "@/lib/task/service";
+import { TaskType } from "@/lib/task/types";
+
+type RouteParams = { params: Promise<{ projectId: string }> };
+
+export async function POST(req: NextRequest, { params }: RouteParams) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { projectId } = await params;
+  const body = await req.json().catch(() => ({}));
+  const generateType = body.type || "image"; // "image" | "video" | "both"
+
+  // Get all panels for the project
+  const panels = await prisma.panel.findMany({
+    where: {
+      clip: {
+        episode: { projectId },
+      },
+    },
+    select: { id: true, imageUrl: true },
+  });
+
+  const taskIds: string[] = [];
+
+  for (const panel of panels) {
+    if (generateType === "image" || generateType === "both") {
+      if (!panel.imageUrl) {
+        const taskId = await createTask({
+          userId: session.user.id,
+          projectId,
+          type: TaskType.GENERATE_PANEL_IMAGE,
+          data: { panelId: panel.id },
+        });
+        taskIds.push(taskId);
+      }
+    }
+
+    if (generateType === "video" || generateType === "both") {
+      if (panel.imageUrl) {
+        const taskId = await createTask({
+          userId: session.user.id,
+          projectId,
+          type: TaskType.GENERATE_PANEL_VIDEO,
+          data: { panelId: panel.id },
+        });
+        taskIds.push(taskId);
+      }
+    }
+  }
+
+  return NextResponse.json({ taskIds, count: taskIds.length });
+}

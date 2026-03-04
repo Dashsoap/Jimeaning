@@ -1,0 +1,62 @@
+{
+  "app": {
+    "title": "JiMeaning",
+    "subtitle": "AI Short Video Creation Platform",
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "assets": "Assets",
+    "settings": "Settings",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out"
+  },
+  "project": {
+    "create": "Create Project",
+    "title": "Project Name",
+    "description": "Description",
+    "sourceText": "Source Text",
+    "style": "Style",
+    "aspectRatio": "Aspect Ratio",
+    "status": "Status",
+    "delete": "Delete Project",
+    "noProjects": "No projects yet. Create one to get started.",
+    "tabs": {
+      "script": "Script",
+      "assets": "Assets",
+      "storyboard": "Storyboard",
+      "voice": "Voice",
+      "compose": "Compose"
+    }
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "name": "Name",
+    "signInTitle": "Sign in to JiMeaning",
+    "signUpTitle": "Sign up for JiMeaning",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "goSignUp": "Sign up",
+    "goSignIn": "Sign in"
+  },
+  "settings": {
+    "title": "Settings",
+    "apiKeys": "API Keys",
+    "models": "Model Preferences",
+    "defaults": "Defaults",
+    "testConnection": "Test Connection",
+    "save": "Save"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "success": "Success",
+    "confirm": "Confirm"
+  }
+}

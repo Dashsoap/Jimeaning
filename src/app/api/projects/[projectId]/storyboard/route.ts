@@ -1,0 +1,25 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { createTask } from "@/lib/task/service";
+import { TaskType } from "@/lib/task/types";
+
+type RouteParams = { params: Promise<{ projectId: string }> };
+
+export async function POST(_req: NextRequest, { params }: RouteParams) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { projectId } = await params;
+
+  const taskId = await createTask({
+    userId: session.user.id,
+    projectId,
+    type: TaskType.GENERATE_STORYBOARD,
+    data: {},
+  });
+
+  return NextResponse.json({ taskId });
+}
