@@ -14,15 +14,17 @@ import {
   Film,
 } from "lucide-react";
 
-const TABS = [
+import { LucideIcon } from "lucide-react";
+
+const TABS: Array<{ key: string; icon: LucideIcon }> = [
   { key: "script", icon: FileText },
-  { key: "assets", icon: Image },
+  { key: "assets", icon: ImageIcon },
   { key: "storyboard", icon: LayoutPanelTop },
   { key: "voice", icon: Mic },
   { key: "compose", icon: Film },
-] as const;
+];
 
-type TabKey = (typeof TABS)[number]["key"];
+type TabKey = "script" | "assets" | "storyboard" | "voice" | "compose";
 
 export default function ProjectWorkspacePage() {
   const t = useTranslations("project");
@@ -131,6 +133,7 @@ function AssetsTab({ project }: { project: { characters?: unknown[]; locations?:
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function StoryboardTab({ project: _project }: { project: { episodes?: unknown[] } }) {
   return (
     <div className="text-gray-500 text-center py-12">
@@ -141,6 +144,7 @@ function StoryboardTab({ project: _project }: { project: { episodes?: unknown[] 
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function VoiceTab({ project: _project }: { project: unknown }) {
   return (
     <div className="text-gray-500 text-center py-12">
@@ -151,6 +155,7 @@ function VoiceTab({ project: _project }: { project: unknown }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ComposeTab({ project: _project }: { project: unknown }) {
   return (
     <div className="text-gray-500 text-center py-12">

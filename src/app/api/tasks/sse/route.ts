@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _projectId = new URL(req.url).searchParams.get("projectId");
 
   const encoder = new TextEncoder();
