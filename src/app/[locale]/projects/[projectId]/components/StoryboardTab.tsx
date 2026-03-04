@@ -14,6 +14,7 @@ import {
   Camera,
   Eye,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
@@ -250,7 +251,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
 
       {/* Episodes */}
       {episodes.map((episode) => (
-        <EpisodeSection key={episode.id} episode={episode} />
+        <EpisodeSection key={episode.id} episode={episode} projectId={project.id} />
       ))}
     </div>
   );
@@ -300,7 +301,7 @@ function ProgressBanner({
 
 // ─── Episode Section ──────────────────────────────────────────────────────
 
-function EpisodeSection({ episode }: { episode: EpisodeData }) {
+function EpisodeSection({ episode, projectId }: { episode: EpisodeData; projectId: string }) {
   const [expanded, setExpanded] = useState(true);
   const clipCount = episode.clips.length;
   const panelCount = episode.clips.reduce((s, c) => s + c.panels.length, 0);
@@ -345,7 +346,7 @@ function EpisodeSection({ episode }: { episode: EpisodeData }) {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                     {clip.panels.map((panel) => (
-                      <PanelCard key={panel.id} panel={panel} />
+                      <PanelCard key={panel.id} panel={panel} projectId={projectId} />
                     ))}
                   </div>
                 </div>
@@ -360,8 +361,36 @@ function EpisodeSection({ episode }: { episode: EpisodeData }) {
 
 // ─── Panel Card ───────────────────────────────────────────────────────────
 
-function PanelCard({ panel }: { panel: PanelData }) {
+function PanelCard({ panel, projectId }: { panel: PanelData; projectId: string }) {
   const [showPreview, setShowPreview] = useState(false);
+  const [regenerating, setRegenerating] = useState<"image" | "video" | null>(null);
+  const queryClient = useQueryClient();
+
+  const handleRegenerate = async (type: "image" | "video", e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRegenerating(type);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/panels/${panel.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "提交失败");
+        return;
+      }
+      toast.success(type === "image" ? "图片重新生成中..." : "视频重新生成中...");
+      // Poll until task completes, then refresh
+      const { taskId } = await res.json();
+      pollTask(taskId, () => {
+        queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+        setRegenerating(null);
+      });
+    } catch {
+      toast.error("提交失败");
+    }
+  };
 
   return (
     <>
@@ -387,11 +416,21 @@ function PanelCard({ panel }: { panel: PanelData }) {
           </div>
         ) : (
           <div className="aspect-[9/16] bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center">
-            <ImageIcon className="h-6 w-6 text-gray-300 dark:text-gray-600" />
+            {regenerating === "image" ? (
+              <Loader2 className="h-6 w-6 text-blue-400 animate-spin" />
+            ) : (
+              <ImageIcon className="h-6 w-6 text-gray-300 dark:text-gray-600" />
+            )}
           </div>
         )}
 
+        {/* Status badges */}
         <div className="absolute top-1 right-1 flex gap-1">
+          {regenerating && (
+            <span className="rounded bg-blue-500/90 p-0.5">
+              <Loader2 className="h-3 w-3 text-white animate-spin" />
+            </span>
+          )}
           {panel.videoUrl && (
             <span className="rounded bg-violet-500/90 p-0.5">
               <Film className="h-3 w-3 text-white" />
@@ -404,11 +443,47 @@ function PanelCard({ panel }: { panel: PanelData }) {
           )}
         </div>
 
-        {(panel.imageUrl || panel.videoUrl) && (
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-            <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-        )}
+        {/* Hover overlay with action buttons */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+          {(panel.imageUrl || panel.videoUrl) && (
+            <button
+              className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPreview(true);
+              }}
+              title="预览"
+            >
+              <Eye className="h-4 w-4 text-white" />
+            </button>
+          )}
+          <button
+            className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors disabled:opacity-50"
+            onClick={(e) => handleRegenerate("image", e)}
+            disabled={regenerating !== null}
+            title={panel.imageUrl ? "重新生成图片" : "生成图片"}
+          >
+            {regenerating === "image" ? (
+              <Loader2 className="h-4 w-4 text-white animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 text-white" />
+            )}
+          </button>
+          {panel.imageUrl && (
+            <button
+              className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors disabled:opacity-50"
+              onClick={(e) => handleRegenerate("video", e)}
+              disabled={regenerating !== null}
+              title={panel.videoUrl ? "重新生成视频" : "生成视频"}
+            >
+              {regenerating === "video" ? (
+                <Loader2 className="h-4 w-4 text-white animate-spin" />
+              ) : (
+                <Film className="h-4 w-4 text-white" />
+              )}
+            </button>
+          )}
+        </div>
 
         <div className="p-1.5">
           <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">
@@ -462,6 +537,29 @@ function PanelCard({ panel }: { panel: PanelData }) {
       )}
     </>
   );
+}
+
+// Simple polling helper for single-panel regeneration
+function pollTask(taskId: string, onDone: () => void) {
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`);
+      if (!res.ok) { clearInterval(interval); onDone(); return; }
+      const task = await res.json();
+      if (task.status === "completed") {
+        clearInterval(interval);
+        toast.success("生成完成");
+        onDone();
+      } else if (task.status === "failed") {
+        clearInterval(interval);
+        toast.error(task.error || "生成失败");
+        onDone();
+      }
+    } catch {
+      clearInterval(interval);
+      onDone();
+    }
+  }, 3000);
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────
