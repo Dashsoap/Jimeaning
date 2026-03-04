@@ -4,7 +4,7 @@ import {
   GENERATE_STORYBOARD_SYSTEM,
   GENERATE_STORYBOARD_USER,
 } from "@/lib/llm/prompts/generate-storyboard-text";
-import { resolveProviderConfig } from "@/lib/providers/resolve";
+import { resolveLlmConfig } from "@/lib/providers/resolve";
 import { updateTaskProgress, completeTask, failTask } from "@/lib/task/service";
 import type { TaskPayload } from "@/lib/task/types";
 
@@ -12,12 +12,9 @@ export async function handleGenerateStoryboard(payload: TaskPayload) {
   const { taskId, userId, projectId } = payload;
 
   try {
-    const config = await resolveProviderConfig(userId, "openai");
-    const pref = await prisma.userPreference.findUnique({
-      where: { userId },
-    });
-    const model = pref?.llmModel || "gpt-4o";
-    const client = createLLMClient(config);
+    const llmCfg = await resolveLlmConfig(userId);
+    const client = createLLMClient(llmCfg);
+    const model = llmCfg.model;
 
     // Get all clips for the project
     const episodes = await prisma.episode.findMany({

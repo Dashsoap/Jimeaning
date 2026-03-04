@@ -8,7 +8,7 @@ import {
   EXTRACT_ENTITIES_SYSTEM,
   EXTRACT_ENTITIES_USER,
 } from "@/lib/llm/prompts/extract-entities";
-import { resolveProviderConfig } from "@/lib/providers/resolve";
+import { resolveLlmConfig } from "@/lib/providers/resolve";
 import { updateTaskProgress, completeTask, failTask } from "@/lib/task/service";
 import type { TaskPayload } from "@/lib/task/types";
 
@@ -31,12 +31,9 @@ export async function handleAnalyzeScript(payload: TaskPayload) {
     });
 
     // 2. Get LLM config
-    const config = await resolveProviderConfig(userId, "openai");
-    const pref = await prisma.userPreference.findUnique({
-      where: { userId },
-    });
-    const model = pref?.llmModel || "gpt-4o";
-    const client = createLLMClient(config);
+    const llmCfg = await resolveLlmConfig(userId);
+    const client = createLLMClient(llmCfg);
+    const model = llmCfg.model;
 
     // 3. Analyze script — break into episodes + clips
     await updateTaskProgress(taskId, 10);

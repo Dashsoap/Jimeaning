@@ -75,20 +75,22 @@ model UserPreference {
   id     String @id @default(cuid())
   userId String @unique
 
-  // Encrypted API keys (AES-256-GCM)
-  openaiApiKey     String? @db.Text
-  falApiKey        String? @db.Text
-  googleApiKey     String? @db.Text
-  fishAudioApiKey  String? @db.Text
-  elevenLabsApiKey String? @db.Text
+  // Custom provider list (JSON, API keys encrypted)
+  // [{ id, name, baseUrl?, apiKey?, apiMode? }]
+  customProviders String? @db.Text
 
-  // Model preferences
-  llmModel        String @default("gpt-4o")
-  imageModel      String @default("gpt-image-1")
-  videoModel      String @default("sora")
-  ttsProvider     String @default("openai")
-  ttsModel        String @default("tts-1")
-  ttsVoice        String @default("alloy")
+  // Custom model list (JSON)
+  // [{ modelId, modelKey, name, type, provider, enabled }]
+  customModels String? @db.Text
+
+  // Default model selections (provider::modelId format)
+  defaultLlmModel   String?
+  defaultImageModel  String?
+  defaultVideoModel  String?
+  defaultAudioModel  String?
+
+  // TTS voice preference
+  ttsVoice String @default("alloy")
 
   // Defaults
   defaultAspectRatio String @default("16:9")

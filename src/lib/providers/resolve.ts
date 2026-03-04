@@ -1,127 +1,139 @@
-import { prisma } from "@/lib/prisma";
-import { decrypt } from "@/lib/crypto";
+/**
+ * Provider resolution using the new api-config system.
+ * Resolves user's configured providers/models into generator configs.
+ */
+
+import {
+  getProviderConfig,
+  resolveDefaultModel,
+  getProviderKey,
+  getTtsVoice,
+  type ModelMediaType,
+} from "@/lib/api-config";
 import type { ProviderConfig } from "@/lib/generators/types";
 
 /**
- * Resolve a user's API key for a given provider into a ProviderConfig.
+ * Resolve image generation config from user preferences.
  */
-export async function resolveProviderConfig(
-  userId: string,
-  provider: "openai" | "fal" | "google" | "fishAudio" | "elevenLabs"
-): Promise<ProviderConfig> {
-  const pref = await prisma.userPreference.findUnique({
-    where: { userId },
-  });
-
-  if (!pref) {
-    throw new Error("User preferences not configured");
-  }
-
-  const keyFieldMap: Record<string, string | null> = {
-    openai: pref.openaiApiKey,
-    fal: pref.falApiKey,
-    google: pref.googleApiKey,
-    fishAudio: pref.fishAudioApiKey,
-    elevenLabs: pref.elevenLabsApiKey,
-  };
-
-  const encryptedKey = keyFieldMap[provider];
-  if (!encryptedKey) {
-    throw new Error(`No API key configured for provider: ${provider}`);
-  }
+export async function resolveImageConfig(userId: string) {
+  const selection = await resolveDefaultModel(userId, "image");
+  const providerConfig = await getProviderConfig(userId, selection.provider);
 
   return {
-    apiKey: decrypt(encryptedKey),
+    provider: mapToImageProvider(selection.provider),
+    config: {
+      apiKey: providerConfig.apiKey,
+      baseUrl: providerConfig.baseUrl,
+      model: selection.modelId,
+    } as ProviderConfig,
   };
 }
 
 /**
- * Resolve provider config with model preferences included.
+ * Resolve video generation config from user preferences.
  */
-export async function resolveImageConfig(userId: string) {
-  const pref = await prisma.userPreference.findUnique({
-    where: { userId },
-  });
-
-  if (!pref) throw new Error("User preferences not configured");
-
-  // Determine which provider to use based on image model
-  const model = pref.imageModel;
-  let provider: "openai" | "fal" | "google-gemini" = "openai";
-  let apiKey: string | null = null;
-
-  if (model.startsWith("fal-ai/") || model.includes("flux") || model.includes("sdxl")) {
-    provider = "fal";
-    apiKey = pref.falApiKey;
-  } else if (model.startsWith("gemini")) {
-    provider = "google-gemini";
-    apiKey = pref.googleApiKey;
-  } else {
-    provider = "openai";
-    apiKey = pref.openaiApiKey;
-  }
-
-  if (!apiKey) {
-    throw new Error(`No API key for image provider: ${provider}`);
-  }
-
-  return { provider, config: { apiKey: decrypt(apiKey), model } };
-}
-
 export async function resolveVideoConfig(userId: string) {
-  const pref = await prisma.userPreference.findUnique({
-    where: { userId },
-  });
-
-  if (!pref) throw new Error("User preferences not configured");
-
-  const model = pref.videoModel;
-  let provider: "openai" | "fal" = "openai";
-  let apiKey: string | null = null;
-
-  if (model.startsWith("fal-ai/") || model.includes("kling") || model.includes("runway")) {
-    provider = "fal";
-    apiKey = pref.falApiKey;
-  } else {
-    provider = "openai";
-    apiKey = pref.openaiApiKey;
-  }
-
-  if (!apiKey) {
-    throw new Error(`No API key for video provider: ${provider}`);
-  }
-
-  return { provider, config: { apiKey: decrypt(apiKey), model } };
-}
-
-export async function resolveAudioConfig(userId: string) {
-  const pref = await prisma.userPreference.findUnique({
-    where: { userId },
-  });
-
-  if (!pref) throw new Error("User preferences not configured");
-
-  const ttsProvider = pref.ttsProvider as "openai" | "fish-audio" | "elevenlabs";
-  let apiKey: string | null = null;
-
-  switch (ttsProvider) {
-    case "fish-audio":
-      apiKey = pref.fishAudioApiKey;
-      break;
-    case "elevenlabs":
-      apiKey = pref.elevenLabsApiKey;
-      break;
-    default:
-      apiKey = pref.openaiApiKey;
-  }
-
-  if (!apiKey) {
-    throw new Error(`No API key for TTS provider: ${ttsProvider}`);
-  }
+  const selection = await resolveDefaultModel(userId, "video");
+  const providerConfig = await getProviderConfig(userId, selection.provider);
 
   return {
-    provider: ttsProvider,
-    config: { apiKey: decrypt(apiKey), model: pref.ttsModel },
-    voiceId: pref.ttsVoice,
+    provider: mapToVideoProvider(selection.provider),
+    config: {
+      apiKey: providerConfig.apiKey,
+      baseUrl: providerConfig.baseUrl,
+      model: selection.modelId,
+    } as ProviderConfig,
   };
+}
+
+/**
+ * Resolve audio/TTS config from user preferences.
+ */
+export async function resolveAudioConfig(userId: string) {
+  const selection = await resolveDefaultModel(userId, "audio");
+  const providerConfig = await getProviderConfig(userId, selection.provider);
+  const voiceId = await getTtsVoice(userId);
+
+  return {
+    provider: mapToAudioProvider(selection.provider),
+    config: {
+      apiKey: providerConfig.apiKey,
+      baseUrl: providerConfig.baseUrl,
+      model: selection.modelId,
+    } as ProviderConfig,
+    voiceId,
+  };
+}
+
+/**
+ * Resolve LLM config from user preferences.
+ */
+export async function resolveLlmConfig(userId: string) {
+  const selection = await resolveDefaultModel(userId, "llm");
+  const providerConfig = await getProviderConfig(userId, selection.provider);
+
+  return {
+    apiKey: providerConfig.apiKey,
+    baseUrl: providerConfig.baseUrl,
+    model: selection.modelId,
+  };
+}
+
+/**
+ * Resolve provider config for a specific media type and model key.
+ */
+export async function resolveProviderConfig(
+  userId: string,
+  mediaType: ModelMediaType,
+  modelKey?: string,
+) {
+  if (modelKey) {
+    // Direct model key resolution
+    const { resolveModelSelection } = await import("@/lib/api-config");
+    const selection = await resolveModelSelection(userId, modelKey, mediaType);
+    const providerConfig = await getProviderConfig(userId, selection.provider);
+    return {
+      provider: selection.provider,
+      config: {
+        apiKey: providerConfig.apiKey,
+        baseUrl: providerConfig.baseUrl,
+        model: selection.modelId,
+      } as ProviderConfig,
+    };
+  }
+
+  // Default model resolution
+  const selection = await resolveDefaultModel(userId, mediaType);
+  const providerConfig = await getProviderConfig(userId, selection.provider);
+  return {
+    provider: selection.provider,
+    config: {
+      apiKey: providerConfig.apiKey,
+      baseUrl: providerConfig.baseUrl,
+      model: selection.modelId,
+    } as ProviderConfig,
+  };
+}
+
+// ─── Provider Type Mapping ────────────────────────────────────────────────
+// Maps config provider IDs to the generator factory type strings
+
+function mapToImageProvider(providerId: string): "openai" | "fal" | "google-gemini" {
+  const key = getProviderKey(providerId);
+  if (key === "fal") return "fal";
+  if (key === "google") return "google-gemini";
+  return "openai"; // openai-compatible and others
+}
+
+function mapToVideoProvider(providerId: string): "openai" | "fal" {
+  const key = getProviderKey(providerId);
+  if (key === "fal") return "fal";
+  return "openai";
+}
+
+function mapToAudioProvider(providerId: string): "openai" | "fish-audio" | "elevenlabs" {
+  const key = getProviderKey(providerId);
+  if (key === "fish-audio") return "fish-audio";
+  if (key === "elevenlabs") return "elevenlabs";
+  return "openai";
 }

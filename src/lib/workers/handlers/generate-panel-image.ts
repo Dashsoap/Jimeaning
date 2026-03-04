@@ -5,7 +5,7 @@ import {
   GENERATE_IMAGE_PROMPT_USER,
 } from "@/lib/llm/prompts/generate-image-prompt";
 import { createImageGenerator } from "@/lib/generators/factory";
-import { resolveProviderConfig, resolveImageConfig } from "@/lib/providers/resolve";
+import { resolveImageConfig, resolveLlmConfig } from "@/lib/providers/resolve";
 import { updateTaskProgress, completeTask, failTask } from "@/lib/task/service";
 import type { TaskPayload } from "@/lib/task/types";
 
@@ -37,12 +37,9 @@ export async function handleGeneratePanelImage(payload: TaskPayload) {
 
     // Step 1: Generate optimized image prompt via LLM
     await updateTaskProgress(taskId, 30);
-    const llmConfig = await resolveProviderConfig(userId, "openai");
-    const pref = await prisma.userPreference.findUnique({
-      where: { userId },
-    });
-    const llmModel = pref?.llmModel || "gpt-4o";
-    const client = createLLMClient(llmConfig);
+    const llmCfg = await resolveLlmConfig(userId);
+    const client = createLLMClient(llmCfg);
+    const llmModel = llmCfg.model;
 
     const imagePrompt = await chatCompletion(client, {
       model: llmModel,

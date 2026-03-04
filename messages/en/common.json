@@ -42,11 +42,20 @@
   },
   "settings": {
     "title": "Settings",
-    "apiKeys": "API Keys",
-    "models": "Model Preferences",
-    "defaults": "Defaults",
-    "testConnection": "Test Connection",
-    "save": "Save"
+    "providers": "Provider Configuration",
+    "addProvider": "Add Provider",
+    "noProviders": "No providers configured. Click \"Add Provider\" to set up your API keys.",
+    "needsBaseUrl": "Requires Base URL (supports NewAPI / OneAPI proxy services)",
+    "defaults": "Default Settings",
+    "ttsVoice": "TTS Voice",
+    "aspectRatio": "Aspect Ratio",
+    "style": "Style",
+    "save": "Save",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "addModel": "Add Model",
+    "presetModels": "Preset Models",
+    "customModel": "Custom Model"
   },
   "common": {
     "save": "Save",
