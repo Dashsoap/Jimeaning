@@ -1,0 +1,148 @@
+import fs from "fs";
+import path from "path";
+import { GoogleGenAI } from "@google/genai";
+import { prisma } from "@/lib/prisma";
+import { getProviderConfig } from "@/lib/api-config";
+import { REVERSE_SCRIPT_PROMPT } from "@/lib/llm/prompts/reverse-script";
+import { withTaskLifecycle } from "@/lib/workers/shared";
+import type { TaskPayload } from "@/lib/task/types";
+
+export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
+  const { userId, data } = payload;
+  const mediaPath = data.mediaPath as string;
+  const mediaType = data.mediaType as string; // video | audio | image
+  const customPrompt = data.customPrompt as string | undefined;
+
+  // 1. Get Google provider config
+  const googleConfig = await getProviderConfig(userId, "google");
+  if (!googleConfig.apiKey) {
+    throw new Error("Google API key not configured. Please add a Google provider in settings.");
+  }
+
+  await ctx.reportProgress(10);
+
+  // 2. Initialize Gemini client
+  const genai = new GoogleGenAI({ apiKey: googleConfig.apiKey });
+
+  // 3. Upload media file to Gemini Files API
+  const absolutePath = path.resolve(mediaPath);
+  if (!fs.existsSync(absolutePath)) {
+    throw new Error(`Media file not found: ${absolutePath}`);
+  }
+
+  await ctx.reportProgress(20);
+
+  const mimeTypeMap: Record<string, string> = {
+    video: getMimeType(absolutePath, "video"),
+    audio: getMimeType(absolutePath, "audio"),
+    image: getMimeType(absolutePath, "image"),
+  };
+
+  const uploadResult = await genai.files.upload({
+    file: absolutePath,
+    config: {
+      mimeType: mimeTypeMap[mediaType],
+    },
+  });
+
+  await ctx.reportProgress(40);
+
+  // 4. Wait for file processing (for video/audio)
+  let file = uploadResult;
+  if (mediaType !== "image" && file.state === "PROCESSING") {
+    while (file.state === "PROCESSING") {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const fileStatus = await genai.files.get({ name: file.name! });
+      file = fileStatus;
+    }
+  }
+
+  if (file.state === "FAILED") {
+    throw new Error("Gemini file processing failed");
+  }
+
+  await ctx.reportProgress(60);
+
+  // 5. Generate script from media
+  const prompt = customPrompt
+    ? `${REVERSE_SCRIPT_PROMPT}\n\n用户额外要求：${customPrompt}`
+    : REVERSE_SCRIPT_PROMPT;
+
+  const response = await genai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            fileData: {
+              fileUri: file.uri!,
+              mimeType: file.mimeType!,
+            },
+          },
+          { text: prompt },
+        ],
+      },
+    ],
+  });
+
+  const resultText = response.text ?? "";
+  if (!resultText.trim()) {
+    throw new Error("Gemini returned empty response");
+  }
+
+  await ctx.reportProgress(80);
+
+  // 6. Extract title (first line) and content
+  const lines = resultText.trim().split("\n");
+  const title = lines[0].replace(/^[#\s*]+/, "").trim() || "倒推剧本";
+  const content = lines.slice(1).join("\n").trim() || resultText.trim();
+
+  // 7. Save to Script table
+  const script = await prisma.script.create({
+    data: {
+      userId,
+      title,
+      content,
+      sourceType: "reverse",
+      sourceMedia: mediaPath,
+      prompt: customPrompt,
+    },
+  });
+
+  return { scriptId: script.id, title: script.title };
+});
+
+function getMimeType(filePath: string, type: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    // Video
+    ".mp4": "video/mp4",
+    ".mov": "video/quicktime",
+    ".avi": "video/x-msvideo",
+    ".webm": "video/webm",
+    ".mkv": "video/x-matroska",
+    // Audio
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".m4a": "audio/mp4",
+    ".ogg": "audio/ogg",
+    ".flac": "audio/flac",
+    // Image
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+  };
+
+  if (mimeTypes[ext]) return mimeTypes[ext];
+
+  // Fallback by type
+  const fallbacks: Record<string, string> = {
+    video: "video/mp4",
+    audio: "audio/mpeg",
+    image: "image/jpeg",
+  };
+  return fallbacks[type] || "application/octet-stream";
+}

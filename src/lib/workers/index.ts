@@ -9,6 +9,8 @@ import { handleGeneratePanelImage } from "./handlers/generate-panel-image";
 import { handleGeneratePanelVideo } from "./handlers/generate-panel-video";
 import { handleGenerateVoiceLine } from "./handlers/generate-voice-line";
 import { handleComposeVideo } from "./handlers/compose-video";
+import { handleReverseScript } from "./handlers/reverse-script";
+import { handleRewriteScript } from "./handlers/rewrite-script";
 
 const connection = new Redis({
   host: process.env.REDIS_HOST ?? "localhost",
@@ -23,6 +25,8 @@ const handlers: Record<string, (payload: TaskPayload) => Promise<void>> = {
   [TaskType.GENERATE_PANEL_VIDEO]: handleGeneratePanelVideo,
   [TaskType.GENERATE_VOICE_LINE]: handleGenerateVoiceLine,
   [TaskType.COMPOSE_VIDEO]: handleComposeVideo,
+  [TaskType.REVERSE_SCRIPT]: handleReverseScript,
+  [TaskType.REWRITE_SCRIPT]: handleRewriteScript,
 };
 
 async function processJob(payload: TaskPayload) {

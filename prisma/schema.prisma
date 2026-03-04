@@ -22,6 +22,7 @@ model User {
   preference UserPreference?
   projects   Project[]
   tasks      Task[]
+  scripts    Script[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -369,6 +370,30 @@ model Task {
   @@index([userId])
   @@index([status])
   @@map("tasks")
+}
+
+// ─── Scripts (剧本库) ─────────────────────────────────────────────────
+
+model Script {
+  id     String @id @default(cuid())
+  userId String
+
+  title       String
+  content     String  @db.LongText
+  sourceType  String  @default("manual") // manual | reverse | rewrite
+  sourceMedia String? @db.Text           // 原始媒体文件路径（倒推时）
+  prompt      String? @db.Text           // 改写要求（改写时）
+  parentId    String?                    // 改写来源的 scriptId
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Script?  @relation("ScriptVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  children Script[] @relation("ScriptVersions")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("scripts")
 }
 
 // ─── Templates ──────────────────────────────────────────────────────────────

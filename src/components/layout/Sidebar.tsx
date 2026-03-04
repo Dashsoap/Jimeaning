@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Film,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,11 @@ export function Sidebar() {
       href: `/${locale}/projects`,
       icon: <FolderOpen size={20} />,
       labelKey: "projects",
+    },
+    {
+      href: `/${locale}/scripts`,
+      icon: <FileText size={20} />,
+      labelKey: "scripts",
     },
     {
       href: `/${locale}/assets`,
@@ -79,7 +85,7 @@ export function Sidebar() {
               )}
             >
               {item.icon}
-              {t(item.labelKey as "dashboard" | "projects" | "assets" | "settings")}
+              {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets" | "settings")}
             </Link>
           );
         })}

@@ -5,7 +5,7 @@ import type { TaskType, TaskPayload } from "./types";
 
 export async function createTask(params: {
   userId: string;
-  projectId: string;
+  projectId?: string;
   type: TaskType;
   data: Record<string, unknown>;
   totalSteps?: number;

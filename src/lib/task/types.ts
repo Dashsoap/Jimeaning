@@ -8,6 +8,8 @@ export enum TaskType {
   GENERATE_VOICE_LINE = "GENERATE_VOICE_LINE",
   COMPOSE_VIDEO = "COMPOSE_VIDEO",
   BATCH_GENERATE = "BATCH_GENERATE",
+  REVERSE_SCRIPT = "REVERSE_SCRIPT",
+  REWRITE_SCRIPT = "REWRITE_SCRIPT",
 }
 
 export const QUEUE_NAMES = {
@@ -20,7 +22,7 @@ export const QUEUE_NAMES = {
 export interface TaskPayload {
   taskId: string;
   userId: string;
-  projectId: string;
+  projectId?: string;
   type: TaskType;
   data: Record<string, unknown>;
 }
