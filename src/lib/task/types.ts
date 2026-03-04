@@ -11,10 +11,10 @@ export enum TaskType {
 }
 
 export const QUEUE_NAMES = {
-  text: "jimeaning:text",
-  image: "jimeaning:image",
-  video: "jimeaning:video",
-  voice: "jimeaning:voice",
+  text: "jimeaning-text",
+  image: "jimeaning-image",
+  video: "jimeaning-video",
+  voice: "jimeaning-voice",
 } as const;
 
 export interface TaskPayload {

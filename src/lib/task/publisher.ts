@@ -1,9 +1,10 @@
-import { redis } from "@/lib/redis";
 import type { TaskProgress } from "./types";
 
-const CHANNEL = "jimeaning:task-progress";
+const CHANNEL = "jimeaning-task-progress";
 
 export async function publishTaskProgress(progress: TaskProgress) {
+  // Lazy import to avoid connecting at build time
+  const { redis } = await import("@/lib/redis");
   await redis.publish(CHANNEL, JSON.stringify(progress));
 }
 
