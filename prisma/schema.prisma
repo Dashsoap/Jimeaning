@@ -188,8 +188,8 @@ model Panel {
   imagePrompt      String? @db.Text
 
   // Generated media URLs
-  imageUrl String? @db.Text
-  videoUrl String? @db.Text
+  imageUrl String? @db.MediumText
+  videoUrl String? @db.MediumText
 
   // Timing
   durationMs Int @default(3000)

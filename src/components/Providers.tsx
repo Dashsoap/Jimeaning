@@ -12,7 +12,14 @@ export function Providers({ children }: { children: ReactNode }) {
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
         {children}
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            error: { duration: 5000 },
+          }}
+          containerStyle={{ top: 12, right: 12 }}
+        />
       </QueryClientProvider>
     </SessionProvider>
   );
