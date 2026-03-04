@@ -72,8 +72,13 @@ export function getProviderKey(providerId: string): string {
 // ─── Base URL Normalization ───────────────────────────────────────────────
 
 function normalizeBaseUrl(providerId: string, rawBaseUrl?: string): string | undefined {
-  const baseUrl = rawBaseUrl?.trim();
+  let baseUrl = rawBaseUrl?.trim();
   if (!baseUrl) return undefined;
+
+  // Auto-add https:// if no protocol
+  if (!/^https?:\/\//i.test(baseUrl)) {
+    baseUrl = `https://${baseUrl}`;
+  }
 
   const key = getProviderKey(providerId);
   if (key !== "openai-compatible") return baseUrl;
