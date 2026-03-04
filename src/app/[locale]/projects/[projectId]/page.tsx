@@ -92,7 +92,7 @@ export default function ProjectWorkspacePage() {
 
         {/* Tab Content */}
         <div>
-          {activeTab === "script" && <ScriptTab project={project} />}
+          {activeTab === "script" && <ScriptTab project={project} onSwitchTab={(tab) => setActiveTab(tab as TabKey)} />}
           {activeTab === "assets" && <AssetsTab project={project} />}
           {activeTab === "storyboard" && <StoryboardTab project={project} />}
           {activeTab === "voice" && <VoiceTab project={project} />}

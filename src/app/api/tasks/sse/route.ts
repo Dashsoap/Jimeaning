@@ -1,11 +1,10 @@
 import { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth";
 import Redis from "ioredis";
 import { TASK_PROGRESS_CHANNEL } from "@/lib/task/publisher";
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }

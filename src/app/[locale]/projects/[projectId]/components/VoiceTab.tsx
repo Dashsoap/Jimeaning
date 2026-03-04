@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { useTaskPolling } from "@/hooks/useTaskPolling";
 import type { ProjectData, EpisodeData, VoiceLineData, CharacterData } from "./types";
 
 interface VoiceTabProps {
@@ -22,7 +23,23 @@ export function VoiceTab({ project }: VoiceTabProps) {
   const episodes = project.episodes || [];
   const characters = project.characters || [];
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [batchTaskIds, setBatchTaskIds] = useState<string[] | null>(null);
   const queryClient = useQueryClient();
+
+  // Poll first batch task as indicator
+  const { isRunning: isBatchRunning } = useTaskPolling(
+    batchTaskIds?.[0] ?? null,
+    {
+      interval: 3000,
+      onComplete: useCallback(() => {
+        toast.success("配音生成完成（部分）");
+        queryClient.invalidateQueries({ queryKey: ["project", project.id] });
+      }, [queryClient, project.id]),
+      onFailed: useCallback(() => {
+        queryClient.invalidateQueries({ queryKey: ["project", project.id] });
+      }, [queryClient, project.id]),
+    }
+  );
 
   // Collect all voice lines
   const allVoiceLines: (VoiceLineData & { episodeTitle: string; clipTitle: string })[] = [];
@@ -69,6 +86,7 @@ export function VoiceTab({ project }: VoiceTabProps) {
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
+      setBatchTaskIds(data.taskIds);
       toast.success(`已提交 ${data.count || voiceLinesToGenerate.length} 个配音任务`);
     } catch {
       toast.error("提交配音任务失败");
@@ -87,15 +105,15 @@ export function VoiceTab({ project }: VoiceTabProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={handleGenerateAll}
-          disabled={generatingAll}
+          disabled={generatingAll || isBatchRunning}
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
-          {generatingAll ? (
+          {generatingAll || isBatchRunning ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <Volume2 className="h-4 w-4" />
           )}
-          批量生成配音
+          {isBatchRunning ? "生成中..." : "批量生成配音"}
         </button>
         <button
           onClick={refresh}
@@ -194,8 +212,23 @@ function VoiceLineRow({
   projectId: string;
 }) {
   const [playing, setPlaying] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const { isRunning: generating } = useTaskPolling(taskId, {
+    onComplete: useCallback(() => {
+      toast.success("配音生成完成");
+      setTaskId(null);
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    }, [queryClient, projectId]),
+    onFailed: useCallback(
+      (error: string) => {
+        toast.error(`配音失败: ${error}`);
+        setTaskId(null);
+      },
+      []
+    ),
+  });
 
   const character = voiceLine.characterId
     ? characters.find((c) => c.id === voiceLine.characterId)
@@ -210,20 +243,16 @@ function VoiceLineRow({
   };
 
   const handleGenerate = async () => {
-    setGenerating(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/voice/${voiceLine.id}`, {
         method: "POST",
       });
       if (!res.ok) throw new Error();
+      const { taskId: tid } = await res.json();
+      setTaskId(tid);
       toast.success("配音任务已提交");
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      }, 3000);
     } catch {
       toast.error("提交失败");
-    } finally {
-      setGenerating(false);
     }
   };
 

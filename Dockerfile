@@ -11,6 +11,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
 RUN npm run build
+RUN npm run build:worker
 
 # ─── Runner ──────────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
@@ -27,10 +28,11 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+COPY --from=builder /app/worker.js ./worker.js
 
 RUN mkdir -p /app/data /app/logs
 
 EXPOSE 3000
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node server.js & node worker.js & wait"]

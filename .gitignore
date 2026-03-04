@@ -42,3 +42,13 @@ next-env.d.ts
 /data/
 /tmp/
 /docker-logs/
+
+# worker bundle
+/worker.js
+/worker.js.map
+
+# reference projects
+/waoowaoo/
+
+# temp notes
+task1.md

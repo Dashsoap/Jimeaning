@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createTask } from "@/lib/task/service";
 import { TaskType } from "@/lib/task/types";
@@ -10,7 +9,7 @@ type RouteParams = {
 };
 
 export async function POST(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -28,7 +27,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
 }
 
 export async function GET(_req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -43,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(req: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

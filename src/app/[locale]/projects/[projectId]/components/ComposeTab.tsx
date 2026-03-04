@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   Film,
   Download,
   Loader2,
-  Play,
   Settings2,
   Music,
   Subtitles,
@@ -18,6 +17,7 @@ import {
   AlertCircle,
   Clock,
 } from "lucide-react";
+import { useTaskPolling } from "@/hooks/useTaskPolling";
 import type { ProjectData, EpisodeData, CompositionData } from "./types";
 
 interface ComposeTabProps {
@@ -70,7 +70,7 @@ function EpisodeCompose({
   projectId: string;
 }) {
   const [expanded, setExpanded] = useState(true);
-  const [composing, setComposing] = useState(false);
+  const [composeTaskId, setComposeTaskId] = useState<string | null>(null);
   const [settings, setSettings] = useState<Partial<CompositionData>>({
     bgmVolume: episode.composition?.bgmVolume ?? 0.3,
     subtitleEnabled: episode.composition?.subtitleEnabled ?? true,
@@ -78,6 +78,24 @@ function EpisodeCompose({
     transition: episode.composition?.transition ?? "crossfade",
   });
   const queryClient = useQueryClient();
+
+  const { isRunning: composing, progressPercent: composeProgress } =
+    useTaskPolling(composeTaskId, {
+      interval: 3000,
+      onComplete: useCallback(() => {
+        toast.success("视频合成完成！");
+        setComposeTaskId(null);
+        queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      }, [queryClient, projectId]),
+      onFailed: useCallback(
+        (error: string) => {
+          toast.error(`合成失败: ${error}`);
+          setComposeTaskId(null);
+          queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+        },
+        [queryClient, projectId]
+      ),
+    });
 
   const composition = episode.composition;
   const panelCount = episode.clips.reduce((s, c) => s + c.panels.length, 0);
@@ -108,7 +126,6 @@ function EpisodeCompose({
   };
 
   const handleCompose = async () => {
-    setComposing(true);
     try {
       // Save settings first
       await handleSaveSettings();
@@ -118,14 +135,11 @@ function EpisodeCompose({
         { method: "POST" }
       );
       if (!res.ok) throw new Error();
+      const { taskId } = await res.json();
+      setComposeTaskId(taskId);
       toast.success("合成任务已提交");
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      }, 5000);
     } catch {
       toast.error("提交合成任务失败");
-    } finally {
-      setComposing(false);
     }
   };
 
@@ -339,10 +353,10 @@ function EpisodeCompose({
               刷新
             </button>
 
-            {composition?.status === "composing" && (
+            {composing && (
               <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-500">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                合成中 ({composition.progress}%)
+                合成中 ({composeProgress}%)
               </span>
             )}
           </div>
