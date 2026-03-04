@@ -27,6 +27,7 @@ export interface TaskPayload {
 
 export interface TaskProgress {
   taskId: string;
+  projectId?: string;
   progress: number;
   totalSteps: number;
   status: "running" | "completed" | "failed";

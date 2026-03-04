@@ -50,6 +50,7 @@ export async function updateTaskProgress(
 
   await publishTaskProgress({
     taskId,
+    projectId: task.projectId ?? undefined,
     progress,
     totalSteps: task.totalSteps,
     status: "running",
@@ -72,6 +73,7 @@ export async function completeTask(
 
   await publishTaskProgress({
     taskId,
+    projectId: task.projectId ?? undefined,
     progress: task.totalSteps,
     totalSteps: task.totalSteps,
     status: "completed",
@@ -88,6 +90,7 @@ export async function failTask(taskId: string, error: string) {
 
   await publishTaskProgress({
     taskId,
+    projectId: task?.projectId ?? undefined,
     progress: task?.progress ?? 0,
     totalSteps: task?.totalSteps ?? 1,
     status: "failed",
