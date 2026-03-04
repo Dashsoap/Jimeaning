@@ -373,7 +373,6 @@ function ModelList({
   const [customName, setCustomName] = useState("");
   const [customType, setCustomType] = useState<ModelType>("llm");
 
-  const providerKey = getProviderKey(providerId);
   const isPreset = (mk: string) =>
     PRESET_MODELS.some((p) => composeModelKey(p.provider, p.modelId) === mk);
 

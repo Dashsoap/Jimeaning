@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Modal } from "@/components/ui/Modal";
 import { useState } from "react";
 import { Plus, Check, Loader2, AlertCircle } from "lucide-react";
-import { useProviders, PRESET_PROVIDERS, getProviderKey, getProviderDisplayName } from "./components/hooks";
+import { useProviders, getProviderKey } from "./components/hooks";
 import { ProviderCard } from "./components/ProviderCard";
 
 export default function SettingsPage() {
