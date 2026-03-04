@@ -41,21 +41,13 @@
     "goSignIn": "去登录"
   },
   "settings": {
-    "title": "设置",
-    "providers": "供应商配置",
-    "addProvider": "添加供应商",
-    "noProviders": "尚未配置供应商。点击「添加供应商」开始配置 API。",
-    "needsBaseUrl": "需要填写 Base URL（支持 NewAPI / OneAPI 等转发服务）",
-    "defaults": "默认设置",
-    "ttsVoice": "TTS 声音",
-    "aspectRatio": "视频比例",
-    "style": "画风",
+    "title": "API 配置",
+    "subtitle": "配置 AI 供应商的 API Key 和模型，点击模型标签即可开启/关闭",
+    "addInstance": "添加实例",
+    "addInstanceDesc": "添加额外的 API 端点实例（如多个 NewAPI 转发服务）",
     "save": "保存",
-    "saved": "保存成功",
-    "saveFailed": "保存失败",
-    "addModel": "添加模型",
-    "presetModels": "预设模型",
-    "customModel": "自定义模型"
+    "saved": "已保存",
+    "saveFailed": "保存失败"
   },
   "common": {
     "save": "保存",

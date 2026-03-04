@@ -41,21 +41,13 @@
     "goSignIn": "Sign in"
   },
   "settings": {
-    "title": "Settings",
-    "providers": "Provider Configuration",
-    "addProvider": "Add Provider",
-    "noProviders": "No providers configured. Click \"Add Provider\" to set up your API keys.",
-    "needsBaseUrl": "Requires Base URL (supports NewAPI / OneAPI proxy services)",
-    "defaults": "Default Settings",
-    "ttsVoice": "TTS Voice",
-    "aspectRatio": "Aspect Ratio",
-    "style": "Style",
+    "title": "API Configuration",
+    "subtitle": "Configure AI provider API keys and models. Click model tags to enable/disable.",
+    "addInstance": "Add Instance",
+    "addInstanceDesc": "Add an extra API endpoint instance (e.g. multiple NewAPI proxies)",
     "save": "Save",
-    "saved": "Saved successfully",
-    "saveFailed": "Failed to save",
-    "addModel": "Add Model",
-    "presetModels": "Preset Models",
-    "customModel": "Custom Model"
+    "saved": "Saved",
+    "saveFailed": "Save failed"
   },
   "common": {
     "save": "Save",

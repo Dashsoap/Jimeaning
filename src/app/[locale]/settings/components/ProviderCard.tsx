@@ -1,0 +1,495 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Check,
+  X,
+  Eye,
+  EyeOff,
+  Pencil,
+  Plus,
+  Trash2,
+  ExternalLink,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import type { Provider, CustomModel, ModelType, TutorialStep } from "./hooks";
+import {
+  getProviderKey,
+  PRESET_MODELS,
+  PROVIDER_TUTORIALS,
+} from "./hooks";
+import { composeModelKey } from "@/lib/api-config";
+
+// ─── Type Badge ───────────────────────────────────────────────────────────
+
+const TYPE_CONFIG: Record<ModelType, { label: string; color: string }> = {
+  llm: { label: "LLM", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  image: { label: "Image", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
+  video: { label: "Video", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
+  audio: { label: "Audio", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+};
+
+function TypeBadge({ type }: { type: ModelType }) {
+  const cfg = TYPE_CONFIG[type];
+  return (
+    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold ${cfg.color}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+// ─── Provider Card ────────────────────────────────────────────────────────
+
+interface ProviderCardProps {
+  provider: Provider;
+  models: CustomModel[];
+  locale: string;
+  onUpdateApiKey: (id: string, key: string) => void;
+  onUpdateBaseUrl: (id: string, url: string) => void;
+  onUpdateName: (id: string, name: string) => void;
+  onDeleteProvider: (id: string) => void;
+  onToggleModel: (modelKey: string) => void;
+  onAddModel: (model: Omit<CustomModel, "enabled">) => void;
+  onDeleteModel: (modelKey: string) => void;
+}
+
+export function ProviderCard({
+  provider,
+  models,
+  locale,
+  onUpdateApiKey,
+  onUpdateBaseUrl,
+  onUpdateName,
+  onDeleteProvider,
+  onToggleModel,
+  onAddModel,
+  onDeleteModel,
+}: ProviderCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const providerKey = getProviderKey(provider.id);
+  const isCustom = !["openai-compatible", "fal", "google", "fish-audio", "elevenlabs"].includes(providerKey);
+  const showBaseUrl = providerKey === "openai-compatible";
+  const enabledCount = models.filter((m) => m.enabled).length;
+  const tutorial = PROVIDER_TUTORIALS[providerKey];
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+      {/* Header */}
+      <button
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />}
+        <span className="font-semibold text-sm flex-1">{provider.name}</span>
+        {provider.hasApiKey && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            Connected
+          </span>
+        )}
+        {enabledCount > 0 && (
+          <span className="text-xs text-gray-400">{enabledCount} models</span>
+        )}
+        {isCustom && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteProvider(provider.id); }}
+            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+          </button>
+        )}
+      </button>
+
+      {/* Expanded Content */}
+      {expanded && (
+        <div className="border-t border-gray-100 dark:border-gray-800">
+          {/* Tutorial */}
+          {tutorial && (
+            <div className="px-4 pt-3">
+              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-3 py-2 text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                {tutorial.map((step: TutorialStep, i: number) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span>{locale.startsWith("zh") ? step.textZh : step.textEn}</span>
+                    {step.url && (
+                      <a href={step.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 underline hover:no-underline">
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* API Key */}
+          <div className="px-4 pt-3">
+            <ApiKeyField
+              provider={provider}
+              onSave={(key) => onUpdateApiKey(provider.id, key)}
+            />
+          </div>
+
+          {/* Base URL (for openai-compatible) */}
+          {showBaseUrl && (
+            <div className="px-4 pt-2">
+              <BaseUrlField
+                provider={provider}
+                onSave={(url) => onUpdateBaseUrl(provider.id, url)}
+              />
+            </div>
+          )}
+
+          {/* Custom name for extra instances */}
+          {isCustom && (
+            <div className="px-4 pt-2">
+              <NameField
+                provider={provider}
+                onSave={(name) => onUpdateName(provider.id, name)}
+              />
+            </div>
+          )}
+
+          {/* Models */}
+          <div className="px-4 pt-3 pb-3">
+            <ModelList
+              providerId={provider.id}
+              models={models}
+              onToggle={onToggleModel}
+              onAdd={onAddModel}
+              onDelete={onDeleteModel}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── API Key Field ────────────────────────────────────────────────────────
+
+function ApiKeyField({
+  provider,
+  onSave,
+}: {
+  provider: Provider;
+  onSave: (key: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [tempKey, setTempKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+
+  const maskedKey = provider.apiKey
+    ? provider.apiKey.length > 12
+      ? `${provider.apiKey.slice(0, 4)}${"*".repeat(8)}${provider.apiKey.slice(-4)}`
+      : "****"
+    : "";
+
+  const handleSave = () => {
+    if (tempKey.trim()) {
+      onSave(tempKey.trim());
+    }
+    setEditing(false);
+    setTempKey("");
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-gray-500">API Key</span>
+      {editing ? (
+        <div className="flex flex-1 items-center gap-1.5">
+          <input
+            type="text"
+            value={tempKey}
+            onChange={(e) => setTempKey(e.target.value)}
+            placeholder="sk-..."
+            className="flex-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            autoFocus
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          />
+          <button onClick={handleSave} className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900/30">
+            <Check className="h-3.5 w-3.5 text-green-600" />
+          </button>
+          <button onClick={() => { setEditing(false); setTempKey(""); }} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+            <X className="h-3.5 w-3.5 text-gray-400" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-1 items-center gap-1.5">
+          {provider.hasApiKey ? (
+            <>
+              <span className="flex-1 truncate rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono text-gray-500">
+                {showKey ? provider.apiKey : maskedKey}
+              </span>
+              <button onClick={() => setShowKey(!showKey)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+                {showKey ? <EyeOff className="h-3.5 w-3.5 text-gray-400" /> : <Eye className="h-3.5 w-3.5 text-gray-400" />}
+              </button>
+              <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+                <Pencil className="h-3.5 w-3.5 text-gray-400" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+              Connect
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Base URL Field ───────────────────────────────────────────────────────
+
+function BaseUrlField({
+  provider,
+  onSave,
+}: {
+  provider: Provider;
+  onSave: (url: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [tempUrl, setTempUrl] = useState(provider.baseUrl || "");
+
+  const handleSave = () => {
+    onSave(tempUrl.trim());
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-gray-500">Base URL</span>
+      {editing ? (
+        <div className="flex flex-1 items-center gap-1.5">
+          <input
+            type="text"
+            value={tempUrl}
+            onChange={(e) => setTempUrl(e.target.value)}
+            placeholder="https://api.openai.com/v1"
+            className="flex-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            autoFocus
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          />
+          <button onClick={handleSave} className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900/30">
+            <Check className="h-3.5 w-3.5 text-green-600" />
+          </button>
+          <button onClick={() => { setEditing(false); setTempUrl(provider.baseUrl || ""); }} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+            <X className="h-3.5 w-3.5 text-gray-400" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-1 items-center gap-1.5">
+          {provider.baseUrl ? (
+            <>
+              <span className="flex-1 truncate rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono text-gray-500">
+                {provider.baseUrl}
+              </span>
+              <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+                <Pencil className="h-3.5 w-3.5 text-gray-400" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1 rounded-md border border-blue-300 px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+            >
+              <Plus className="h-3 w-3" />
+              Set Base URL
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Name Field ───────────────────────────────────────────────────────────
+
+function NameField({
+  provider,
+  onSave,
+}: {
+  provider: Provider;
+  onSave: (name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [tempName, setTempName] = useState(provider.name);
+
+  const handleSave = () => {
+    if (tempName.trim()) onSave(tempName.trim());
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-gray-500">Name</span>
+      {editing ? (
+        <div className="flex flex-1 items-center gap-1.5">
+          <input
+            type="text"
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            className="flex-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            autoFocus
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          />
+          <button onClick={handleSave} className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900/30">
+            <Check className="h-3.5 w-3.5 text-green-600" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-1 items-center gap-1.5">
+          <span className="flex-1 text-xs">{provider.name}</span>
+          <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
+            <Pencil className="h-3.5 w-3.5 text-gray-400" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Model List ───────────────────────────────────────────────────────────
+
+function ModelList({
+  providerId,
+  models,
+  onToggle,
+  onAdd,
+  onDelete,
+}: {
+  providerId: string;
+  models: CustomModel[];
+  onToggle: (modelKey: string) => void;
+  onAdd: (model: Omit<CustomModel, "enabled">) => void;
+  onDelete: (modelKey: string) => void;
+}) {
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customId, setCustomId] = useState("");
+  const [customName, setCustomName] = useState("");
+  const [customType, setCustomType] = useState<ModelType>("llm");
+
+  const providerKey = getProviderKey(providerId);
+  const isPreset = (mk: string) =>
+    PRESET_MODELS.some((p) => composeModelKey(p.provider, p.modelId) === mk);
+
+  // Group models by type
+  const types = (["llm", "image", "video", "audio"] as ModelType[]).filter((t) =>
+    models.some((m) => m.type === t)
+  );
+
+  const handleAddCustom = () => {
+    if (!customId.trim()) return;
+    onAdd({
+      modelId: customId.trim(),
+      modelKey: composeModelKey(providerId, customId.trim()),
+      name: customName.trim() || customId.trim(),
+      type: customType,
+      provider: providerId,
+    });
+    setCustomId("");
+    setCustomName("");
+    setShowAddCustom(false);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-semibold text-gray-500">Models</span>
+        <button
+          onClick={() => setShowAddCustom(!showAddCustom)}
+          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+        >
+          <Plus className="h-3 w-3" />
+          Custom
+        </button>
+      </div>
+
+      {/* Custom model form */}
+      {showAddCustom && (
+        <div className="mb-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-2.5 space-y-2">
+          <div className="flex gap-2">
+            <input
+              placeholder="model-id"
+              value={customId}
+              onChange={(e) => setCustomId(e.target.value)}
+              className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+              onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
+            />
+            <input
+              placeholder="Display name"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={customType}
+              onChange={(e) => setCustomType(e.target.value as ModelType)}
+              className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            >
+              {(["llm", "image", "video", "audio"] as const).map((t) => (
+                <option key={t} value={t}>{TYPE_CONFIG[t].label}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleAddCustom}
+              disabled={!customId.trim()}
+              className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            >
+              Add
+            </button>
+            <button
+              onClick={() => setShowAddCustom(false)}
+              className="rounded-md px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Model groups by type */}
+      {types.map((type) => {
+        const typeModels = models.filter((m) => m.type === type);
+        return (
+          <div key={type} className="mb-1.5">
+            <div className="flex flex-wrap gap-1">
+              {typeModels.map((m) => (
+                <button
+                  key={m.modelKey}
+                  onClick={() => onToggle(m.modelKey)}
+                  className={`group relative inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-all ${
+                    m.enabled
+                      ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                      : "border-gray-200 bg-white text-gray-400 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500 dark:hover:border-gray-600"
+                  }`}
+                >
+                  <TypeBadge type={m.type} />
+                  <span className={m.enabled ? "font-medium" : ""}>{m.name}</span>
+                  {!isPreset(m.modelKey) && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDelete(m.modelKey); }}
+                      className="ml-0.5 hidden rounded p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 group-hover:inline-block"
+                    >
+                      <X className="h-3 w-3 text-red-400" />
+                    </button>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {models.length === 0 && (
+        <p className="text-xs text-gray-400 italic">No models available</p>
+      )}
+    </div>
+  );
+}
