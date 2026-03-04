@@ -127,7 +127,7 @@ export async function PUT(req: Request) {
       select: { customProviders: true },
     });
 
-    let existingProviders: Record<string, string> = {};
+    const existingProviders: Record<string, string> = {};
     if (existing?.customProviders) {
       try {
         const arr = JSON.parse(existing.customProviders);
