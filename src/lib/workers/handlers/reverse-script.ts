@@ -13,10 +13,16 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
   const mediaType = data.mediaType as string; // video | audio | image
   const customPrompt = data.customPrompt as string | undefined;
 
-  // 1. Get Google provider config
-  const googleConfig = await getProviderConfig(userId, "google");
+  // 1. Get Google provider config (fallback to openai-compatible proxy)
+  let googleConfig;
+  try {
+    googleConfig = await getProviderConfig(userId, "google");
+  } catch {
+    // google provider not configured, try openai-compatible as proxy
+    googleConfig = await getProviderConfig(userId, "openai-compatible");
+  }
   if (!googleConfig.apiKey) {
-    throw new Error("Google API key not configured. Please add a Google provider in settings.");
+    throw new Error("Google API key not configured. Please add a Google or OpenAI Compatible provider in settings.");
   }
 
   await ctx.reportProgress(10);
