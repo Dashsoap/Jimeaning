@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
-import { getProviderConfig } from "@/lib/api-config";
+import { getProviderConfig, resolveDefaultModel } from "@/lib/api-config";
 import { REVERSE_SCRIPT_PROMPT } from "@/lib/llm/prompts/reverse-script";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
@@ -97,13 +97,22 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
 
   await ctx.reportProgress(60);
 
-  // 5. Generate script from media
+  // 5. Resolve model - use user's default LLM or fallback to gemini-2.0-flash
+  let modelId = "gemini-2.0-flash";
+  try {
+    const defaultModel = await resolveDefaultModel(userId, "llm");
+    modelId = defaultModel.modelId;
+  } catch {
+    // no default LLM configured, use fallback
+  }
+
+  // 6. Generate script from media
   const prompt = customPrompt
     ? `${REVERSE_SCRIPT_PROMPT}\n\n用户额外要求：${customPrompt}`
     : REVERSE_SCRIPT_PROMPT;
 
   const response = await genai.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: modelId,
     contents: [
       {
         role: "user",
