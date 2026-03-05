@@ -24,7 +24,12 @@ export const POST = apiHandler(async (req: NextRequest) => {
   const auth = await requireAuth();
   if (isErrorResponse(auth)) return auth;
 
-  const formData = await req.formData();
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return badRequest("Invalid request format. Expected multipart/form-data.");
+  }
   const file = formData.get("file") as File | null;
   const customPrompt = formData.get("customPrompt") as string | null;
 
