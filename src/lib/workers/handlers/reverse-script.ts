@@ -35,7 +35,10 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
   const baseUrl = googleConfig.baseUrl?.replace(/\/v1\/?$/, "") || undefined;
   const genai = new GoogleGenAI({
     apiKey: googleConfig.apiKey,
-    ...(baseUrl ? { httpOptions: { baseUrl } } : {}),
+    httpOptions: {
+      ...(baseUrl ? { baseUrl } : {}),
+      timeout: 5 * 60 * 1000, // 5 minutes for large media processing
+    },
   });
 
   // 3. Read media file
