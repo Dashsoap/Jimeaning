@@ -12,17 +12,25 @@ export const POST = apiHandler(async (req: NextRequest) => {
   const auth = await requireAuth();
   if (isErrorResponse(auth)) return auth;
 
-  let formData: FormData;
-  try {
-    formData = await req.formData();
-  } catch {
-    return badRequest("Invalid request format. Expected multipart/form-data.");
-  }
+  // Support both FormData and JSON request formats
+  let scriptId: string | null = null;
+  let file: File | null = null;
+  let prompt: string | null = null;
+  let modelKey: string | null = null;
 
-  const scriptId = formData.get("scriptId") as string | null;
-  const file = formData.get("file") as File | null;
-  const prompt = formData.get("prompt") as string | null;
-  const modelKey = formData.get("modelKey") as string | null;
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData();
+    scriptId = formData.get("scriptId") as string | null;
+    file = formData.get("file") as File | null;
+    prompt = formData.get("prompt") as string | null;
+    modelKey = formData.get("modelKey") as string | null;
+  } else {
+    const body = await req.json();
+    scriptId = body.scriptId || null;
+    prompt = body.prompt || null;
+    modelKey = body.modelKey || null;
+  }
 
   if (!prompt?.trim()) {
     return badRequest("prompt is required");
