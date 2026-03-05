@@ -7,6 +7,9 @@ import { REVERSE_SCRIPT_PROMPT } from "@/lib/llm/prompts/reverse-script";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 
+// Files smaller than this use inline base64 (no Files API upload needed)
+const INLINE_SIZE_LIMIT = 20 * 1024 * 1024; // 20MB
+
 export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
   const { userId, data } = payload;
   const mediaPath = data.mediaPath as string;
@@ -35,41 +38,61 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
     ...(baseUrl ? { httpOptions: { baseUrl } } : {}),
   });
 
-  // 3. Upload media file to Gemini Files API
+  // 3. Read media file
   const absolutePath = path.resolve(mediaPath);
   if (!fs.existsSync(absolutePath)) {
     throw new Error(`Media file not found: ${absolutePath}`);
   }
 
+  const fileSize = fs.statSync(absolutePath).size;
+  const mimeType = getMimeType(absolutePath, mediaType);
+
   await ctx.reportProgress(20);
 
-  const mimeTypeMap: Record<string, string> = {
-    video: getMimeType(absolutePath, "video"),
-    audio: getMimeType(absolutePath, "audio"),
-    image: getMimeType(absolutePath, "image"),
-  };
+  // 4. Build media part - inline base64 for small files, Files API for large files
+  let mediaPart: { inlineData: { data: string; mimeType: string } } | { fileData: { fileUri: string; mimeType: string } };
 
-  const uploadResult = await genai.files.upload({
-    file: absolutePath,
-    config: {
-      mimeType: mimeTypeMap[mediaType],
-    },
-  });
+  if (fileSize <= INLINE_SIZE_LIMIT) {
+    // Small file: send inline as base64
+    const fileBuffer = fs.readFileSync(absolutePath);
+    const base64Data = fileBuffer.toString("base64");
+    mediaPart = {
+      inlineData: {
+        data: base64Data,
+        mimeType,
+      },
+    };
+    await ctx.reportProgress(50);
+  } else {
+    // Large file: use Files API upload (requires direct Google access or proxy that supports it)
+    const uploadResult = await genai.files.upload({
+      file: absolutePath,
+      config: { mimeType },
+    });
 
-  await ctx.reportProgress(40);
+    await ctx.reportProgress(40);
 
-  // 4. Wait for file processing (for video/audio)
-  let file = uploadResult;
-  if (mediaType !== "image" && file.state === "PROCESSING") {
-    while (file.state === "PROCESSING") {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      const fileStatus = await genai.files.get({ name: file.name! });
-      file = fileStatus;
+    // Wait for file processing (for video/audio)
+    let file = uploadResult;
+    if (mediaType !== "image" && file.state === "PROCESSING") {
+      while (file.state === "PROCESSING") {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const fileStatus = await genai.files.get({ name: file.name! });
+        file = fileStatus;
+      }
     }
-  }
 
-  if (file.state === "FAILED") {
-    throw new Error("Gemini file processing failed");
+    if (file.state === "FAILED") {
+      throw new Error("Gemini file processing failed");
+    }
+
+    mediaPart = {
+      fileData: {
+        fileUri: file.uri!,
+        mimeType: file.mimeType!,
+      },
+    };
+    await ctx.reportProgress(50);
   }
 
   await ctx.reportProgress(60);
@@ -85,12 +108,7 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
       {
         role: "user",
         parts: [
-          {
-            fileData: {
-              fileUri: file.uri!,
-              mimeType: file.mimeType!,
-            },
-          },
+          mediaPart,
           { text: prompt },
         ],
       },
