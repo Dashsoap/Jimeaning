@@ -69,7 +69,7 @@ export function ProviderCard({
   const [expanded, setExpanded] = useState(false);
   const providerKey = getProviderKey(provider.id);
   const isCustom = !["openai-compatible", "fal", "google", "fish-audio", "elevenlabs"].includes(providerKey);
-  const showBaseUrl = providerKey === "openai-compatible";
+  const showBaseUrl = providerKey === "openai-compatible" || providerKey === "google";
   const enabledCount = models.filter((m) => m.enabled).length;
   const tutorial = PROVIDER_TUTORIALS[providerKey];
 

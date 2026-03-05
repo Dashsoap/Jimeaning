@@ -22,7 +22,10 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
   await ctx.reportProgress(10);
 
   // 2. Initialize Gemini client
-  const genai = new GoogleGenAI({ apiKey: googleConfig.apiKey });
+  const genai = new GoogleGenAI({
+    apiKey: googleConfig.apiKey,
+    ...(googleConfig.baseUrl ? { httpOptions: { baseUrl: googleConfig.baseUrl } } : {}),
+  });
 
   // 3. Upload media file to Gemini Files API
   const absolutePath = path.resolve(mediaPath);

@@ -8,17 +8,19 @@ import type {
 export class GeminiImageGenerator implements ImageGenerator {
   private apiKey: string;
   private defaultModel: string;
+  private baseUrl: string;
 
   constructor(config: ProviderConfig) {
     this.apiKey = config.apiKey;
     this.defaultModel = config.model || "gemini-2.0-flash-exp";
+    this.baseUrl = config.baseUrl || "https://generativelanguage.googleapis.com";
   }
 
   async generate(params: ImageGenerateParams): Promise<GenerateResult> {
     const model = params.model || this.defaultModel;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
+      `${this.baseUrl}/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

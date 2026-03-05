@@ -5,7 +5,6 @@ import { apiHandler } from "@/lib/api-errors";
 import { requireAuth, isErrorResponse, badRequest } from "@/lib/api-auth";
 import { createTask } from "@/lib/task/service";
 import { TaskType } from "@/lib/task/types";
-import { getProviderConfig } from "@/lib/api-config";
 
 const ALLOWED_EXTENSIONS = new Set([
   ".mp4", ".mov", ".avi", ".webm", ".mkv",
@@ -24,16 +23,6 @@ function getMediaType(ext: string): "video" | "audio" | "image" {
 export const POST = apiHandler(async (req: NextRequest) => {
   const auth = await requireAuth();
   if (isErrorResponse(auth)) return auth;
-
-  // Verify Google provider is configured
-  try {
-    const googleConfig = await getProviderConfig(auth.user.id, "google");
-    if (!googleConfig.apiKey) {
-      return badRequest("Google API key not configured. Please add a Google provider in settings.");
-    }
-  } catch {
-    return badRequest("Google provider not configured. Please add a Google provider in settings for Gemini.");
-  }
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
