@@ -60,6 +60,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   const taskId = await createTask({
     userId: auth.user.id,
     type: TaskType.REVERSE_SCRIPT,
+    totalSteps: 100,
     data: {
       mediaPath: filePath,
       mediaType,
