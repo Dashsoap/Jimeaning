@@ -28,9 +28,11 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
   await ctx.reportProgress(10);
 
   // 2. Initialize Gemini client
+  // Google SDK appends its own paths (e.g. /v1beta/files), so strip trailing /v1 from proxy URLs
+  const baseUrl = googleConfig.baseUrl?.replace(/\/v1\/?$/, "") || undefined;
   const genai = new GoogleGenAI({
     apiKey: googleConfig.apiKey,
-    ...(googleConfig.baseUrl ? { httpOptions: { baseUrl: googleConfig.baseUrl } } : {}),
+    ...(baseUrl ? { httpOptions: { baseUrl } } : {}),
   });
 
   // 3. Upload media file to Gemini Files API
