@@ -23,6 +23,9 @@ export const GET = apiHandler(async (req: NextRequest) => {
       sourceType: true,
       sourceMedia: true,
       parentId: true,
+      masterScriptId: true,
+      chapterIndex: true,
+      chapterSummary: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -35,7 +38,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   const auth = await requireAuth();
   if (isErrorResponse(auth)) return auth;
 
-  const { title, content } = await req.json();
+  const { title, content, sourceType: srcType, importMeta } = await req.json();
 
   if (!title || !content) {
     return NextResponse.json(
@@ -49,7 +52,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
       userId: auth.user.id,
       title,
       content,
-      sourceType: "manual",
+      sourceType: srcType || "manual",
+      ...(importMeta ? { importMeta } : {}),
     },
   });
 

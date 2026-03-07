@@ -427,19 +427,28 @@ model Script {
 
   title       String
   content     String  @db.LongText
-  sourceType  String  @default("manual") // manual | reverse | rewrite
+  sourceType  String  @default("manual") // manual | reverse | rewrite | import | chapter
   sourceMedia String? @db.Text           // 原始媒体文件路径（倒推时）
   prompt      String? @db.Text           // 改写要求（改写时）
   parentId    String?                    // 改写来源的 scriptId
+
+  chapterIndex   Int?                    // 章节序号（仅 chapter 类型）
+  chapterSummary String?  @db.Text       // 章节摘要
+  masterScriptId String?                 // 指向母本（分章关系，区别于 parentId 的改写版本链）
+  importMeta     Json?                   // { targetDuration, targetEpisodes, direction, contentType }
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   Script?  @relation("ScriptVersions", fields: [parentId], references: [id], onDelete: SetNull)
   children Script[] @relation("ScriptVersions")
 
+  masterScript Script?  @relation("ScriptChapters", fields: [masterScriptId], references: [id], onDelete: SetNull)
+  chapters     Script[] @relation("ScriptChapters")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([masterScriptId])
   @@map("scripts")
 }
 

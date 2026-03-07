@@ -20,6 +20,8 @@ import { handleImageCharacter } from "./handlers/image-character";
 import { handleImageLocation } from "./handlers/image-location";
 import { handleEpisodeSplit } from "./handlers/episode-split";
 import { handleAnalyzeNovel } from "./handlers/analyze-novel";
+import { handleSmartSplit } from "./handlers/smart-split";
+import { handleBatchRewrite } from "./handlers/batch-rewrite";
 
 const logger = createScopedLogger({ module: "worker" });
 
@@ -39,6 +41,8 @@ const handlers: Record<string, (payload: TaskPayload) => Promise<void>> = {
   [TaskType.IMAGE_LOCATION]: handleImageLocation,
   [TaskType.EPISODE_SPLIT]: handleEpisodeSplit,
   [TaskType.ANALYZE_NOVEL]: handleAnalyzeNovel,
+  [TaskType.SMART_SPLIT]: handleSmartSplit,
+  [TaskType.BATCH_REWRITE]: handleBatchRewrite,
 };
 
 async function processJob(payload: TaskPayload) {

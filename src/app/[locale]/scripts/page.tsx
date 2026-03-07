@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { CreateScriptDialog } from "./components/CreateScriptDialog";
 import { ReverseScriptDialog } from "./components/ReverseScriptDialog";
 import { RewriteScriptDialog } from "./components/RewriteScriptDialog";
+import { SmartImportDialog } from "./components/SmartImportDialog";
 import {
   Plus,
   Trash2,
@@ -25,6 +26,9 @@ import {
   X,
   Search,
   MoreHorizontal,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -35,11 +39,15 @@ interface Script {
   sourceType: string;
   sourceMedia: string | null;
   parentId: string | null;
+  masterScriptId: string | null;
+  chapterIndex: number | null;
+  chapterSummary: string | null;
+  _count?: { chapters: number };
   createdAt: string;
   updatedAt: string;
 }
 
-type SourceFilter = "all" | "manual" | "reverse" | "rewrite";
+type SourceFilter = "all" | "manual" | "reverse" | "rewrite" | "import";
 
 export default function ScriptsPage() {
   const t = useTranslations("scripts");
@@ -53,6 +61,8 @@ export default function ScriptsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showReverse, setShowReverse] = useState(false);
   const [showRewrite, setShowRewrite] = useState(false);
+  const [showSmartImport, setShowSmartImport] = useState(false);
+  const [expandedMasterIds, setExpandedMasterIds] = useState<Set<string>>(new Set());
   const [rewritePreSelectedId, setRewritePreSelectedId] = useState<string | undefined>();
   const [viewScript, setViewScript] = useState<Script | null>(null);
   const [editScript, setEditScript] = useState<Script | null>(null);
@@ -81,7 +91,8 @@ export default function ScriptsPage() {
   });
 
   const filteredScripts = useMemo(() => {
-    let result = scripts;
+    // Hide chapter scripts from top-level list (they show under their master)
+    let result = scripts.filter((s) => s.sourceType !== "chapter");
     if (sourceFilter !== "all") {
       result = result.filter((s) => s.sourceType === sourceFilter);
     }
@@ -95,6 +106,24 @@ export default function ScriptsPage() {
     }
     return result;
   }, [scripts, sourceFilter, searchQuery]);
+
+  // Get chapter scripts for a given master
+  const getChapters = useCallback(
+    (masterScriptId: string) =>
+      scripts
+        .filter((s) => s.masterScriptId === masterScriptId && s.sourceType === "chapter")
+        .sort((a, b) => (a.chapterIndex ?? 0) - (b.chapterIndex ?? 0)),
+    [scripts],
+  );
+
+  const toggleExpand = (id: string) => {
+    setExpandedMasterIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: { title: string; content: string }) =>
@@ -156,6 +185,8 @@ export default function ScriptsPage() {
       manual: { text: t("sourceManual"), color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
       reverse: { text: t("sourceReverse"), color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
       rewrite: { text: t("sourceRewrite"), color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
+      import: { text: t("sourceImport"), color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
+      chapter: { text: t("sourceChapter"), color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
     };
     return labels[type] || labels.manual;
   };
@@ -165,6 +196,7 @@ export default function ScriptsPage() {
     { key: "manual", label: t("sourceManual") },
     { key: "reverse", label: t("sourceReverse") },
     { key: "rewrite", label: t("sourceRewrite") },
+    { key: "import", label: t("sourceImport") },
   ];
 
   if (status === "loading" || isLoading) {
@@ -191,6 +223,10 @@ export default function ScriptsPage() {
             <Button variant="ghost" onClick={() => { setRewritePreSelectedId(undefined); setShowRewrite(true); }} title={t("rewriteScriptDesc")}>
               <RefreshCw size={18} className="mr-1" />
               {t("rewriteScript")}
+            </Button>
+            <Button variant="secondary" onClick={() => setShowSmartImport(true)} title={t("smartImportDesc")}>
+              <BookOpen size={18} className="mr-1" />
+              {t("smartImport")}
             </Button>
             <Button onClick={() => setShowCreate(true)} title={t("createScriptDesc")}>
               <Plus size={18} className="mr-1" />
@@ -257,94 +293,147 @@ export default function ScriptsPage() {
           <div className="grid gap-4" ref={menuRef}>
             {filteredScripts.map((s) => {
               const label = sourceTypeLabel(s.sourceType);
-              return (
-                <Card key={s.id} className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold truncate">{s.title}</h3>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${label.color}`}>
-                        {label.text}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">
-                      {s.content.slice(0, 200)}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-2">
-                      {new Date(s.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Primary action: Create Project */}
-                    <Button
-                      variant="secondary"
-                      onClick={() => createProjectMutation.mutate(s.id)}
-                      disabled={createProjectMutation.isPending}
-                      className="text-xs px-3 py-1.5 h-auto"
-                      title={t("createProjectDesc")}
-                    >
-                      <FolderPlus size={14} className="mr-1" />
-                      {t("createProject")}
-                    </Button>
+              const isImport = s.sourceType === "import";
+              const chapterList = isImport ? getChapters(s.id) : [];
+              const isExpanded = expandedMasterIds.has(s.id);
 
-                    {/* More actions dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
-                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                        title={t("moreActions")}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-                      {openMenuId === s.id && (
-                        <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              return (
+                <div key={s.id}>
+                  <Card className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {isImport && chapterList.length > 0 && (
                           <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                            onClick={() => { setViewScript(s); setOpenMenuId(null); }}
+                            onClick={() => toggleExpand(s.id)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                           >
-                            <Eye size={14} />
-                            {t("view")}
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
-                          <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                            onClick={() => {
-                              setEditScript(s);
-                              setTitle(s.title);
-                              setContent(s.content);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            <Pencil size={14} />
-                            {tc("edit")}
-                          </button>
-                          <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
-                            onClick={() => {
-                              setRewritePreSelectedId(s.id);
-                              setShowRewrite(true);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            <RefreshCw size={14} />
-                            {t("rewriteScript")}
-                          </button>
-                          <hr className="my-1 border-gray-200 dark:border-gray-700" />
-                          <button
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              if (confirm(tc("confirm") + "?")) {
-                                deleteMutation.mutate(s.id);
-                              }
-                            }}
-                          >
-                            <Trash2 size={14} />
-                            {tc("delete")}
-                          </button>
-                        </div>
-                      )}
+                        )}
+                        <h3 className="font-semibold truncate">{s.title}</h3>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${label.color}`}>
+                          {label.text}
+                        </span>
+                        {isImport && chapterList.length > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                            {chapterList.length} {t("chaptersCount")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                        {s.content.slice(0, 200)}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {new Date(s.createdAt).toLocaleDateString()}
+                      </p>
                     </div>
-                  </div>
-                </Card>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Primary action: Create Project */}
+                      <Button
+                        variant="secondary"
+                        onClick={() => createProjectMutation.mutate(s.id)}
+                        disabled={createProjectMutation.isPending}
+                        className="text-xs px-3 py-1.5 h-auto"
+                        title={t("createProjectDesc")}
+                      >
+                        <FolderPlus size={14} className="mr-1" />
+                        {t("createProject")}
+                      </Button>
+
+                      {/* More actions dropdown */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
+                          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                          title={t("moreActions")}
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                        {openMenuId === s.id && (
+                          <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                              onClick={() => { setViewScript(s); setOpenMenuId(null); }}
+                            >
+                              <Eye size={14} />
+                              {t("view")}
+                            </button>
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                              onClick={() => {
+                                setEditScript(s);
+                                setTitle(s.title);
+                                setContent(s.content);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              <Pencil size={14} />
+                              {tc("edit")}
+                            </button>
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                              onClick={() => {
+                                setRewritePreSelectedId(s.id);
+                                setShowRewrite(true);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              <RefreshCw size={14} />
+                              {t("rewriteScript")}
+                            </button>
+                            <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                if (confirm(tc("confirm") + "?")) {
+                                  deleteMutation.mutate(s.id);
+                                }
+                              }}
+                            >
+                              <Trash2 size={14} />
+                              {tc("delete")}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Expanded chapters */}
+                  {isExpanded && chapterList.length > 0 && (
+                    <div className="ml-6 mt-1 space-y-1">
+                      {chapterList.map((ch) => {
+                        const chLabel = sourceTypeLabel(ch.sourceType);
+                        return (
+                          <Card key={ch.id} className="flex items-center justify-between gap-3 py-2 px-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 font-mono">#{ch.chapterIndex}</span>
+                                <span className="text-sm font-medium truncate">{ch.title}</span>
+                                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${chLabel.color}`}>
+                                  {chLabel.text}
+                                </span>
+                              </div>
+                              {ch.chapterSummary && (
+                                <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ch.chapterSummary}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="secondary"
+                              onClick={() => createProjectMutation.mutate(ch.id)}
+                              disabled={createProjectMutation.isPending}
+                              className="text-xs px-2 py-1 h-auto"
+                            >
+                              <FolderPlus size={12} className="mr-1" />
+                              {t("createProject")}
+                            </Button>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -444,6 +533,13 @@ export default function ScriptsPage() {
           onSuccess={refreshScripts}
           scripts={scripts}
           preSelectedId={rewritePreSelectedId}
+        />
+
+        {/* Smart Import Dialog */}
+        <SmartImportDialog
+          open={showSmartImport}
+          onClose={() => setShowSmartImport(false)}
+          onSuccess={refreshScripts}
         />
       </div>
     </AppShell>
