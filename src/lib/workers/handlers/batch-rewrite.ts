@@ -54,8 +54,23 @@ export const handleBatchRewrite = withTaskLifecycle(async (payload: TaskPayload,
   // 3. Rewrite each chapter sequentially with streaming output
   let rewrittenCount = 0;
 
+  // Skip chapters that already have a rewrite (resume after partial failure)
+  const existingRewrites = await prisma.script.findMany({
+    where: { parentId: { in: chapters.map((c) => c.id) }, sourceType: "rewrite", userId },
+    select: { parentId: true },
+  });
+  const alreadyRewritten = new Set(existingRewrites.map((r) => r.parentId));
+
   for (let i = 0; i < chapters.length; i++) {
     const chapter = chapters[i];
+
+    if (alreadyRewritten.has(chapter.id)) {
+      ctx.publishText(`\n## 第 ${i + 1}/${chapters.length} 章: ${chapter.title} ✓ (已完成)\n`);
+      rewrittenCount++;
+      const progress = 10 + Math.round(((i + 1) / chapters.length) * 85);
+      await ctx.reportProgress(progress);
+      continue;
+    }
 
     if (i > 0) {
       ctx.publishText("\n---CHAPTER_BREAK---\n");

@@ -183,7 +183,12 @@
     "waitingForAnalysis": "等待分析启动...",
     "cleanText": "清理装饰文本",
     "cleanedLines": "已清理 {count} 行装饰文本",
-    "alreadyClean": "文本已经很干净了"
+    "alreadyClean": "文本已经很干净了",
+    "resumeImport": "继续上次导入",
+    "resumeImportDesc": "上次导入了 {chapters} 章，已改写 {rewritten} 章",
+    "resumeImportAnalyzing": "上次的分章分析仍在进行中",
+    "resumeImportRewriting": "上次的批量改写仍在进行中",
+    "newImport": "开始新导入"
   },
   "import": {
     "title": "智能导入",

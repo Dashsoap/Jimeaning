@@ -9,7 +9,8 @@
       "Bash(npm install:*)",
       "Bash(npm test:*)",
       "Bash(sshpass:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npx next:*)"
     ]
   }
 }

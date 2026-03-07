@@ -13,6 +13,44 @@ export function createLLMClient(config: LLMClientConfig) {
   });
 }
 
+// ─── Retry helper for transient API errors (502, 503, rate limit, network) ──
+
+function isRetryableError(err: unknown): boolean {
+  if (err instanceof OpenAI.APIError) {
+    return [429, 500, 502, 503, 504].includes(err.status);
+  }
+  if (err instanceof Error) {
+    const msg = err.message.toLowerCase();
+    return msg.includes("econnreset") || msg.includes("etimedout") ||
+           msg.includes("socket hang up") || msg.includes("network");
+  }
+  return false;
+}
+
+const DEFAULT_MAX_RETRIES = 3;
+const RETRY_BASE_DELAY = 3000; // 3s, 6s, 12s
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = DEFAULT_MAX_RETRIES,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxRetries && isRetryableError(err)) {
+        const delay = RETRY_BASE_DELAY * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 export async function chatCompletion(
   client: OpenAI,
   params: {
@@ -23,19 +61,21 @@ export async function chatCompletion(
     responseFormat?: "json" | "text";
   }
 ): Promise<string> {
-  const response = await client.chat.completions.create({
-    model: params.model,
-    messages: [
-      { role: "system", content: params.systemPrompt },
-      { role: "user", content: params.userPrompt },
-    ],
-    temperature: params.temperature ?? 0.7,
-    ...(params.responseFormat === "json" && {
-      response_format: { type: "json_object" },
-    }),
-  });
+  return withRetry(async () => {
+    const response = await client.chat.completions.create({
+      model: params.model,
+      messages: [
+        { role: "system", content: params.systemPrompt },
+        { role: "user", content: params.userPrompt },
+      ],
+      temperature: params.temperature ?? 0.7,
+      ...(params.responseFormat === "json" && {
+        response_format: { type: "json_object" },
+      }),
+    });
 
-  return response.choices[0]?.message?.content ?? "";
+    return response.choices[0]?.message?.content ?? "";
+  });
 }
 
 /**
@@ -51,25 +91,27 @@ export async function chatCompletionStream(
     onChunk: (delta: string) => void;
   }
 ): Promise<string> {
-  const stream = await client.chat.completions.create({
-    model: params.model,
-    messages: [
-      { role: "system", content: params.systemPrompt },
-      { role: "user", content: params.userPrompt },
-    ],
-    temperature: params.temperature ?? 0.7,
-    stream: true,
-  });
+  return withRetry(async () => {
+    const stream = await client.chat.completions.create({
+      model: params.model,
+      messages: [
+        { role: "system", content: params.systemPrompt },
+        { role: "user", content: params.userPrompt },
+      ],
+      temperature: params.temperature ?? 0.7,
+      stream: true,
+    });
 
-  let full = "";
-  for await (const chunk of stream) {
-    const delta = chunk.choices[0]?.delta?.content;
-    if (delta) {
-      full += delta;
-      params.onChunk(delta);
+    let full = "";
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        full += delta;
+        params.onChunk(delta);
+      }
     }
-  }
-  return full;
+    return full;
+  });
 }
 
 /**

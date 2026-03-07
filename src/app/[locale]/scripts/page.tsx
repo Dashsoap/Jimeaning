@@ -89,9 +89,17 @@ export default function ScriptsPage() {
     enabled: status === "authenticated",
   });
 
+  // Build a set of chapter IDs so we can hide their child rewrites from top-level
+  const chapterIds = useMemo(
+    () => new Set(scripts.filter((s) => s.sourceType === "chapter").map((s) => s.id)),
+    [scripts],
+  );
+
   const filteredScripts = useMemo(() => {
-    // Hide chapter scripts from top-level list (they show under their master)
-    let result = scripts.filter((s) => s.sourceType !== "chapter");
+    // Hide chapter scripts and their child rewrites from top-level list
+    let result = scripts.filter(
+      (s) => s.sourceType !== "chapter" && !(s.parentId && chapterIds.has(s.parentId)),
+    );
     if (sourceFilter !== "all") {
       result = result.filter((s) => s.sourceType === sourceFilter);
     }
@@ -104,14 +112,21 @@ export default function ScriptsPage() {
       );
     }
     return result;
-  }, [scripts, sourceFilter, searchQuery]);
+  }, [scripts, sourceFilter, searchQuery, chapterIds]);
 
-  // Get chapter scripts for a given master
+  // Get chapter scripts for a given master, with their rewrites attached
   const getChapters = useCallback(
     (masterScriptId: string) =>
       scripts
         .filter((s) => s.masterScriptId === masterScriptId && s.sourceType === "chapter")
         .sort((a, b) => (a.chapterIndex ?? 0) - (b.chapterIndex ?? 0)),
+    [scripts],
+  );
+
+  // Get rewrite scripts for a given chapter
+  const getChapterRewrites = useCallback(
+    (chapterId: string) =>
+      scripts.filter((s) => s.parentId === chapterId && s.sourceType === "rewrite"),
     [scripts],
   );
 
@@ -404,30 +419,68 @@ export default function ScriptsPage() {
                     <div className="ml-6 mt-1 space-y-1">
                       {chapterList.map((ch) => {
                         const chLabel = sourceTypeLabel(ch.sourceType);
+                        const rewrites = getChapterRewrites(ch.id);
                         return (
-                          <Card key={ch.id} className="flex items-center justify-between gap-3 py-2 px-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-400 font-mono">#{ch.chapterIndex}</span>
-                                <span className="text-sm font-medium truncate">{ch.title}</span>
-                                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${chLabel.color}`}>
-                                  {chLabel.text}
-                                </span>
+                          <div key={ch.id}>
+                            <Card className="flex items-center justify-between gap-3 py-2 px-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-400 font-mono">#{ch.chapterIndex}</span>
+                                  <span className="text-sm font-medium truncate">{ch.title}</span>
+                                  <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${chLabel.color}`}>
+                                    {chLabel.text}
+                                  </span>
+                                </div>
+                                {ch.chapterSummary && (
+                                  <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ch.chapterSummary}</p>
+                                )}
                               </div>
-                              {ch.chapterSummary && (
-                                <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ch.chapterSummary}</p>
-                              )}
-                            </div>
-                            <Button
-                              variant="secondary"
-                              onClick={() => createProjectMutation.mutate(ch.id)}
-                              disabled={createProjectMutation.isPending}
-                              className="text-xs px-2 py-1 h-auto"
-                            >
-                              <FolderPlus size={12} className="mr-1" />
-                              {t("createProject")}
-                            </Button>
-                          </Card>
+                              <Button
+                                variant="secondary"
+                                onClick={() => createProjectMutation.mutate(ch.id)}
+                                disabled={createProjectMutation.isPending}
+                                className="text-xs px-2 py-1 h-auto"
+                              >
+                                <FolderPlus size={12} className="mr-1" />
+                                {t("createProject")}
+                              </Button>
+                            </Card>
+                            {/* Rewrites for this chapter */}
+                            {rewrites.map((rw) => {
+                              const rwLabel = sourceTypeLabel(rw.sourceType);
+                              return (
+                                <Card key={rw.id} className="flex items-center justify-between gap-3 py-2 px-3 ml-6 mt-1 border-l-2 border-purple-200 dark:border-purple-800">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <RefreshCw size={12} className="text-purple-400 shrink-0" />
+                                      <span className="text-sm font-medium truncate">{rw.title}</span>
+                                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${rwLabel.color}`}>
+                                        {rwLabel.text}
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-gray-400 line-clamp-1 mt-0.5 ml-5">{rw.content.slice(0, 100)}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      onClick={() => setViewScript(rw)}
+                                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                    <Button
+                                      variant="secondary"
+                                      onClick={() => createProjectMutation.mutate(rw.id)}
+                                      disabled={createProjectMutation.isPending}
+                                      className="text-xs px-2 py-1 h-auto"
+                                    >
+                                      <FolderPlus size={12} className="mr-1" />
+                                      {t("createProject")}
+                                    </Button>
+                                  </div>
+                                </Card>
+                              );
+                            })}
+                          </div>
                         );
                       })}
                     </div>

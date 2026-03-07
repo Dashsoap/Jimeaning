@@ -183,7 +183,12 @@
     "waitingForAnalysis": "Waiting for analysis to start...",
     "cleanText": "Clean junk text",
     "cleanedLines": "Removed {count} junk lines",
-    "alreadyClean": "Text is already clean"
+    "alreadyClean": "Text is already clean",
+    "resumeImport": "Resume Import",
+    "resumeImportDesc": "Previous import: {chapters} chapters, {rewritten} rewritten",
+    "resumeImportAnalyzing": "Previous analysis is still running",
+    "resumeImportRewriting": "Previous batch rewrite is still running",
+    "newImport": "Start New Import"
   },
   "import": {
     "title": "Smart Import",

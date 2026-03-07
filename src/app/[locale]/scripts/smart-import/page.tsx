@@ -36,6 +36,47 @@ interface Chapter {
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
+// ─── Session persistence (survives locale switch) ──────────────────────
+
+const SESSION_KEY = "smart-import-state";
+
+interface PersistedState {
+  step: Step;
+  textContent: string;
+  direction: string;
+  targetDuration: string;
+  customDuration: string;
+  targetEpisodes: string;
+  analysisModelKey: string;
+  rewriteModelKey: string;
+  splitTaskId: string | null;
+  rewriteTaskId: string | null;
+  masterScriptId: string | null;
+  chapters: Chapter[];
+  contentType: string;
+  rewritePrompt: string;
+}
+
+function saveState(state: PersistedState) {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+  } catch { /* quota exceeded etc */ }
+}
+
+function loadState(): PersistedState | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PersistedState;
+  } catch {
+    return null;
+  }
+}
+
+function clearPersistedState() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch { /* */ }
+}
+
 // ─── Constants ─────────────────────────────────────────────────────────
 
 const ACCEPTED_EXTENSIONS = [".txt", ".md", ".doc", ".docx"];
@@ -131,39 +172,57 @@ export default function SmartImportPage() {
   const router = useRouter();
   const locale = pathname.split("/")[1] || "zh";
 
+  // Restore persisted state (survives locale switch)
+  const persisted = useRef(loadState());
+
   // Step state
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<Step>(persisted.current?.step ?? 1);
 
   // Step 1: Text input
-  const [textContent, setTextContent] = useState("");
+  const [textContent, setTextContent] = useState(persisted.current?.textContent ?? "");
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 2: Parameters
-  const [direction, setDirection] = useState("");
-  const [targetDuration, setTargetDuration] = useState("1-2min");
-  const [customDuration, setCustomDuration] = useState("");
-  const [targetEpisodes, setTargetEpisodes] = useState("");
-  const [analysisModelKey, setAnalysisModelKey] = useState("");
-  const [rewriteModelKey, setRewriteModelKey] = useState("");
+  const [direction, setDirection] = useState(persisted.current?.direction ?? "");
+  const [targetDuration, setTargetDuration] = useState(persisted.current?.targetDuration ?? "1-2min");
+  const [customDuration, setCustomDuration] = useState(persisted.current?.customDuration ?? "");
+  const [targetEpisodes, setTargetEpisodes] = useState(persisted.current?.targetEpisodes ?? "");
+  const [analysisModelKey, setAnalysisModelKey] = useState(persisted.current?.analysisModelKey ?? "");
+  const [rewriteModelKey, setRewriteModelKey] = useState(persisted.current?.rewriteModelKey ?? "");
   const [llmModels, setLlmModels] = useState<LlmModel[]>([]);
 
   // Step 3: Smart split (task-based)
-  const [splitTaskId, setSplitTaskId] = useState<string | null>(null);
+  const [splitTaskId, setSplitTaskId] = useState<string | null>(persisted.current?.splitTaskId ?? null);
   const splitStream = useTaskTextStream(splitTaskId);
 
   // Step 4: Chapter preview
-  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>(persisted.current?.chapters ?? []);
   const [selectedChapterIdx, setSelectedChapterIdx] = useState(0);
-  const [contentType, setContentType] = useState<string>("");
+  const [contentType, setContentType] = useState<string>(persisted.current?.contentType ?? "");
   const [saving, setSaving] = useState(false);
 
   // Step 5: Batch rewrite
-  const [rewritePrompt, setRewritePrompt] = useState("");
-  const [rewriteTaskId, setRewriteTaskId] = useState<string | null>(null);
+  const [rewritePrompt, setRewritePrompt] = useState(persisted.current?.rewritePrompt ?? "");
+  const [rewriteTaskId, setRewriteTaskId] = useState<string | null>(persisted.current?.rewriteTaskId ?? null);
   const rewriteStream = useTaskTextStream(rewriteTaskId);
-  const [masterScriptId, setMasterScriptId] = useState<string | null>(null);
+  const [masterScriptId, setMasterScriptId] = useState<string | null>(persisted.current?.masterScriptId ?? null);
   const rewriteStreamRef = useRef<HTMLDivElement>(null);
+
+  // Persist state on changes (so locale switch doesn't lose progress)
+  useEffect(() => {
+    saveState({
+      step, textContent, direction, targetDuration, customDuration,
+      targetEpisodes, analysisModelKey, rewriteModelKey,
+      splitTaskId, rewriteTaskId, masterScriptId,
+      chapters, contentType, rewritePrompt,
+    });
+  }, [
+    step, textContent, direction, targetDuration, customDuration,
+    targetEpisodes, analysisModelKey, rewriteModelKey,
+    splitTaskId, rewriteTaskId, masterScriptId,
+    chapters, contentType, rewritePrompt,
+  ]);
 
   // Fetch LLM models
   useEffect(() => {
@@ -176,6 +235,46 @@ export default function SmartImportPage() {
         setLlmModels(models);
       })
       .catch(() => {});
+  }, []);
+
+  // Resume from DB if no sessionStorage state (e.g. tab was closed)
+  const [resumeChecked, setResumeChecked] = useState(false);
+  useEffect(() => {
+    // Only check if we're on step 1 with no content (fresh page load)
+    if (persisted.current || step !== 1 || textContent) {
+      setResumeChecked(true);
+      return;
+    }
+    fetch("/api/scripts/smart-import/resume")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.resumable) {
+          setMasterScriptId(data.masterScriptId);
+          setChapters(data.chapters || []);
+          if (data.importMeta) {
+            const meta = data.importMeta as Record<string, unknown>;
+            if (meta.direction) setDirection(meta.direction as string);
+            if (meta.targetDuration) setTargetDuration(meta.targetDuration as string);
+          }
+          if (data.activeTaskType === "SMART_SPLIT") {
+            setSplitTaskId(data.activeTaskId);
+            setStep(3);
+          } else if (data.activeTaskType === "BATCH_REWRITE") {
+            setRewriteTaskId(data.activeTaskId);
+            setStep(5);
+          } else {
+            setStep(data.step as Step);
+          }
+          toast.success(
+            locale === "zh"
+              ? `已恢复上次导入进度 (${data.totalChapters} 章, ${data.rewrittenCount} 已改写)`
+              : `Resumed previous import (${data.totalChapters} chapters, ${data.rewrittenCount} rewritten)`,
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => setResumeChecked(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // When split task completes, extract chapters from result
@@ -226,7 +325,10 @@ export default function SmartImportPage() {
 
   // ─── Handlers ────────────────────────────────────────────────────────
 
-  const goBack = () => router.push(`/${locale}/scripts`);
+  const goBack = () => {
+    clearPersistedState();
+    router.push(`/${locale}/scripts`);
+  };
 
   const handleFileImport = useCallback(async (file: File) => {
     if (!isAcceptedFile(file)) {
@@ -456,7 +558,10 @@ export default function SmartImportPage() {
     }
   };
 
-  const handleFinish = () => router.push(`/${locale}/scripts`);
+  const handleFinish = () => {
+    clearPersistedState();
+    router.push(`/${locale}/scripts`);
+  };
 
   // ─── Render ──────────────────────────────────────────────────────────
 
