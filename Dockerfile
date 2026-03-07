@@ -33,6 +33,7 @@ COPY --from=builder /app/prisma ./prisma
 
 # Worker source code (tsx runs TypeScript directly)
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 RUN mkdir -p /app/data /app/logs
