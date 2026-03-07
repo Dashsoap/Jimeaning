@@ -15,9 +15,13 @@ import {
   Eye,
   X,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
+import { PanelActionMenu } from "@/components/task/PanelActionMenu";
+import { AiModifyPromptDialog } from "@/components/task/AiModifyPromptDialog";
+import { ShotVariantsPanel } from "@/components/task/ShotVariantsPanel";
 import type { ProjectData, EpisodeData, PanelData } from "./types";
 
 interface StoryboardTabProps {
@@ -240,6 +244,30 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         >
           刷新
         </button>
+        {panelsWithImages > 0 && (
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/projects/${project.id}/download?type=images`);
+                if (!res.ok) { toast.error("无可下载内容"); return; }
+                const data = await res.json();
+                // Download each image
+                for (const item of data.items.slice(0, 20)) {
+                  const a = document.createElement("a");
+                  a.href = item.url;
+                  a.download = item.filename;
+                  a.target = "_blank";
+                  a.click();
+                }
+                toast.success(`开始下载 ${Math.min(data.items.length, 20)} 张图片`);
+              } catch { toast.error("下载失败"); }
+            }}
+            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            下载图片
+          </button>
+        )}
 
         {/* Stats */}
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-400">
@@ -364,7 +392,13 @@ function EpisodeSection({ episode, projectId }: { episode: EpisodeData; projectI
 function PanelCard({ panel, projectId }: { panel: PanelData; projectId: string }) {
   const [showPreview, setShowPreview] = useState(false);
   const [regenerating, setRegenerating] = useState<"image" | "video" | null>(null);
+  const [showModifyPrompt, setShowModifyPrompt] = useState(false);
+  const [showShotVariants, setShowShotVariants] = useState(false);
   const queryClient = useQueryClient();
+
+  const refreshProject = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+  }, [queryClient, projectId]);
 
   const handleRegenerate = async (type: "image" | "video", e: React.MouseEvent) => {
     e.stopPropagation();
@@ -484,6 +518,46 @@ function PanelCard({ panel, projectId }: { panel: PanelData; projectId: string }
               )}
             </button>
           )}
+          <PanelActionMenu
+            hasImage={!!panel.imageUrl}
+            onModifyPrompt={() => setShowModifyPrompt(true)}
+            onAnalyzeShots={() => setShowShotVariants(true)}
+            onGenerateVariant={() => setShowShotVariants(true)}
+            onDuplicate={async () => {
+              try {
+                const res = await fetch(
+                  `/api/projects/${projectId}/panels/${panel.id}/duplicate`,
+                  { method: "POST" }
+                );
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}));
+                  toast.error(err.error || "复制失败");
+                  return;
+                }
+                toast.success("面板已复制");
+                refreshProject();
+              } catch {
+                toast.error("复制失败");
+              }
+            }}
+            onDelete={async () => {
+              if (!confirm("确定删除此面板？")) return;
+              try {
+                const res = await fetch(
+                  `/api/projects/${projectId}/panels/${panel.id}`,
+                  { method: "DELETE" }
+                );
+                if (!res.ok) {
+                  toast.error("删除失败");
+                  return;
+                }
+                toast.success("面板已删除");
+                refreshProject();
+              } catch {
+                toast.error("删除失败");
+              }
+            }}
+          />
         </div>
 
         <div className="p-1.5">
@@ -535,6 +609,51 @@ function PanelCard({ panel, projectId }: { panel: PanelData; projectId: string }
             )}
           </div>
         </div>
+      )}
+
+      {showModifyPrompt && (
+        <AiModifyPromptDialog
+          panelId={panel.id}
+          currentPrompt={panel.imagePrompt || panel.sceneDescription || ""}
+          projectId={projectId}
+          onClose={() => setShowModifyPrompt(false)}
+          onSuccess={refreshProject}
+        />
+      )}
+
+      {showShotVariants && (
+        <ShotVariantsPanel
+          panelId={panel.id}
+          projectId={projectId}
+          onClose={() => setShowShotVariants(false)}
+          onSelectVariant={async (variant) => {
+            setShowShotVariants(false);
+            try {
+              const res = await fetch(`/api/projects/${projectId}/panel-variant`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  panelId: panel.id,
+                  variant: {
+                    description: variant.description,
+                    shot_type: variant.shot_type,
+                    camera_move: variant.camera_move,
+                  },
+                }),
+              });
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                toast.error(err.error || "生成变体失败");
+                return;
+              }
+              toast.success("变体生成中...");
+              const { taskId } = await res.json();
+              pollTask(taskId, refreshProject);
+            } catch {
+              toast.error("提交失败");
+            }
+          }}
+        />
       )}
     </>
   );

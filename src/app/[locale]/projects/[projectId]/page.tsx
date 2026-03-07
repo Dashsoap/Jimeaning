@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { AppShell } from "@/components/layout/AppShell";
 import { useState } from "react";
@@ -13,8 +13,10 @@ import {
   Mic,
   Film,
   Loader2,
+  Copy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import toast from "react-hot-toast";
 
 import { ScriptTab } from "./components/ScriptTab";
 import { AssetsTab } from "./components/AssetsTab";
@@ -42,8 +44,11 @@ export default function ProjectWorkspacePage() {
   const { data: project, isLoading } = useQuery<ProjectData>({
     queryKey: ["project", projectId],
     queryFn: () => fetch(`/api/projects/${projectId}`).then((r) => r.json()),
-    refetchInterval: 30000, // Auto-refresh every 30s to pick up task results
+    refetchInterval: 30000,
   });
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = pathname.split("/")[1] || "zh";
 
   if (isLoading || !project) {
     return (
@@ -62,6 +67,22 @@ export default function ProjectWorkspacePage() {
         <div className="flex items-center gap-3 mb-4">
           <h1 className="text-2xl font-bold">{project.title}</h1>
           <ProjectStatusBadge status={project.status} />
+          <div className="flex-1" />
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch(`/api/projects/${projectId}/duplicate`, { method: "POST" });
+                if (!res.ok) { toast.error("复制失败"); return; }
+                const data = await res.json();
+                toast.success("项目已复制");
+                router.push(`/${locale}/projects/${data.id}`);
+              } catch { toast.error("复制失败"); }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          >
+            <Copy size={14} />
+            复制项目
+          </button>
         </div>
 
         {/* Tab Bar */}

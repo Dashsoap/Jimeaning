@@ -109,12 +109,13 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
     // no default LLM configured, use fallback
   }
 
-  // 6. Generate script from media
+  // 6. Generate script from media (streaming)
   const prompt = customPrompt
     ? `${REVERSE_SCRIPT_PROMPT}\n\n用户额外要求：${customPrompt}`
     : REVERSE_SCRIPT_PROMPT;
 
-  const response = await genai.models.generateContent({
+  let resultText = "";
+  const stream = await genai.models.generateContentStream({
     model: modelId,
     contents: [
       {
@@ -127,7 +128,15 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
     ],
   });
 
-  const resultText = response.text ?? "";
+  for await (const chunk of stream) {
+    const text = chunk.text ?? "";
+    if (text) {
+      resultText += text;
+      ctx.publishText(text);
+    }
+  }
+  await ctx.flushText();
+
   if (!resultText.trim()) {
     throw new Error("Gemini returned empty response");
   }

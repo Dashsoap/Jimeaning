@@ -16,3 +16,19 @@ ${content}
 ${prompt}
 
 请按照改写要求，输出改写后的完整剧本。`;
+
+export const REWRITE_SCRIPT_CHUNK_USER = (
+  content: string,
+  prompt: string,
+  chunkIndex: number,
+  totalChunks: number,
+) =>
+  `这是一个长剧本的第 ${chunkIndex + 1}/${totalChunks} 段。请按照改写要求改写这一段，保持与前后段落的连贯性。
+
+当前段落内容：
+${content}
+
+改写要求：
+${prompt}
+
+请直接输出改写后的内容，不要添加标题、段号或额外说明。`;

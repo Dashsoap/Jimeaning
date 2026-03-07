@@ -1,5 +1,9 @@
-import Redis from "ioredis";
+import type Redis from "ioredis";
+import { createSubscriber } from "@/lib/redis";
+import { createScopedLogger } from "@/lib/logging";
 import { TASK_PROGRESS_CHANNEL } from "@/lib/task/publisher";
+
+const logger = createScopedLogger({ module: "sse" });
 
 type MessageHandler = (data: string) => void;
 
@@ -15,13 +19,7 @@ class SharedSubscriber {
 
   private getConnection(): Redis {
     if (!this.subscriber) {
-      this.subscriber = new Redis({
-        host: process.env.REDIS_HOST ?? "localhost",
-        port: parseInt(process.env.REDIS_PORT ?? "6379"),
-        maxRetriesPerRequest: null,
-        lazyConnect: true,
-      });
-
+      this.subscriber = createSubscriber();
       this.subscriber.on("message", (_channel, message) => {
         for (const listener of this.listeners) {
           try {
@@ -30,10 +28,6 @@ class SharedSubscriber {
             // Don't let one listener crash others
           }
         }
-      });
-
-      this.subscriber.on("error", (err) => {
-        console.error("[SharedSubscriber] Redis error:", err.message);
       });
     }
     return this.subscriber;
@@ -47,11 +41,10 @@ class SharedSubscriber {
       this.connecting = true;
       try {
         const conn = this.getConnection();
-        await conn.connect();
         await conn.subscribe(TASK_PROGRESS_CHANNEL);
-        console.log("[SharedSubscriber] Subscribed to", TASK_PROGRESS_CHANNEL);
+        logger.info({ message: "Subscribed to channel", details: { channel: TASK_PROGRESS_CHANNEL } });
       } catch (err) {
-        console.error("[SharedSubscriber] Failed to subscribe:", err);
+        logger.error("Failed to subscribe", err);
       } finally {
         this.connecting = false;
       }
@@ -66,7 +59,7 @@ class SharedSubscriber {
         this.subscriber.unsubscribe().catch(() => {});
         this.subscriber.quit().catch(() => {});
         this.subscriber = null;
-        console.log("[SharedSubscriber] Disconnected (no listeners)");
+        logger.info("Disconnected (no listeners)");
       }
     };
   }

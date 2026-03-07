@@ -1,7 +1,27 @@
 import { prisma } from "@/lib/prisma";
-import { getQueueByType } from "./queues";
+import { getQueueByType, removeTaskJob } from "./queues";
 import { publishTaskProgress } from "./publisher";
-import type { TaskType, TaskPayload } from "./types";
+import type { TaskType, TaskPayload, TaskProgress } from "./types";
+
+/**
+ * Publish a text chunk via the existing task progress channel.
+ * Uses a minimal payload (status "running") so SSE consumers can accumulate text.
+ */
+export async function publishTextChunk(
+  taskId: string,
+  chunk: string,
+  projectId?: string
+) {
+  const msg: TaskProgress = {
+    taskId,
+    projectId,
+    progress: 0,
+    totalSteps: 0,
+    status: "running",
+    textChunk: chunk,
+  };
+  await publishTaskProgress(msg);
+}
 
 export async function createTask(params: {
   userId: string;
@@ -32,7 +52,7 @@ export async function createTask(params: {
 
   await prisma.task.update({
     where: { id: task.id },
-    data: { bullJobId: job.id, status: "running" },
+    data: { bullJobId: job.id, status: "running", startedAt: new Date() },
   });
 
   return task.id;
@@ -45,7 +65,11 @@ export async function updateTaskProgress(
 ) {
   const task = await prisma.task.update({
     where: { id: taskId },
-    data: { progress, ...(totalSteps !== undefined && { totalSteps }) },
+    data: {
+      progress,
+      heartbeatAt: new Date(),
+      ...(totalSteps !== undefined && { totalSteps }),
+    },
   });
 
   await publishTaskProgress({
@@ -61,13 +85,15 @@ export async function completeTask(
   taskId: string,
   result?: Record<string, unknown>
 ) {
+  const now = new Date();
   const task = await prisma.task.update({
     where: { id: taskId },
     data: {
       status: "completed",
       result: (result ?? undefined) as object | undefined,
       progress: 100,
-      completedAt: new Date(),
+      completedAt: now,
+      finishedAt: now,
     },
   });
 
@@ -80,10 +106,11 @@ export async function completeTask(
   });
 }
 
-export async function failTask(taskId: string, error: string) {
+export async function failTask(taskId: string, error: string, errorCode?: string) {
+  const now = new Date();
   await prisma.task.update({
     where: { id: taskId },
-    data: { status: "failed", error },
+    data: { status: "failed", error, errorCode, finishedAt: now },
   });
 
   const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -96,4 +123,91 @@ export async function failTask(taskId: string, error: string) {
     status: "failed",
     message: error,
   });
+}
+
+export async function touchTaskHeartbeat(taskId: string) {
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { heartbeatAt: new Date() },
+  });
+}
+
+export async function tryMarkTaskProcessing(taskId: string): Promise<boolean> {
+  try {
+    await prisma.task.updateMany({
+      where: { id: taskId, status: { in: ["pending", "running"] } },
+      data: {
+        status: "running",
+        startedAt: new Date(),
+        heartbeatAt: new Date(),
+        attempt: { increment: 1 },
+      },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Cancel a running/pending task. Marks it failed with TASK_CANCELLED,
+ * removes the BullMQ job, and publishes an SSE event.
+ */
+export async function cancelTask(
+  taskId: string,
+  userId: string
+): Promise<{ cancelled: boolean; error?: string }> {
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, userId },
+  });
+
+  if (!task) return { cancelled: false, error: "Task not found" };
+  if (task.status === "completed" || task.status === "failed") {
+    return { cancelled: false, error: "Task already finished" };
+  }
+
+  const now = new Date();
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      status: "failed",
+      error: "Cancelled by user",
+      errorCode: "TASK_CANCELLED",
+      finishedAt: now,
+    },
+  });
+
+  if (task.bullJobId) {
+    await removeTaskJob(task.bullJobId);
+  }
+
+  await publishTaskProgress({
+    taskId,
+    projectId: task.projectId ?? undefined,
+    progress: task.progress,
+    totalSteps: task.totalSteps,
+    status: "failed",
+    message: "Cancelled by user",
+  });
+
+  return { cancelled: true };
+}
+
+/**
+ * Dismiss (hide) failed tasks by marking them as "dismissed".
+ * Only works on tasks owned by the user with status "failed".
+ */
+export async function dismissFailedTasks(
+  taskIds: string[],
+  userId: string
+): Promise<number> {
+  const result = await prisma.task.updateMany({
+    where: {
+      id: { in: taskIds.slice(0, 200) },
+      userId,
+      status: "failed",
+    },
+    data: { status: "dismissed" },
+  });
+  return result.count;
 }

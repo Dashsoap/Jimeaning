@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:154.26.239.250)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npx skills:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)"
+    ]
+  }
+}

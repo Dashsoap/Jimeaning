@@ -10,6 +10,13 @@ export enum TaskType {
   BATCH_GENERATE = "BATCH_GENERATE",
   REVERSE_SCRIPT = "REVERSE_SCRIPT",
   REWRITE_SCRIPT = "REWRITE_SCRIPT",
+  PANEL_VARIANT = "PANEL_VARIANT",
+  AI_MODIFY_PROMPT = "AI_MODIFY_PROMPT",
+  ANALYZE_SHOT_VARIANTS = "ANALYZE_SHOT_VARIANTS",
+  IMAGE_CHARACTER = "IMAGE_CHARACTER",
+  IMAGE_LOCATION = "IMAGE_LOCATION",
+  EPISODE_SPLIT = "EPISODE_SPLIT",
+  ANALYZE_NOVEL = "ANALYZE_NOVEL",
 }
 
 export const QUEUE_NAMES = {
@@ -34,4 +41,6 @@ export interface TaskProgress {
   totalSteps: number;
   status: "running" | "completed" | "failed";
   message?: string;
+  errorCode?: string;
+  textChunk?: string;
 }

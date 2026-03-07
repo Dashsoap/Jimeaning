@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/logging";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RouteContext = { params: Promise<any> };
@@ -24,7 +25,7 @@ export function apiHandler(handler: ApiHandler): ApiHandler {
         );
       }
 
-      console.error("[API Error]", error);
+      logError("Unhandled API error", error);
       return NextResponse.json(
         { error: "Internal server error" },
         { status: 500 }

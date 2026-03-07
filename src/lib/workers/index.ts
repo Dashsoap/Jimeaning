@@ -1,5 +1,7 @@
 import { Worker } from "bullmq";
-import Redis from "ioredis";
+import { queueRedis } from "@/lib/redis";
+import { createScopedLogger } from "@/lib/logging";
+import { prisma } from "@/lib/prisma";
 import { QUEUE_NAMES, TaskType } from "@/lib/task/types";
 import type { TaskPayload } from "@/lib/task/types";
 
@@ -11,12 +13,15 @@ import { handleGenerateVoiceLine } from "./handlers/generate-voice-line";
 import { handleComposeVideo } from "./handlers/compose-video";
 import { handleReverseScript } from "./handlers/reverse-script";
 import { handleRewriteScript } from "./handlers/rewrite-script";
+import { handleAiModifyPrompt } from "./handlers/ai-modify-prompt";
+import { handleAnalyzeShotVariants } from "./handlers/analyze-shot-variants";
+import { handlePanelVariant } from "./handlers/panel-variant";
+import { handleImageCharacter } from "./handlers/image-character";
+import { handleImageLocation } from "./handlers/image-location";
+import { handleEpisodeSplit } from "./handlers/episode-split";
+import { handleAnalyzeNovel } from "./handlers/analyze-novel";
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST ?? "localhost",
-  port: parseInt(process.env.REDIS_PORT ?? "6379"),
-  maxRetriesPerRequest: null,
-});
+const logger = createScopedLogger({ module: "worker" });
 
 const handlers: Record<string, (payload: TaskPayload) => Promise<void>> = {
   [TaskType.ANALYZE_SCRIPT]: handleAnalyzeScript,
@@ -27,6 +32,13 @@ const handlers: Record<string, (payload: TaskPayload) => Promise<void>> = {
   [TaskType.COMPOSE_VIDEO]: handleComposeVideo,
   [TaskType.REVERSE_SCRIPT]: handleReverseScript,
   [TaskType.REWRITE_SCRIPT]: handleRewriteScript,
+  [TaskType.AI_MODIFY_PROMPT]: handleAiModifyPrompt,
+  [TaskType.ANALYZE_SHOT_VARIANTS]: handleAnalyzeShotVariants,
+  [TaskType.PANEL_VARIANT]: handlePanelVariant,
+  [TaskType.IMAGE_CHARACTER]: handleImageCharacter,
+  [TaskType.IMAGE_LOCATION]: handleImageLocation,
+  [TaskType.EPISODE_SPLIT]: handleEpisodeSplit,
+  [TaskType.ANALYZE_NOVEL]: handleAnalyzeNovel,
 };
 
 async function processJob(payload: TaskPayload) {
@@ -35,6 +47,24 @@ async function processJob(payload: TaskPayload) {
     throw new Error(`No handler for task type: ${payload.type}`);
   }
   await handler(payload);
+}
+
+/**
+ * Boot recovery: reset any "running" tasks back to "pending" on startup.
+ * These were interrupted by a previous crash/restart.
+ */
+async function bootRecovery() {
+  try {
+    const result = await prisma.task.updateMany({
+      where: { status: "running" },
+      data: { status: "pending", heartbeatAt: null },
+    });
+    if (result.count > 0) {
+      logger.warn({ message: `Boot recovery: reset ${result.count} running tasks to pending` });
+    }
+  } catch (error) {
+    logger.error("Boot recovery failed", error);
+  }
 }
 
 function startWorkers() {
@@ -49,23 +79,31 @@ function startWorkers() {
     const worker = new Worker(
       queueName,
       async (job) => {
-        console.log(`[Worker] Processing ${job.name} (${job.id})`);
+        logger.info({ message: `Processing ${job.name}`, taskId: job.id ?? undefined });
         await processJob(job.data as TaskPayload);
       },
-      { connection: connection as never, concurrency: conc }
+      { connection: queueRedis as never, concurrency: conc }
     );
 
     worker.on("completed", (job) => {
-      console.log(`[Worker] Completed ${job.name} (${job.id})`);
+      logger.info({ message: `Completed ${job.name}`, taskId: job.id ?? undefined });
     });
 
     worker.on("failed", (job, error) => {
-      console.error(`[Worker] Failed ${job?.name} (${job?.id}):`, error.message);
+      logger.error({ message: `Failed ${job?.name}`, taskId: job?.id ?? undefined, error: { name: error.name, message: error.message } });
     });
 
-    console.log(`[Worker] Started ${queueName} with concurrency ${conc}`);
+    logger.info({ message: `Started queue ${queueName}`, details: { concurrency: conc } });
   }
 }
 
-startWorkers();
-console.log("[Worker] All workers started");
+async function main() {
+  await bootRecovery();
+  startWorkers();
+  logger.info("All workers started");
+}
+
+main().catch((err) => {
+  logger.error("Worker startup failed", err);
+  process.exit(1);
+});

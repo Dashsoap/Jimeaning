@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { CreateScriptDialog } from "./components/CreateScriptDialog";
 import { ReverseScriptDialog } from "./components/ReverseScriptDialog";
 import { RewriteScriptDialog } from "./components/RewriteScriptDialog";
 import {
@@ -22,6 +23,8 @@ import {
   Pencil,
   Eye,
   X,
+  Search,
+  MoreHorizontal,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -35,6 +38,8 @@ interface Script {
   createdAt: string;
   updatedAt: string;
 }
+
+type SourceFilter = "all" | "manual" | "reverse" | "rewrite";
 
 export default function ScriptsPage() {
   const t = useTranslations("scripts");
@@ -53,12 +58,43 @@ export default function ScriptsPage() {
   const [editScript, setEditScript] = useState<Script | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const { data: scripts = [], isLoading } = useQuery<Script[]>({
     queryKey: ["scripts"],
     queryFn: () => fetch("/api/scripts").then((r) => r.json()),
     enabled: status === "authenticated",
   });
+
+  const filteredScripts = useMemo(() => {
+    let result = scripts;
+    if (sourceFilter !== "all") {
+      result = result.filter((s) => s.sourceType === sourceFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.title.toLowerCase().includes(q) ||
+          s.content.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [scripts, sourceFilter, searchQuery]);
 
   const createMutation = useMutation({
     mutationFn: (data: { title: string; content: string }) =>
@@ -70,8 +106,6 @@ export default function ScriptsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scripts"] });
       setShowCreate(false);
-      setTitle("");
-      setContent("");
       toast.success(tc("success"));
     },
   });
@@ -126,6 +160,13 @@ export default function ScriptsPage() {
     return labels[type] || labels.manual;
   };
 
+  const filterTabs: { key: SourceFilter; label: string }[] = [
+    { key: "all", label: t("allTypes") },
+    { key: "manual", label: t("sourceManual") },
+    { key: "reverse", label: t("sourceReverse") },
+    { key: "rewrite", label: t("sourceRewrite") },
+  ];
+
   if (status === "loading" || isLoading) {
     return (
       <AppShell>
@@ -139,32 +180,82 @@ export default function ScriptsPage() {
   return (
     <AppShell>
       <div className="max-w-4xl">
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">{t("title")}</h1>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setShowReverse(true)}>
+            <Button variant="ghost" onClick={() => setShowReverse(true)} title={t("reverseScriptDesc")}>
               <Upload size={18} className="mr-1" />
               {t("reverseScript")}
             </Button>
-            <Button variant="secondary" onClick={() => { setRewritePreSelectedId(undefined); setShowRewrite(true); }}>
+            <Button variant="ghost" onClick={() => { setRewritePreSelectedId(undefined); setShowRewrite(true); }} title={t("rewriteScriptDesc")}>
               <RefreshCw size={18} className="mr-1" />
               {t("rewriteScript")}
             </Button>
-            <Button onClick={() => setShowCreate(true)}>
+            <Button onClick={() => setShowCreate(true)} title={t("createScriptDesc")}>
               <Plus size={18} className="mr-1" />
               {t("createScript")}
             </Button>
           </div>
         </div>
 
+        {/* Search + Filter */}
+        {scripts.length > 0 && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                placeholder={t("searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+              {filterTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    sourceFilter === tab.key
+                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                  }`}
+                  onClick={() => setSourceFilter(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
         {!scripts.length ? (
-          <Card className="py-12 text-center text-gray-500">
+          /* Empty state with guidance */
+          <Card className="py-12 text-center">
             <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500 mb-1">{t("noScripts")}</p>
+            <p className="text-sm text-gray-400 mb-6">{t("emptyStateHint")}</p>
+            <div className="flex justify-center gap-3">
+              <Button variant="secondary" onClick={() => setShowReverse(true)} title={t("reverseScriptDesc")}>
+                <Upload size={16} className="mr-1" />
+                {t("reverseScript")}
+              </Button>
+              <Button onClick={() => setShowCreate(true)} title={t("createScriptDesc")}>
+                <Plus size={16} className="mr-1" />
+                {t("createScript")}
+              </Button>
+            </div>
+          </Card>
+        ) : filteredScripts.length === 0 ? (
+          <Card className="py-12 text-center text-gray-500">
+            <Search size={36} className="mx-auto mb-3 text-gray-300" />
             <p>{t("noScripts")}</p>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {scripts.map((s) => {
+          <div className="grid gap-4" ref={menuRef}>
+            {filteredScripts.map((s) => {
               const label = sourceTypeLabel(s.sourceType);
               return (
                 <Card key={s.id} className="flex items-start justify-between gap-4">
@@ -183,53 +274,75 @@ export default function ScriptsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => setViewScript(s)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                      title={t("view")}
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditScript(s);
-                        setTitle(s.title);
-                        setContent(s.content);
-                      }}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                      title={tc("edit")}
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setRewritePreSelectedId(s.id);
-                        setShowRewrite(true);
-                      }}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                      title={t("rewriteScript")}
-                    >
-                      <RefreshCw size={16} />
-                    </button>
-                    <button
+                    {/* Primary action: Create Project */}
+                    <Button
+                      variant="secondary"
                       onClick={() => createProjectMutation.mutate(s.id)}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20"
-                      title={t("createProject")}
                       disabled={createProjectMutation.isPending}
+                      className="text-xs px-3 py-1.5 h-auto"
+                      title={t("createProjectDesc")}
                     >
-                      <FolderPlus size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(tc("confirm") + "?")) {
-                          deleteMutation.mutate(s.id);
-                        }
-                      }}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
-                      title={tc("delete")}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      <FolderPlus size={14} className="mr-1" />
+                      {t("createProject")}
+                    </Button>
+
+                    {/* More actions dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
+                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                        title={t("moreActions")}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {openMenuId === s.id && (
+                        <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                          <button
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                            onClick={() => { setViewScript(s); setOpenMenuId(null); }}
+                          >
+                            <Eye size={14} />
+                            {t("view")}
+                          </button>
+                          <button
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                            onClick={() => {
+                              setEditScript(s);
+                              setTitle(s.title);
+                              setContent(s.content);
+                              setOpenMenuId(null);
+                            }}
+                          >
+                            <Pencil size={14} />
+                            {tc("edit")}
+                          </button>
+                          <button
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                            onClick={() => {
+                              setRewritePreSelectedId(s.id);
+                              setShowRewrite(true);
+                              setOpenMenuId(null);
+                            }}
+                          >
+                            <RefreshCw size={14} />
+                            {t("rewriteScript")}
+                          </button>
+                          <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                          <button
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              if (confirm(tc("confirm") + "?")) {
+                                deleteMutation.mutate(s.id);
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            {tc("delete")}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Card>
               );
@@ -237,45 +350,13 @@ export default function ScriptsPage() {
           </div>
         )}
 
-        {/* Create Script Modal */}
-        <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("createScript")}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              createMutation.mutate({ title, content });
-            }}
-            className="space-y-4"
-          >
-            <Input
-              id="title"
-              label={t("scriptTitle")}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-            <div>
-              <label htmlFor="content" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t("scriptContent")}
-              </label>
-              <textarea
-                id="content"
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
-                rows={8}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" onClick={() => setShowCreate(false)}>
-                {tc("cancel")}
-              </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {tc("create")}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+        {/* Create Script Dialog */}
+        <CreateScriptDialog
+          open={showCreate}
+          onClose={() => setShowCreate(false)}
+          onSubmit={(data) => createMutation.mutate(data)}
+          isPending={createMutation.isPending}
+        />
 
         {/* Edit Script Modal */}
         <Modal open={!!editScript} onClose={() => setEditScript(null)} title={tc("edit")}>

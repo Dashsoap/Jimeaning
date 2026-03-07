@@ -10,8 +10,10 @@ import {
   CheckCircle,
   FileText,
   AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
+import { SmartImportWizard } from "./SmartImportWizard";
 import type { ProjectData } from "./types";
 
 interface ScriptTabProps {
@@ -23,6 +25,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
   const [text, setText] = useState(project?.sourceText || "");
   const [saving, setSaving] = useState(false);
   const [analyzeTaskId, setAnalyzeTaskId] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const queryClient = useQueryClient();
 
   const hasChanges = text !== (project?.sourceText || "");
@@ -224,6 +227,15 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
         </button>
 
         <button
+          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          onClick={() => setShowImport(true)}
+          disabled={isAnalyzing}
+        >
+          <BookOpen className="h-4 w-4" />
+          智能导入
+        </button>
+
+        <button
           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
           onClick={handleAnalyze}
           disabled={isAnalyzing || !text.trim()}
@@ -236,6 +248,13 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
           {isAnalyzing ? "分析中..." : "AI 分析剧本"}
         </button>
       </div>
+
+      {/* Smart Import Wizard */}
+      <SmartImportWizard
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        projectId={project.id}
+      />
     </div>
   );
 }
