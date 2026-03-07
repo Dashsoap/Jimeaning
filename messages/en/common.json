@@ -180,7 +180,10 @@
     "rewriting": "Rewriting",
     "batchRewriteComplete": "Batch rewrite completed",
     "finish": "Finish",
-    "waitingForAnalysis": "Waiting for analysis to start..."
+    "waitingForAnalysis": "Waiting for analysis to start...",
+    "cleanText": "Clean junk text",
+    "cleanedLines": "Removed {count} junk lines",
+    "alreadyClean": "Text is already clean"
   },
   "import": {
     "title": "Smart Import",

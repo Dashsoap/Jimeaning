@@ -57,6 +57,64 @@ async function readTextFileWithEncoding(file: File): Promise<string> {
   }
 }
 
+/**
+ * Clean decorative junk lines from the start and end of imported text.
+ * Common in web novel downloads: box-drawing, stars, copyright notices, URLs.
+ * Returns { cleaned, removedCount }.
+ */
+function cleanImportedText(text: string): { cleaned: string; removedCount: number } {
+  const lines = text.split("\n");
+
+  // A line is "junk" if it's mostly decorative/non-content
+  const isJunkLine = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (trimmed.length === 0) return true;
+
+    // Pure decoration: lines made of stars, dashes, box chars, equals, etc.
+    if (/^[★☆✦✧※●○◎◇◆□■△▽▲▼┌┐└┘├┤┬┴┼│─═║╔╗╚╝╠╣╦╩╬\-=_~*+#.·…\s]+$/.test(trimmed)) return true;
+
+    // URLs
+    if (/^https?:\/\//.test(trimmed)) return true;
+    if (/^www\./.test(trimmed)) return true;
+
+    // Common site/copyright patterns
+    if (/书名[:：]/.test(trimmed) && trimmed.length < 50) return true;
+    if (/作者[:：]/.test(trimmed) && trimmed.length < 50) return true;
+    if (/文案[:：]?\s*$/.test(trimmed)) return true;
+    if (/晋江文学城|起点中文网|纵横中文网|番茄小说|七猫/.test(trimmed)) return true;
+    if (/版权所有|copyright|all rights reserved/i.test(trimmed)) return true;
+    if (/请勿转载|禁止转载|谢绝转载/.test(trimmed)) return true;
+    if (/手打|手动输入|校对/.test(trimmed) && trimmed.length < 30) return true;
+
+    // Very short lines with mostly special chars (>60% non-CJK, non-alphanumeric)
+    if (trimmed.length < 20) {
+      const cjkCount = (trimmed.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length;
+      const alphaCount = (trimmed.match(/[a-zA-Z0-9]/g) || []).length;
+      const contentRatio = (cjkCount + alphaCount) / trimmed.length;
+      if (contentRatio < 0.3) return true;
+    }
+
+    return false;
+  };
+
+  // Strip junk from the beginning
+  let start = 0;
+  while (start < lines.length && isJunkLine(lines[start])) {
+    start++;
+  }
+
+  // Strip junk from the end
+  let end = lines.length - 1;
+  while (end > start && isJunkLine(lines[end])) {
+    end--;
+  }
+
+  const removedCount = start + (lines.length - 1 - end);
+  const cleaned = lines.slice(start, end + 1).join("\n").trim();
+
+  return { cleaned, removedCount };
+}
+
 const DURATION_OPTIONS = [
   { value: "1-2min", labelKey: "shortDrama" },
   { value: "3-5min", labelKey: "mediumDrama" },
@@ -198,8 +256,15 @@ export default function SmartImportPage() {
         toast.error(t("fileEmpty"));
         return;
       }
-      setTextContent(text);
-      toast.success(t("importSuccess"));
+
+      // Auto-clean junk lines
+      const { cleaned, removedCount } = cleanImportedText(text);
+      setTextContent(cleaned);
+      if (removedCount > 0) {
+        toast.success(ti("cleanedLines", { count: removedCount }));
+      } else {
+        toast.success(t("importSuccess"));
+      }
     } catch {
       toast.error(t("importFailed"));
     } finally {
@@ -207,6 +272,16 @@ export default function SmartImportPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, [t, ti]);
+
+  const handleCleanText = () => {
+    const { cleaned, removedCount } = cleanImportedText(textContent);
+    if (removedCount > 0) {
+      setTextContent(cleaned);
+      toast.success(ti("cleanedLines", { count: removedCount }));
+    } else {
+      toast.success(ti("alreadyClean"));
+    }
+  };
 
   const handleStartSplit = async () => {
     try {
@@ -448,6 +523,15 @@ export default function SmartImportPage() {
                 <h2 className="text-lg font-semibold">{ti("inputText")}</h2>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-400">{charCount.toLocaleString()} {ti("chars")}</span>
+                  {charCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleCleanText}
+                      className="px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {ti("cleanText")}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}

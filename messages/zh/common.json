@@ -180,7 +180,10 @@
     "rewriting": "改写中",
     "batchRewriteComplete": "批量改写完成",
     "finish": "完成",
-    "waitingForAnalysis": "等待分析启动..."
+    "waitingForAnalysis": "等待分析启动...",
+    "cleanText": "清理装饰文本",
+    "cleanedLines": "已清理 {count} 行装饰文本",
+    "alreadyClean": "文本已经很干净了"
   },
   "import": {
     "title": "智能导入",
