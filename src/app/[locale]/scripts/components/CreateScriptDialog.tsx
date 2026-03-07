@@ -23,6 +23,27 @@ function isAcceptedFile(file: File): boolean {
   return ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
+/**
+ * Read a text file, trying UTF-8 first.
+ * If UTF-8 produces replacement characters (U+FFFD), retry with GBK.
+ */
+async function readTextFileWithEncoding(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+
+  // Try UTF-8
+  const utf8 = new TextDecoder("utf-8").decode(buffer);
+  // If no replacement chars, it's valid UTF-8
+  if (!utf8.includes("\uFFFD")) return utf8;
+
+  // Fall back to GBK (covers GB2312, GB18030 subset)
+  try {
+    return new TextDecoder("gbk").decode(buffer);
+  } catch {
+    // GBK decoder not available, return UTF-8 result as-is
+    return utf8;
+  }
+}
+
 function countParagraphs(text: string): number {
   if (!text.trim()) return 0;
   return text.split(/\n\s*\n/).filter((p) => p.trim()).length;
@@ -66,7 +87,8 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
         text = result.value;
       } else {
         // Plain text files: TXT, MD, SRT
-        text = await file.text();
+        // Try UTF-8 first, fall back to GBK for Chinese text files
+        text = await readTextFileWithEncoding(file);
       }
 
       if (!text.trim()) {
