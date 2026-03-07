@@ -332,3 +332,29 @@ Step 6: i18n + 验证
 - Removed: script-to-storyboard orchestrator (reuses existing GENERATE_STORYBOARD)
 - Removed: screenplay conversion, clip boundary matching, multi-phase storyboard plan
 - Kept: marker detection (fast path) + AI split, character/location extraction, batch episode save
+
+---
+
+### Phase 6: Storyboard Pipeline Enhancement
+**Goal**: Multi-phase storyboard generation aligned with waoowaoo's orchestrated pipeline
+**Status**: Complete
+
+**Schema Changes**:
+- Clip: added `screenplay` (JSON text) for structured screenplay data
+- Panel: added `shotType` (establishing/action/dialogue/reaction/detail/transition) and `cameraMove` (static/pan/tilt/zoom/dolly/tracking)
+
+**Pipeline (3 phases per clip)**:
+1. **Storyboard Planning**: Clip content + screenplay → 2-6 panels with shotType, cameraAngle, cameraMove, duration, sourceText
+2. **Detail Refinement**: Plan panels + character/location descriptions → refined sceneDescription + imagePrompt
+3. **Voice Line Extraction**: Clip content + panels → voice lines matched to panels by panelNumber
+
+**Enhanced Prompts**:
+- `analyze-script.ts`: Now generates structured screenplay per clip (INT/EXT headings, action/dialogue/voiceover breakdown)
+- `extract-entities.ts`: Richer visual descriptions for consistent image generation
+- `generate-storyboard-text.ts`: 3 prompt pairs (plan, detail, voice) replacing single monolithic prompt
+
+**Adaptation from waoowaoo**:
+- waoowaoo: 4-phase parallel (plan → cinematography ∥ acting → detail) + voice extraction
+- jimeaning: 3-phase sequential (plan → detail → voice) — simpler but same quality output
+- Not included: separate cinematography/acting agents (merged into detail phase)
+- Not included: screenplay conversion as separate task (inline in analyze-script)

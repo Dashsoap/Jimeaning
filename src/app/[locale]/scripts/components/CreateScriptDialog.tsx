@@ -15,7 +15,7 @@ interface CreateScriptDialogProps {
   isPending: boolean;
 }
 
-const ACCEPTED_EXTENSIONS = [".txt", ".md", ".srt", ".docx"];
+const ACCEPTED_EXTENSIONS = [".txt", ".md", ".srt", ".doc", ".docx"];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 function isAcceptedFile(file: File): boolean {
@@ -79,7 +79,7 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
       let text: string;
       const name = file.name.toLowerCase();
 
-      if (name.endsWith(".docx")) {
+      if (name.endsWith(".doc") || name.endsWith(".docx")) {
         // Parse Word document using mammoth
         const mammoth = await import("mammoth");
         const arrayBuffer = await file.arrayBuffer();
@@ -160,7 +160,7 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept=".txt,.md,.srt,.docx"
+              accept=".txt,.md,.srt,.doc,.docx"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) handleImportFile(f);

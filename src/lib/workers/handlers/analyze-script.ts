@@ -37,7 +37,7 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
     const client = createLLMClient(llmCfg);
     const model = llmCfg.model;
 
-    // 3. Analyze script — break into episodes + clips
+    // 3. Analyze script — break into episodes + clips with structured screenplay
     await ctx.reportProgress(10);
     const scriptResult = await chatCompletion(client, {
       model,
@@ -49,7 +49,7 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
     const parsed = JSON.parse(scriptResult);
     await ctx.reportProgress(50);
 
-    // 4. Extract characters + locations
+    // 4. Extract characters + locations (with richer descriptions)
     const entityResult = await chatCompletion(client, {
       model,
       systemPrompt: EXTRACT_ENTITIES_SYSTEM,
@@ -83,7 +83,7 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
       });
     }
 
-    // Create episodes + clips
+    // Create episodes + clips (with screenplay JSON)
     for (let i = 0; i < (parsed.episodes || []).length; i++) {
       const ep = parsed.episodes[i];
       const episode = await prisma.episode.create({
@@ -103,6 +103,7 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
             title: clip.title,
             description: clip.description,
             dialogue: clip.dialogue,
+            screenplay: clip.screenplay ? JSON.stringify(clip.screenplay) : null,
             sortOrder: j,
           },
         });
