@@ -176,7 +176,8 @@
     "startRewrite": "Start Rewrite",
     "rewriting": "Rewriting",
     "batchRewriteComplete": "Batch rewrite completed",
-    "finish": "Finish"
+    "finish": "Finish",
+    "waitingForAnalysis": "Waiting for analysis to start..."
   },
   "import": {
     "title": "Smart Import",

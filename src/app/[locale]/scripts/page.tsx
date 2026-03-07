@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { CreateScriptDialog } from "./components/CreateScriptDialog";
 import { ReverseScriptDialog } from "./components/ReverseScriptDialog";
 import { RewriteScriptDialog } from "./components/RewriteScriptDialog";
-import { SmartImportDialog } from "./components/SmartImportDialog";
+// SmartImportDialog removed — now a full page at /scripts/smart-import
 import {
   Plus,
   Trash2,
@@ -61,7 +61,6 @@ export default function ScriptsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showReverse, setShowReverse] = useState(false);
   const [showRewrite, setShowRewrite] = useState(false);
-  const [showSmartImport, setShowSmartImport] = useState(false);
   const [expandedMasterIds, setExpandedMasterIds] = useState<Set<string>>(new Set());
   const [rewritePreSelectedId, setRewritePreSelectedId] = useState<string | undefined>();
   const [viewScript, setViewScript] = useState<Script | null>(null);
@@ -224,7 +223,7 @@ export default function ScriptsPage() {
               <RefreshCw size={18} className="mr-1" />
               {t("rewriteScript")}
             </Button>
-            <Button variant="secondary" onClick={() => setShowSmartImport(true)} title={t("smartImportDesc")}>
+            <Button variant="secondary" onClick={() => router.push(`/${locale}/scripts/smart-import`)} title={t("smartImportDesc")}>
               <BookOpen size={18} className="mr-1" />
               {t("smartImport")}
             </Button>
@@ -535,12 +534,6 @@ export default function ScriptsPage() {
           preSelectedId={rewritePreSelectedId}
         />
 
-        {/* Smart Import Dialog */}
-        <SmartImportDialog
-          open={showSmartImport}
-          onClose={() => setShowSmartImport(false)}
-          onSuccess={refreshScripts}
-        />
       </div>
     </AppShell>
   );

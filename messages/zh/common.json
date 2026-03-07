@@ -176,7 +176,8 @@
     "startRewrite": "开始改写",
     "rewriting": "改写中",
     "batchRewriteComplete": "批量改写完成",
-    "finish": "完成"
+    "finish": "完成",
+    "waitingForAnalysis": "等待分析启动..."
   },
   "import": {
     "title": "智能导入",
