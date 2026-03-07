@@ -11,10 +11,6 @@ import {
   Upload,
   Loader2,
   ChevronRight,
-  GripVertical,
-  Trash2,
-  Merge,
-  Scissors,
   BookOpen,
   ArrowLeft,
   Check,
@@ -654,76 +650,71 @@ export default function SmartImportPage() {
 
             <div className="flex gap-4" style={{ minHeight: "500px" }}>
               {/* Left: Chapter list */}
-              <div className="w-80 shrink-0 overflow-y-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+              <div className="w-72 shrink-0 overflow-y-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
                 <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
                   <span className="text-sm font-medium text-gray-500">{ti("chapterCount", { count: chapters.length })}</span>
                 </div>
                 {chapters.map((ch, idx) => (
                   <div
                     key={idx}
-                    className={`flex items-start gap-2 px-3 py-3 cursor-pointer border-b border-gray-100 dark:border-gray-800 transition-colors ${
+                    className={`px-3 py-2.5 cursor-pointer border-b border-gray-100 dark:border-gray-800 transition-colors ${
                       selectedChapterIdx === idx
-                        ? "bg-blue-50 dark:bg-blue-900/20"
+                        ? "bg-blue-50 border-l-2 border-l-blue-500 dark:bg-blue-900/20"
                         : "hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                     onClick={() => setSelectedChapterIdx(idx)}
                   >
-                    <GripVertical size={14} className="text-gray-300 mt-1 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{ch.index}. {ch.title}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
-                        {ch.content.length.toLocaleString()} {ti("chars")}
-                      </div>
-                      {ch.summary && (
-                        <div className="text-xs text-gray-500 line-clamp-2 mt-1">{ch.summary}</div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1 shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleMergeChapter(idx); }}
-                        className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        title={ti("mergeChapter")}
-                        disabled={idx >= chapters.length - 1}
-                      >
-                        <Merge size={13} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleSplitChapter(idx); }}
-                        className="p-1 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        title={ti("splitChapter")}
-                      >
-                        <Scissors size={13} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteChapter(idx); }}
-                        className="p-1 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                        title={tc("delete")}
-                        disabled={chapters.length <= 1}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                    <div className="text-sm font-medium truncate">{ch.index}. {ch.title}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      {ch.content.length.toLocaleString()} {ti("chars")}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Right: Content preview */}
-              <div className="flex-1 overflow-y-auto rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+              {/* Right: Content preview + actions */}
+              <div className="flex-1 flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
                 {chapters[selectedChapterIdx] && (
                   <>
-                    <input
-                      type="text"
-                      className="w-full text-lg font-semibold mb-3 bg-transparent border-b-2 border-gray-200 pb-2 focus:outline-none focus:border-blue-500 dark:border-gray-700"
-                      value={chapters[selectedChapterIdx].title}
-                      onChange={(e) => {
-                        setChapters((prev) =>
-                          prev.map((ch, i) =>
-                            i === selectedChapterIdx ? { ...ch, title: e.target.value } : ch,
-                          ),
-                        );
-                      }}
-                    />
-                    <div className="text-sm whitespace-pre-wrap text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {/* Chapter title + action buttons */}
+                    <div className="px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                      <input
+                        type="text"
+                        className="w-full text-lg font-semibold bg-transparent focus:outline-none dark:text-gray-100"
+                        value={chapters[selectedChapterIdx].title}
+                        onChange={(e) => {
+                          setChapters((prev) =>
+                            prev.map((ch, i) =>
+                              i === selectedChapterIdx ? { ...ch, title: e.target.value } : ch,
+                            ),
+                          );
+                        }}
+                      />
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => handleMergeChapter(selectedChapterIdx)}
+                          disabled={selectedChapterIdx >= chapters.length - 1}
+                          className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                        >
+                          {ti("mergeWithNext")}
+                        </button>
+                        <button
+                          onClick={() => handleSplitChapter(selectedChapterIdx)}
+                          className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                        >
+                          {ti("splitInTwo")}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteChapter(selectedChapterIdx)}
+                          disabled={chapters.length <= 1}
+                          className="px-2.5 py-1 text-xs rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20"
+                        >
+                          {ti("deleteChapter")}
+                        </button>
+                      </div>
+                    </div>
+                    {/* Chapter content */}
+                    <div className="flex-1 overflow-y-auto px-5 py-4 text-sm whitespace-pre-wrap text-gray-600 dark:text-gray-400 leading-relaxed">
                       {chapters[selectedChapterIdx].content.substring(0, 5000)}
                       {chapters[selectedChapterIdx].content.length > 5000 && (
                         <span className="text-gray-400 italic">
