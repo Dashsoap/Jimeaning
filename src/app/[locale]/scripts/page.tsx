@@ -334,12 +334,20 @@ export default function ScriptsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 line-clamp-2 mt-1">
-                        {s.content.slice(0, 200)}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        {new Date(s.createdAt).toLocaleDateString()}
-                      </p>
+                      {isImport ? (
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(s.createdAt).toLocaleDateString()}
+                        </p>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                            {s.content.slice(0, 200)}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-2">
+                            {new Date(s.createdAt).toLocaleDateString()}
+                          </p>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {/* Primary action: Create Project */}
