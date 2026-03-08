@@ -1,13 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { createLLMClient, chatCompletion } from "@/lib/llm/client";
-import {
-  ANALYZE_SCRIPT_SYSTEM,
-  ANALYZE_SCRIPT_USER,
-} from "@/lib/llm/prompts/analyze-script";
-import {
-  EXTRACT_ENTITIES_SYSTEM,
-  EXTRACT_ENTITIES_USER,
-} from "@/lib/llm/prompts/extract-entities";
+import { ANALYZE_SCRIPT_SYSTEM, ANALYZE_SCRIPT_USER } from "@/lib/llm/prompts/analyze-script";
+import { EXTRACT_ENTITIES_SYSTEM, EXTRACT_ENTITIES_USER } from "@/lib/llm/prompts/extract-entities";
+import { detectLanguage } from "@/lib/llm/language-detect";
 import { resolveLlmConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
@@ -32,16 +27,19 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
   });
 
   try {
-    // 2. Get LLM config
+    // 2. Detect language for cultural context
+    const language = detectLanguage(project.sourceText);
+
+    // 3. Get LLM config
     const llmCfg = await resolveLlmConfig(userId);
     const client = createLLMClient(llmCfg);
     const model = llmCfg.model;
 
-    // 3. Analyze script — break into episodes + clips with structured screenplay
+    // 4. Analyze script — break into episodes + clips with structured screenplay
     await ctx.reportProgress(10);
     const scriptResult = await chatCompletion(client, {
       model,
-      systemPrompt: ANALYZE_SCRIPT_SYSTEM,
+      systemPrompt: ANALYZE_SCRIPT_SYSTEM(language),
       userPrompt: ANALYZE_SCRIPT_USER(project.sourceText),
       responseFormat: "json",
     });
@@ -49,10 +47,10 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
     const parsed = JSON.parse(scriptResult);
     await ctx.reportProgress(50);
 
-    // 4. Extract characters + locations (with richer descriptions)
+    // 5. Extract characters + locations (with language-aware descriptions)
     const entityResult = await chatCompletion(client, {
       model,
-      systemPrompt: EXTRACT_ENTITIES_SYSTEM,
+      systemPrompt: EXTRACT_ENTITIES_SYSTEM(language),
       userPrompt: EXTRACT_ENTITIES_USER(project.sourceText),
       responseFormat: "json",
     });
@@ -60,7 +58,7 @@ export const handleAnalyzeScript = withTaskLifecycle(async (payload: TaskPayload
     const entities = JSON.parse(entityResult);
     await ctx.reportProgress(70);
 
-    // 5. Save to database
+    // 6. Save to database
     // Create characters
     for (const char of entities.characters || []) {
       await prisma.character.create({

@@ -28,6 +28,7 @@ export class FalVideoGenerator implements VideoGenerator {
         image_url: params.imageUrl,
         prompt: params.prompt || "",
         duration: params.durationMs ? Math.round(params.durationMs / 1000) : 5,
+        ...(params.lastFrameImageUrl ? { tail_image_url: params.lastFrameImageUrl } : {}),
       }),
     });
 

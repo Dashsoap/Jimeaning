@@ -15,6 +15,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
 
   const body = await req.json().catch(() => ({}));
   const generateType = body.type || "image"; // "image" | "video" | "both"
+  const candidateCount = Math.min(Math.max(body.candidateCount || 1, 1), 4); // 1-4
 
   // Pre-validate: check user has the required models configured
   if (generateType === "image" || generateType === "both") {
@@ -49,7 +50,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
           userId: auth.session.user.id,
           projectId,
           type: TaskType.GENERATE_PANEL_IMAGE,
-          data: { panelId: panel.id },
+          data: { panelId: panel.id, candidateCount },
         });
         taskIds.push(taskId);
       }

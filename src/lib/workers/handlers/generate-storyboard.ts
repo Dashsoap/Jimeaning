@@ -3,11 +3,17 @@ import { createLLMClient, chatCompletion } from "@/lib/llm/client";
 import {
   STORYBOARD_PLAN_SYSTEM,
   STORYBOARD_PLAN_USER,
+  CINEMATOGRAPHY_SYSTEM,
+  CINEMATOGRAPHY_USER,
+  ACTING_DIRECTION_SYSTEM,
+  ACTING_DIRECTION_USER,
   STORYBOARD_DETAIL_SYSTEM,
   STORYBOARD_DETAIL_USER,
   VOICE_EXTRACT_SYSTEM,
   VOICE_EXTRACT_USER,
 } from "@/lib/llm/prompts/generate-storyboard-text";
+import { detectLanguage } from "@/lib/llm/language-detect";
+import type { DetectedLanguage } from "@/lib/llm/language-detect";
 import { resolveLlmConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
@@ -15,24 +21,47 @@ import { createScopedLogger } from "@/lib/logging";
 
 const logger = createScopedLogger({ module: "generate-storyboard" });
 
+// ─── Interfaces ──────────────────────────────────────────────────────────
+
 interface PlanPanel {
   panelNumber: number;
-  sceneDescription: string;
+  description: string;
+  characters?: Array<{ name: string; appearance?: string }>;
   location?: string;
-  characters?: string[];
+  sceneType?: string;
+  sourceText?: string;
   shotType?: string;
   cameraAngle?: string;
   cameraMove?: string;
   durationMs?: number;
-  sourceText?: string;
+}
+
+interface PhotographyRule {
+  panelNumber: number;
+  lighting?: { direction?: string; quality?: string } | string;
+  characters?: Array<{
+    name: string;
+    screenPosition?: string;
+    posture?: string;
+    facing?: string;
+  }>;
+  depthOfField?: string;
+  colorTone?: string;
+}
+
+interface ActingDirection {
+  panelNumber: number;
+  characters?: Array<{ name: string; acting: string }>;
 }
 
 interface DetailPanel {
   panelNumber: number;
-  sceneDescription: string;
-  imagePrompt: string;
+  description?: string;
+  shotType?: string;
   cameraAngle?: string;
   cameraMove?: string;
+  imagePrompt?: string;
+  videoPrompt?: string;
   durationMs?: number;
 }
 
@@ -42,6 +71,23 @@ interface VoiceLine {
   text: string;
   emotion?: string;
 }
+
+// ─── JSON parsing with retry ─────────────────────────────────────────────
+
+async function parseJsonWithRetry<T>(
+  raw: string,
+  retryFn: () => Promise<string>,
+): Promise<T> {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    logger.warn("JSON parse failed, retrying LLM call");
+    const retryRaw = await retryFn();
+    return JSON.parse(retryRaw);
+  }
+}
+
+// ─── Main Handler ─────────────────────────────────────────────────────────
 
 export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
   const { userId, projectId } = payload;
@@ -61,17 +107,23 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
   const locations = await prisma.location.findMany({ where: { projectId } });
 
   const charDescriptions = characters
-    .map((c) => `${c.name}: ${c.description}`)
+    .map((c) => `${c.name}: ${c.description || ""}`)
     .join("\n");
   const locDescriptions = locations
-    .map((l) => `${l.name}: ${l.description}`)
+    .map((l) => `${l.name}: ${l.description || ""}`)
     .join("\n");
 
+  // Detect language from first clip or project source text
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  const sampleText = episodes[0]?.clips[0]?.description || project?.sourceText || "";
+  const language: DetectedLanguage = detectLanguage(sampleText);
+  logger.info("Detected language", { language });
+
   // Count total clips for progress tracking
-  // 3 phases per clip: plan + detail + voice
+  // 4 phases per clip: plan + cinematography+acting (parallel) + detail + voice
   let totalClips = 0;
   for (const ep of episodes) totalClips += ep.clips.length;
-  const totalSteps = totalClips * 3;
+  const totalSteps = totalClips * 4; // plan + photo/acting + detail + voice
   let completedSteps = 0;
 
   await ctx.reportProgress(0, totalSteps);
@@ -84,63 +136,148 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
       const clipContent = clip.description || clip.title || "";
       const screenplay = clip.screenplay || null;
 
-      // ── Phase 1: Storyboard Planning ─────────────────────────────────
+      // ── Phase 1: Storyboard Planning (10-40%) ─────────────────────
       logger.info("Phase 1: Planning storyboard", { clipId: clip.id });
 
-      const planResult = await chatCompletion(client, {
-        model,
-        systemPrompt: STORYBOARD_PLAN_SYSTEM,
-        userPrompt: STORYBOARD_PLAN_USER(
-          clipContent,
-          screenplay,
-          charDescriptions,
-          locDescriptions,
-        ),
-        responseFormat: "json",
-      });
+      const callPlan = () =>
+        chatCompletion(client, {
+          model,
+          systemPrompt: STORYBOARD_PLAN_SYSTEM(language),
+          userPrompt: STORYBOARD_PLAN_USER(
+            clipContent,
+            screenplay,
+            charDescriptions,
+            locDescriptions,
+          ),
+          responseFormat: "json",
+        });
 
-      const planParsed = JSON.parse(planResult);
+      const planResult = await callPlan();
+      const planParsed = await parseJsonWithRetry<{ panels?: PlanPanel[] }>(
+        planResult,
+        callPlan,
+      );
       const planPanels: PlanPanel[] = (planParsed.panels || []).filter(
-        (p: PlanPanel) => p.sceneDescription,
+        (p) => p.description,
       );
 
       completedSteps++;
       await ctx.reportProgress(completedSteps, totalSteps);
 
-      // ── Phase 2: Detail Refinement + Image Prompt ────────────────────
-      logger.info("Phase 2: Refining details", { clipId: clip.id, panelCount: planPanels.length });
+      if (planPanels.length === 0) {
+        logger.warn("Phase 1 produced no panels, skipping clip", { clipId: clip.id });
+        completedSteps += 3; // Skip remaining phases
+        await ctx.reportProgress(completedSteps, totalSteps);
+        continue;
+      }
 
       const planPanelsJson = JSON.stringify(planPanels, null, 2);
-      const detailResult = await chatCompletion(client, {
-        model,
-        systemPrompt: STORYBOARD_DETAIL_SYSTEM,
-        userPrompt: STORYBOARD_DETAIL_USER(
-          planPanelsJson,
-          charDescriptions,
-          locDescriptions,
-        ),
-        responseFormat: "json",
+      const panelCount = planPanels.length;
+
+      // ── Phase 2a + 2b: Cinematography + Acting (parallel, 40-70%) ──
+      logger.info("Phase 2: Cinematography + Acting (parallel)", {
+        clipId: clip.id,
+        panelCount,
       });
 
-      const detailParsed = JSON.parse(detailResult);
+      const callCinematography = () =>
+        chatCompletion(client, {
+          model,
+          systemPrompt: CINEMATOGRAPHY_SYSTEM(language),
+          userPrompt: CINEMATOGRAPHY_USER(
+            planPanelsJson,
+            charDescriptions,
+            locDescriptions,
+            panelCount,
+          ),
+          responseFormat: "json",
+        });
+
+      const callActing = () =>
+        chatCompletion(client, {
+          model,
+          systemPrompt: ACTING_DIRECTION_SYSTEM(language),
+          userPrompt: ACTING_DIRECTION_USER(
+            planPanelsJson,
+            charDescriptions,
+            panelCount,
+          ),
+          responseFormat: "json",
+        });
+
+      // Run Phase 2a and 2b in parallel
+      const [cinematographyResult, actingResult] = await Promise.all([
+        callCinematography().then((raw) =>
+          parseJsonWithRetry<{ rules?: PhotographyRule[] }>(raw, callCinematography),
+        ),
+        callActing().then((raw) =>
+          parseJsonWithRetry<{ directions?: ActingDirection[] }>(raw, callActing),
+        ),
+      ]);
+
+      const photographyRules: PhotographyRule[] = cinematographyResult.rules || [];
+      const actingDirections: ActingDirection[] = actingResult.directions || [];
+
+      completedSteps++;
+      await ctx.reportProgress(completedSteps, totalSteps);
+
+      // ── Phase 3: Detail Refinement + video_prompt (70-95%) ─────────
+      logger.info("Phase 3: Detail refinement", { clipId: clip.id });
+
+      const photographyJson = JSON.stringify(photographyRules, null, 2);
+      const actingJson = JSON.stringify(actingDirections, null, 2);
+
+      const callDetail = () =>
+        chatCompletion(client, {
+          model,
+          systemPrompt: STORYBOARD_DETAIL_SYSTEM(language),
+          userPrompt: STORYBOARD_DETAIL_USER(
+            planPanelsJson,
+            photographyJson,
+            actingJson,
+            charDescriptions,
+            locDescriptions,
+          ),
+          responseFormat: "json",
+        });
+
+      const detailResult = await callDetail();
+      const detailParsed = await parseJsonWithRetry<{ panels?: DetailPanel[] }>(
+        detailResult,
+        callDetail,
+      );
       const detailPanels: DetailPanel[] = detailParsed.panels || [];
 
-      // Merge plan + detail data and save panels
+      // Merge all phases and save panels
       const savedPanels: Array<{ id: string; panelNumber: number }> = [];
       for (let i = 0; i < planPanels.length; i++) {
         const plan = planPanels[i];
-        const detail = detailPanels.find((d) => d.panelNumber === plan.panelNumber) || {} as DetailPanel;
+        const detail =
+          detailPanels.find((d) => d.panelNumber === plan.panelNumber) ||
+          ({} as DetailPanel);
+        const photoRule =
+          photographyRules.find((r) => r.panelNumber === plan.panelNumber) || null;
+        const actingDir =
+          actingDirections.find((d) => d.panelNumber === plan.panelNumber) || null;
 
         const panel = await prisma.panel.create({
           data: {
             clipId: clip.id,
-            sceneDescription: detail.sceneDescription || plan.sceneDescription,
+            sceneDescription: detail.description || plan.description,
             cameraAngle: detail.cameraAngle || plan.cameraAngle,
-            shotType: plan.shotType,
+            shotType: detail.shotType || plan.shotType,
             cameraMove: detail.cameraMove || plan.cameraMove,
             imagePrompt: detail.imagePrompt || null,
             durationMs: detail.durationMs || plan.durationMs || 3000,
             sortOrder: i,
+            // New Stage 3 fields
+            sceneType: plan.sceneType || null,
+            videoPrompt: detail.videoPrompt || null,
+            sourceText: plan.sourceText || null,
+            photographyRules: photoRule ? JSON.stringify(photoRule) : null,
+            actingNotes: actingDir?.characters
+              ? JSON.stringify(actingDir.characters)
+              : null,
           },
         });
         savedPanels.push({ id: panel.id, panelNumber: plan.panelNumber });
@@ -150,11 +287,11 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
       completedSteps++;
       await ctx.reportProgress(completedSteps, totalSteps);
 
-      // ── Phase 3: Voice Line Extraction ───────────────────────────────
-      // Only extract if there's dialogue or screenplay content
-      const hasDialogue = clip.dialogue || (screenplay && screenplay.includes('"dialogue"'));
+      // ── Phase 4: Voice Line Extraction (95-100%) ───────────────────
+      const hasDialogue =
+        clip.dialogue || (screenplay && screenplay.includes('"dialogue"'));
       if (hasDialogue && savedPanels.length > 0) {
-        logger.info("Phase 3: Extracting voice lines", { clipId: clip.id });
+        logger.info("Phase 4: Extracting voice lines", { clipId: clip.id });
 
         const voiceResult = await chatCompletion(client, {
           model,
@@ -162,11 +299,15 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
           userPrompt: VOICE_EXTRACT_USER(
             clipContent,
             screenplay,
-            JSON.stringify(planPanels.map((p) => ({
-              panelNumber: p.panelNumber,
-              sceneDescription: p.sceneDescription,
-              characters: p.characters,
-            })), null, 2),
+            JSON.stringify(
+              planPanels.map((p) => ({
+                panelNumber: p.panelNumber,
+                description: p.description,
+                characters: p.characters,
+              })),
+              null,
+              2,
+            ),
           ),
           responseFormat: "json",
         });
@@ -174,15 +315,16 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
         const voiceParsed = JSON.parse(voiceResult);
         const voiceLines: VoiceLine[] = voiceParsed.voiceLines || [];
 
-        // Match voice lines to saved panels by panelNumber
         for (const vl of voiceLines) {
-          const matchedPanel = savedPanels.find((sp) => sp.panelNumber === vl.panelNumber);
+          const matchedPanel = savedPanels.find(
+            (sp) => sp.panelNumber === vl.panelNumber,
+          );
           if (!matchedPanel || !vl.text) continue;
 
-          // Try to find character by name
-          const character = vl.speaker && vl.speaker !== "NARRATOR"
-            ? characters.find((c) => c.name === vl.speaker)
-            : null;
+          const character =
+            vl.speaker && vl.speaker !== "NARRATOR"
+              ? characters.find((c) => c.name === vl.speaker)
+              : null;
 
           await prisma.voiceLine.create({
             data: {
@@ -205,11 +347,16 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
     });
   }
 
-  logger.info("Storyboard generation complete", {
+  logger.info("Storyboard generation complete (4-phase pipeline)", {
     totalClips,
     totalPanelsCreated,
     totalVoiceLinesCreated,
+    language,
   });
 
-  return { totalClips, totalPanels: totalPanelsCreated, totalVoiceLines: totalVoiceLinesCreated };
+  return {
+    totalClips,
+    totalPanels: totalPanelsCreated,
+    totalVoiceLines: totalVoiceLinesCreated,
+  };
 });

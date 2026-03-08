@@ -6,6 +6,8 @@
 
 export const DETECT_CONTENT_TYPE_SYSTEM = `You are a professional literary editor. Your task is to determine whether a text is a novel/story, a screenplay/script, or other content.
 
+IMPORTANT: The "reason" field must match the language of the source text. If the source is Chinese, respond in Chinese.
+
 Respond ONLY with valid JSON.`;
 
 export const DETECT_CONTENT_TYPE_USER = (sample: string) =>
@@ -32,6 +34,7 @@ Rules:
 4. The "position" must be the exact character offset from the START of this text segment where the chapter begins.
 5. Provide a brief title for each chapter boundary.
 6. Do NOT place a boundary at position 0 (the beginning is implied).
+7. IMPORTANT: All text output (title, reason) must match the language of the source text. If the source is Chinese, respond in Chinese.
 
 Respond ONLY with valid JSON.`;
 
@@ -67,6 +70,8 @@ If no clear boundaries are found in this segment, return: { "boundaries": [] }`;
 // ─── Generate Chapter Summary ─────────────────────────────────────────
 
 export const GENERATE_CHAPTER_SUMMARY_SYSTEM = `You are a professional literary editor. Summarize the given chapter content.
+
+IMPORTANT: All text output (title, summary, characters, keyEvents) must match the language of the source text. If the source is Chinese, respond entirely in Chinese.
 
 Respond ONLY with valid JSON.`;
 

@@ -31,9 +31,9 @@ export function TaskStatusInline({ task, className = "" }: TaskStatusInlineProps
   if (presentation.state === "idle") return null;
 
   const percent =
-    presentation.totalSteps > 0
-      ? Math.round((presentation.progress / presentation.totalSteps) * 100)
-      : 0;
+    presentation.totalSteps > 1
+      ? Math.min(Math.round((presentation.progress / presentation.totalSteps) * 100), 100)
+      : Math.min(presentation.progress, 100);
 
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`}>

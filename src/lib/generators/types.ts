@@ -28,6 +28,7 @@ export interface VideoGenerateParams {
   prompt?: string;
   durationMs?: number;
   model?: string;
+  lastFrameImageUrl?: string; // for first-last-frame mode
 }
 
 export interface VideoGenerator {

@@ -3,15 +3,21 @@ import { createLLMClient, chatCompletion } from "@/lib/llm/client";
 import {
   GENERATE_IMAGE_PROMPT_SYSTEM,
   GENERATE_IMAGE_PROMPT_USER,
+  buildImagePromptFromContext,
 } from "@/lib/llm/prompts/generate-image-prompt";
+import { detectLanguage } from "@/lib/llm/language-detect";
 import { createImageGenerator } from "@/lib/generators/factory";
 import { resolveImageConfig, resolveLlmConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
+import { createScopedLogger } from "@/lib/logging";
+
+const logger = createScopedLogger({ module: "generate-panel-image" });
 
 export const handleGeneratePanelImage = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
   const { userId, projectId, data } = payload;
   const panelId = data.panelId as string;
+  const candidateCount = (data.candidateCount as number) || 1;
 
   const panel = await prisma.panel.findUniqueOrThrow({
     where: { id: panelId },
@@ -30,34 +36,71 @@ export const handleGeneratePanelImage = withTaskLifecycle(async (payload: TaskPa
   const characters = await prisma.character.findMany({
     where: { projectId },
   });
+  const locations = await prisma.location.findMany({
+    where: { projectId },
+  });
+
   const charDesc = characters
-    .map((c) => `${c.name}: ${c.description}`)
+    .map((c) => `${c.name}: ${c.description || ""}`)
     .join("; ");
 
-  // Step 1: Generate optimized image prompt via LLM
-  await ctx.reportProgress(30);
-  const llmCfg = await resolveLlmConfig(userId);
-  const client = createLLMClient(llmCfg);
-  const llmModel = llmCfg.model;
+  // Detect language
+  const sampleText = panel.sourceText || panel.sceneDescription || project.sourceText || "";
+  const language = detectLanguage(sampleText);
 
-  const imagePrompt = await chatCompletion(client, {
-    model: llmModel,
-    systemPrompt: GENERATE_IMAGE_PROMPT_SYSTEM,
-    userPrompt: GENERATE_IMAGE_PROMPT_USER(
-      panel.sceneDescription || "",
-      panel.cameraAngle || "medium",
-      project.style,
-      charDesc
-    ),
-  });
+  // Step 1: Generate or assemble image prompt
+  await ctx.reportProgress(20);
+
+  let imagePrompt: string;
+
+  // Try structured prompt from Stage 3 data first
+  const structuredPrompt = buildImagePromptFromContext(
+    {
+      sceneDescription: panel.sceneDescription || "",
+      cameraAngle: panel.cameraAngle || undefined,
+      shotType: panel.shotType || undefined,
+      cameraMove: panel.cameraMove || undefined,
+      photographyRules: panel.photographyRules || undefined,
+      actingNotes: panel.actingNotes || undefined,
+      videoPrompt: panel.videoPrompt || undefined,
+      sceneType: panel.sceneType || undefined,
+    },
+    characters.map((c) => ({ name: c.name, description: c.description || undefined })),
+    locations.map((l) => ({ name: l.name, description: l.description || undefined })),
+    project.style,
+    language,
+  );
+
+  if (structuredPrompt) {
+    // Use assembled prompt directly — no extra LLM call needed
+    imagePrompt = structuredPrompt;
+    logger.info("Using structured image prompt from Stage 3 data", { panelId });
+  } else {
+    // Fallback: LLM-based prompt generation
+    logger.info("Falling back to LLM image prompt generation", { panelId });
+    const llmCfg = await resolveLlmConfig(userId);
+    const client = createLLMClient(llmCfg);
+    const llmModel = llmCfg.model;
+
+    imagePrompt = await chatCompletion(client, {
+      model: llmModel,
+      systemPrompt: GENERATE_IMAGE_PROMPT_SYSTEM(language),
+      userPrompt: GENERATE_IMAGE_PROMPT_USER(
+        panel.sceneDescription || "",
+        panel.cameraAngle || "medium",
+        project.style,
+        charDesc,
+      ),
+    });
+  }
 
   await prisma.panel.update({
     where: { id: panelId },
     data: { imagePrompt },
   });
 
-  // Step 2: Generate image
-  await ctx.reportProgress(60);
+  // Step 2: Generate image(s)
+  await ctx.reportProgress(40);
   const { provider, config } = await resolveImageConfig(userId);
   const generator = createImageGenerator(provider, config);
 
@@ -67,22 +110,44 @@ export const handleGeneratePanelImage = withTaskLifecycle(async (payload: TaskPa
   const width = w > h ? Math.round(baseSize * (w / h)) : baseSize;
   const height = h > w ? Math.round(baseSize * (h / w)) : baseSize;
 
-  const result = await generator.generate({
+  const generateParams = {
     prompt: imagePrompt,
     width,
     height,
     style: project.style,
-  });
+  };
 
-  // Save result
-  const imageUrl = result.url || (result.base64 ? `data:image/png;base64,${result.base64}` : null);
+  // Generate N candidate images in parallel
+  const generatePromises = Array.from({ length: candidateCount }, () =>
+    generator.generate(generateParams),
+  );
+
+  const results = await Promise.all(generatePromises);
+
+  const candidateUrls: string[] = [];
+  for (const result of results) {
+    const url = result.url || (result.base64 ? `data:image/png;base64,${result.base64}` : null);
+    if (url) candidateUrls.push(url);
+  }
+
+  // Save results
+  const imageUrl = candidateUrls[0] || null;
+  const updateData: Record<string, unknown> = {};
 
   if (imageUrl) {
+    updateData.imageUrl = imageUrl;
+  }
+  if (candidateUrls.length > 1) {
+    updateData.candidateImages = JSON.stringify(candidateUrls);
+    updateData.selectedImageIndex = 0;
+  }
+
+  if (Object.keys(updateData).length > 0) {
     await prisma.panel.update({
       where: { id: panelId },
-      data: { imageUrl },
+      data: updateData,
     });
   }
 
-  return { panelId, imageUrl };
+  return { panelId, imageUrl, candidateCount: candidateUrls.length };
 });

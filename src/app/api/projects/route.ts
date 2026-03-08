@@ -8,10 +8,10 @@ export const GET = apiHandler(async () => {
   if (isErrorResponse(auth)) return auth;
 
   const projects = await prisma.project.findMany({
-    where: { userId: auth.user.id },
+    where: { userId: auth.user.id, parentId: null },
     orderBy: { updatedAt: "desc" },
     include: {
-      _count: { select: { episodes: true } },
+      _count: { select: { episodes: true, childProjects: true } },
     },
   });
 

@@ -177,16 +177,25 @@ export default function ScriptsPage() {
   });
 
   const createProjectMutation = useMutation({
-    mutationFn: (scriptId: string) =>
-      fetch(`/api/scripts/${scriptId}/create-project`, { method: "POST" }).then(
-        (r) => r.json()
-      ),
+    mutationFn: async (scriptId: string) => {
+      const r = await fetch(`/api/scripts/${scriptId}/create-project`, { method: "POST" });
+      const data = await r.json();
+      if (!r.ok) {
+        throw { status: r.status, ...data };
+      }
+      return data;
+    },
     onSuccess: (data) => {
       toast.success(tc("success"));
       router.push(`/${locale}/projects/${data.projectId}`);
     },
-    onError: () => {
-      toast.error(tc("error"));
+    onError: (err: { status?: number; projectId?: string; error?: string }) => {
+      if (err.status === 409 && err.projectId) {
+        toast.error(t("projectAlreadyExists"));
+        router.push(`/${locale}/projects/${err.projectId}`);
+      } else {
+        toast.error(tc("error"));
+      }
     },
   });
 
@@ -443,15 +452,6 @@ export default function ScriptsPage() {
                                   <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ch.chapterSummary}</p>
                                 )}
                               </div>
-                              <Button
-                                variant="secondary"
-                                onClick={() => createProjectMutation.mutate(ch.id)}
-                                disabled={createProjectMutation.isPending}
-                                className="text-xs px-2 py-1 h-auto"
-                              >
-                                <FolderPlus size={12} className="mr-1" />
-                                {t("createProject")}
-                              </Button>
                             </Card>
                             {/* Rewrites for this chapter */}
                             {rewrites.map((rw) => {

@@ -108,15 +108,17 @@ export function TaskProgressPanel({ projectId }: TaskProgressPanelProps) {
                         className="h-full rounded-full bg-blue-500 transition-all duration-500"
                         style={{
                           width: `${
-                            event.totalSteps > 0
-                              ? (event.progress / event.totalSteps) * 100
-                              : 0
+                            event.totalSteps > 1
+                              ? Math.min((event.progress / event.totalSteps) * 100, 100)
+                              : Math.min(event.progress, 100)
                           }%`,
                         }}
                       />
                     </div>
                     <span className="text-[10px] text-gray-400 shrink-0">
-                      {event.progress}/{event.totalSteps}
+                      {event.totalSteps > 1
+                        ? `${event.progress}/${event.totalSteps}`
+                        : `${Math.min(event.progress, 100)}%`}
                     </span>
                   </div>
                 )}

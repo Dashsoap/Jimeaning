@@ -10,8 +10,27 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { Plus, Trash2, Film } from "lucide-react";
+import { Plus, Trash2, Film, ChevronDown, ChevronUp } from "lucide-react";
 import toast from "react-hot-toast";
+
+interface ProjectItem {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  updatedAt: string;
+  parentId: string | null;
+  _count?: { episodes: number; childProjects: number };
+}
+
+interface ChildProject {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  updatedAt: string;
+  _count?: { episodes: number };
+}
 
 export default function ProjectsPage() {
   const t = useTranslations("project");
@@ -25,8 +44,9 @@ export default function ProjectsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const { data: projects, isLoading } = useQuery({
+  const { data: projects, isLoading } = useQuery<ProjectItem[]>({
     queryKey: ["projects"],
     queryFn: () => fetch("/api/projects").then((r) => r.json()),
     enabled: status === "authenticated",
@@ -57,6 +77,15 @@ export default function ProjectsPage() {
     },
   });
 
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   if (status === "loading" || isLoading) {
     return (
       <AppShell>
@@ -85,49 +114,77 @@ export default function ProjectsPage() {
           </Card>
         ) : (
           <div className="grid gap-4">
-            {projects.map(
-              (p: {
-                id: string;
-                title: string;
-                description: string | null;
-                status: string;
-                updatedAt: string;
-                _count?: { episodes: number };
-              }) => (
-                <Card
-                  key={p.id}
-                  onClick={() => router.push(`/${locale}/projects/${p.id}`)}
-                  className="flex items-center justify-between"
-                >
-                  <div>
-                    <h3 className="font-semibold">{p.title}</h3>
-                    {p.description && (
-                      <p className="text-sm text-gray-500 mt-1 line-clamp-1">
-                        {p.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                      <span>{p.status}</span>
-                      <span>{p._count?.episodes ?? 0} episodes</span>
-                      <span>
-                        {new Date(p.updatedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (confirm(t("delete") + "?")) {
-                        deleteMutation.mutate(p.id);
+            {projects.map((p) => {
+              const childCount = p._count?.childProjects ?? 0;
+              const isExpanded = expandedIds.has(p.id);
+
+              return (
+                <div key={p.id}>
+                  <Card
+                    onClick={() => {
+                      if (childCount > 0) {
+                        toggleExpand(p.id);
+                      } else {
+                        router.push(`/${locale}/projects/${p.id}`);
                       }
                     }}
-                    className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                    className="flex items-center justify-between"
                   >
-                    <Trash2 size={18} />
-                  </button>
-                </Card>
-              )
-            )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {childCount > 0 && (
+                          <span className="text-gray-400">
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </span>
+                        )}
+                        <h3 className="font-semibold">{p.title}</h3>
+                        {childCount > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            {childCount} {t("childProjects")}
+                          </span>
+                        )}
+                      </div>
+                      {p.description && (
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                          {p.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                        <span>{p.status}</span>
+                        {childCount === 0 && (
+                          <span>{p._count?.episodes ?? 0} episodes</span>
+                        )}
+                        <span>
+                          {new Date(p.updatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(t("delete") + "?")) {
+                          deleteMutation.mutate(p.id);
+                        }
+                      }}
+                      className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </Card>
+
+                  {/* Expanded child projects */}
+                  {isExpanded && childCount > 0 && (
+                    <ChildProjectList
+                      parentId={p.id}
+                      locale={locale}
+                      router={router}
+                      deleteMutation={deleteMutation}
+                      deleteLabel={t("delete")}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -172,5 +229,65 @@ export default function ProjectsPage() {
         </Modal>
       </div>
     </AppShell>
+  );
+}
+
+function ChildProjectList({
+  parentId,
+  locale,
+  router,
+  deleteMutation,
+  deleteLabel,
+}: {
+  parentId: string;
+  locale: string;
+  router: ReturnType<typeof useRouter>;
+  deleteMutation: { mutate: (id: string) => void };
+  deleteLabel: string;
+}) {
+  const { data: children = [], isLoading } = useQuery<ChildProject[]>({
+    queryKey: ["projects", parentId, "children"],
+    queryFn: () =>
+      fetch(`/api/projects/${parentId}/children`).then((r) => r.json()),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="ml-6 mt-1 py-3 text-center text-sm text-gray-400">
+        <div className="animate-spin inline-block h-4 w-4 border-b-2 border-blue-600 rounded-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="ml-6 mt-1 space-y-1">
+      {children.map((child) => (
+        <Card
+          key={child.id}
+          onClick={() => router.push(`/${locale}/projects/${child.id}`)}
+          className="flex items-center justify-between py-2 px-3 border-l-2 border-blue-200 dark:border-blue-800"
+        >
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-medium truncate">{child.title}</h4>
+            <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+              <span>{child.status}</span>
+              <span>{child._count?.episodes ?? 0} episodes</span>
+              <span>{new Date(child.updatedAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(deleteLabel + "?")) {
+                deleteMutation.mutate(child.id);
+              }
+            }}
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+          >
+            <Trash2 size={14} />
+          </button>
+        </Card>
+      ))}
+    </div>
   );
 }

@@ -35,12 +35,23 @@ export interface PanelData {
   id: string;
   sceneDescription?: string;
   cameraAngle?: string;
+  shotType?: string;
+  cameraMove?: string;
   imagePrompt?: string;
   imageUrl?: string;
   videoUrl?: string;
   durationMs: number;
   sortOrder: number;
   voiceLines: VoiceLineData[];
+  // 4-phase storyboard pipeline data
+  sceneType?: string;
+  videoPrompt?: string;
+  sourceText?: string;
+  photographyRules?: string;
+  actingNotes?: string;
+  candidateImages?: string;
+  selectedImageIndex?: number;
+  videoGenerationMode?: string;
 }
 
 export interface VoiceLineData {
