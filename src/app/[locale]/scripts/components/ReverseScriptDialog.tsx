@@ -37,6 +37,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
   const [taskId, setTaskId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [editedText, setEditedText] = useState("");
+  const [originalText, setOriginalText] = useState("");
   const [analysisData, setAnalysisData] = useState<ScriptAnalysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -72,14 +73,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     }
   }, [streamedText, phase]);
 
-  // When complete, set edited text and fetch analysis data
-  useEffect(() => {
-    if (isComplete && streamedText) {
-      setEditedText(streamedText);
-    }
-  }, [isComplete, streamedText]);
-
-  // Fetch analysis data from script when result is available
+  // When complete, fetch full script from API (more reliable than streamed text)
   useEffect(() => {
     const scriptId = taskResult?.scriptId as string | undefined;
     if (!scriptId) return;
@@ -87,13 +81,27 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     fetch(`/api/scripts/${scriptId}`)
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data?.analysisData) {
-          setAnalysisData(data.analysisData as ScriptAnalysis);
+        if (data) {
+          // Use saved content from DB — complete, unlike streamed chunks which may be partial
+          const fullText = data.title && data.content
+            ? `${data.title}\n\n${data.content}`
+            : data.content || streamedText;
+          setEditedText(fullText);
+          setOriginalText(fullText);
+          if (data.analysisData) {
+            setAnalysisData(data.analysisData as ScriptAnalysis);
+          }
+        } else {
+          setEditedText(streamedText);
+          setOriginalText(streamedText);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setEditedText(streamedText);
+        setOriginalText(streamedText);
+      })
       .finally(() => setAnalysisLoading(false));
-  }, [taskResult]);
+  }, [taskResult, streamedText]);
 
   // Handle failure
   useEffect(() => {
@@ -109,6 +117,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     setTaskId(null);
     setUploading(false);
     setEditedText("");
+    setOriginalText("");
     setAnalysisData(null);
     setAnalysisLoading(false);
     onClose();
@@ -168,7 +177,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     if (!scriptId) return;
 
     // If user edited the text, update the script
-    if (editedText !== streamedText) {
+    if (editedText !== originalText) {
       const lines = editedText.trim().split("\n");
       const title = lines[0].replace(/^[#\s*]+/, "").trim() || "倒推剧本";
       const content = lines.slice(1).join("\n").trim() || editedText.trim();
