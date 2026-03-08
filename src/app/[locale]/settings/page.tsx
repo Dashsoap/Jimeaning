@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Modal } from "@/components/ui/Modal";
 import { useState } from "react";
 import { Plus, Check, Loader2, AlertCircle } from "lucide-react";
-import { useProviders, getProviderKey } from "./components/hooks";
+import { useProviders, getProviderKey, type ModelType } from "./components/hooks";
 import { ProviderCard } from "./components/ProviderCard";
 
 export default function SettingsPage() {
@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const {
     providers,
     models,
+    defaults,
     loading,
     saveStatus,
     updateProviderApiKey,
@@ -26,6 +27,7 @@ export default function SettingsPage() {
     toggleModel,
     addModel,
     deleteModel,
+    updateDefault,
   } = useProviders();
 
   if (loading) {
@@ -38,6 +40,15 @@ export default function SettingsPage() {
       </AppShell>
     );
   }
+
+  const enabledModels = models.filter((m) => m.enabled);
+
+  const defaultTypes: { type: ModelType; label: string; field: keyof typeof defaults }[] = [
+    { type: "llm", label: t("defaultLlm"), field: "llmModel" },
+    { type: "image", label: t("defaultImage"), field: "imageModel" },
+    { type: "video", label: t("defaultVideo"), field: "videoModel" },
+    { type: "audio", label: t("defaultAudio"), field: "audioModel" },
+  ];
 
   return (
     <AppShell>
@@ -61,6 +72,38 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+
+        {/* Default Models */}
+        {enabledModels.length > 0 && (
+          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 px-4 py-3">
+            <div className="mb-3">
+              <h2 className="text-sm font-semibold">{t("defaultModels")}</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{t("defaultModelsDesc")}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {defaultTypes.map(({ type, label, field }) => {
+                const typeModels = enabledModels.filter((m) => m.type === type);
+                const currentValue = defaults[field] || "";
+                return (
+                  <div key={type}>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                    <select
+                      value={currentValue}
+                      onChange={(e) => updateDefault(type, e.target.value || null)}
+                      disabled={typeModels.length === 0}
+                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 disabled:opacity-50"
+                    >
+                      <option value="">{t("autoFirstEnabled")}</option>
+                      {typeModels.map((m) => (
+                        <option key={m.modelKey} value={m.modelKey}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Provider Cards */}
         <div className="space-y-2">

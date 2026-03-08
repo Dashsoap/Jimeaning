@@ -13,6 +13,7 @@ import { FalImageGenerator } from "./image/fal";
 import { GeminiImageGenerator } from "./image/google-gemini";
 import { OpenAIVideoGenerator } from "./video/openai-compatible";
 import { FalVideoGenerator } from "./video/fal";
+import { GoogleVeoGenerator } from "./video/google-veo";
 import { OpenAITTSGenerator } from "./audio/openai-tts";
 import { FishAudioGenerator } from "./audio/fish-audio";
 import { ElevenLabsGenerator } from "./audio/elevenlabs";
@@ -42,6 +43,8 @@ export function createVideoGenerator(
       return new OpenAIVideoGenerator(config);
     case "fal":
       return new FalVideoGenerator(config);
+    case "google":
+      return new GoogleVeoGenerator(config);
     default:
       throw new Error(`Unknown video provider: ${provider}`);
   }

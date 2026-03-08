@@ -12,7 +12,11 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
+  Download,
+  Loader2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import toast from "react-hot-toast";
 import type { Provider, CustomModel, ModelType, TutorialStep } from "./hooks";
 import {
   getProviderKey,
@@ -20,6 +24,7 @@ import {
   PROVIDER_TUTORIALS,
 } from "./hooks";
 import { composeModelKey } from "@/lib/api-config";
+import type { ModelMediaType } from "@/lib/preset-models";
 
 // ─── Type Badge ───────────────────────────────────────────────────────────
 
@@ -154,6 +159,7 @@ export function ProviderCard({
           <div className="px-4 pt-3 pb-3">
             <ModelList
               providerId={provider.id}
+              provider={provider}
               models={models}
               onToggle={onToggleModel}
               onAdd={onAddModel}
@@ -353,28 +359,51 @@ function NameField({
   );
 }
 
+// ─── Discovered Model Type ────────────────────────────────────────────────
+
+interface DiscoveredModel {
+  modelId: string;
+  name: string;
+  type: ModelMediaType;
+}
+
 // ─── Model List ───────────────────────────────────────────────────────────
 
 function ModelList({
   providerId,
+  provider,
   models,
   onToggle,
   onAdd,
   onDelete,
 }: {
   providerId: string;
+  provider: Provider;
   models: CustomModel[];
   onToggle: (modelKey: string) => void;
   onAdd: (model: Omit<CustomModel, "enabled">) => void;
   onDelete: (modelKey: string) => void;
 }) {
+  const t = useTranslations("settings");
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [customId, setCustomId] = useState("");
   const [customName, setCustomName] = useState("");
   const [customType, setCustomType] = useState<ModelType>("llm");
 
+  // Fetch Models state
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [discoveredModels, setDiscoveredModels] = useState<DiscoveredModel[]>([]);
+  const [selectedImports, setSelectedImports] = useState<Set<string>>(new Set());
+
+  const providerKey = getProviderKey(providerId);
+  const canFetchModels = providerKey === "openai-compatible" && provider.hasApiKey;
+
   const isPreset = (mk: string) =>
     PRESET_MODELS.some((p) => composeModelKey(p.provider, p.modelId) === mk);
+
+  const isAlreadyAdded = (modelId: string) =>
+    models.some((m) => m.modelId === modelId);
 
   // Group models by type
   const types = (["llm", "image", "video", "audio"] as ModelType[]).filter((t) =>
@@ -395,18 +424,184 @@ function ModelList({
     setShowAddCustom(false);
   };
 
+  const handleFetchModels = async () => {
+    setFetchingModels(true);
+    try {
+      const res = await fetch("/api/user/api-config/discover-models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerId }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const discovered: DiscoveredModel[] = data.models || [];
+      setDiscoveredModels(discovered);
+      setSelectedImports(new Set());
+      setShowImportDialog(true);
+    } catch (err) {
+      toast.error(t("fetchFailed") + (err instanceof Error ? `: ${err.message}` : ""));
+    } finally {
+      setFetchingModels(false);
+    }
+  };
+
+  const handleImportSelected = () => {
+    let count = 0;
+    for (const modelId of selectedImports) {
+      const disc = discoveredModels.find((d) => d.modelId === modelId);
+      if (!disc || isAlreadyAdded(modelId)) continue;
+      onAdd({
+        modelId: disc.modelId,
+        modelKey: composeModelKey(providerId, disc.modelId),
+        name: disc.name,
+        type: disc.type,
+        provider: providerId,
+      });
+      count++;
+    }
+    if (count > 0) {
+      toast.success(t("modelsImported", { count }));
+    }
+    setShowImportDialog(false);
+  };
+
+  const toggleImportSelection = (modelId: string) => {
+    setSelectedImports((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelId)) next.delete(modelId);
+      else next.add(modelId);
+      return next;
+    });
+  };
+
+  const toggleAllOfType = (type: ModelMediaType) => {
+    const typeModels = discoveredModels.filter((d) => d.type === type && !isAlreadyAdded(d.modelId));
+    const allSelected = typeModels.every((d) => selectedImports.has(d.modelId));
+    setSelectedImports((prev) => {
+      const next = new Set(prev);
+      for (const d of typeModels) {
+        if (allSelected) next.delete(d.modelId);
+        else next.add(d.modelId);
+      }
+      return next;
+    });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold text-gray-500">Models</span>
-        <button
-          onClick={() => setShowAddCustom(!showAddCustom)}
-          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
-        >
-          <Plus className="h-3 w-3" />
-          Custom
-        </button>
+        <div className="flex items-center gap-2">
+          {canFetchModels && (
+            <button
+              onClick={handleFetchModels}
+              disabled={fetchingModels}
+              className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 disabled:opacity-50"
+            >
+              {fetchingModels ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Download className="h-3 w-3" />
+              )}
+              {fetchingModels ? t("fetchingModels") : t("fetchModels")}
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddCustom(!showAddCustom)}
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+          >
+            <Plus className="h-3 w-3" />
+            Custom
+          </button>
+        </div>
       </div>
+
+      {/* Import Dialog */}
+      {showImportDialog && (
+        <div className="mb-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                {t("importModels")}
+              </span>
+              <span className="text-xs text-gray-500 ml-2">
+                {discoveredModels.length} {t("importModelsDesc").toLowerCase().includes("select") ? "found" : ""}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowImportDialog(false)}
+              className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              <X className="h-3.5 w-3.5 text-gray-400" />
+            </button>
+          </div>
+
+          {discoveredModels.length === 0 ? (
+            <p className="text-xs text-gray-400 italic">{t("noModelsFound")}</p>
+          ) : (
+            <>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {(["llm", "image", "video", "audio"] as ModelMediaType[]).map((type) => {
+                  const typeModels = discoveredModels.filter((d) => d.type === type);
+                  if (typeModels.length === 0) return null;
+                  return (
+                    <div key={type}>
+                      <button
+                        onClick={() => toggleAllOfType(type)}
+                        className="text-[10px] font-semibold text-gray-500 uppercase mb-1 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        {TYPE_CONFIG[type].label} ({typeModels.length})
+                      </button>
+                      <div className="flex flex-wrap gap-1">
+                        {typeModels.map((d) => {
+                          const added = isAlreadyAdded(d.modelId);
+                          const selected = selectedImports.has(d.modelId);
+                          return (
+                            <button
+                              key={d.modelId}
+                              onClick={() => !added && toggleImportSelection(d.modelId)}
+                              disabled={added}
+                              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-all ${
+                                added
+                                  ? "border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+                                  : selected
+                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                              }`}
+                            >
+                              {added ? (
+                                <Check className="h-3 w-3 text-gray-400" />
+                              ) : selected ? (
+                                <Check className="h-3 w-3 text-emerald-600" />
+                              ) : null}
+                              <span className="max-w-[200px] truncate">{d.modelId}</span>
+                              {added && (
+                                <span className="text-[10px] text-gray-400">{t("alreadyAdded")}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800">
+                <button
+                  onClick={handleImportSelected}
+                  disabled={selectedImports.size === 0}
+                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                >
+                  {t("importSelected")} ({selectedImports.size})
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Custom model form */}
       {showAddCustom && (

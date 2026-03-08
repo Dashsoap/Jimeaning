@@ -8,6 +8,16 @@
 
 import { prisma } from "./prisma";
 import { decrypt } from "./crypto";
+import {
+  PRESET_PROVIDERS as _PRESET_PROVIDERS,
+  PRESET_MODELS as _PRESET_MODELS,
+  type PresetModel,
+  type PresetProvider,
+} from "./preset-models";
+
+// Re-export preset data and types
+export { _PRESET_PROVIDERS as PRESET_PROVIDERS, _PRESET_MODELS as PRESET_MODELS };
+export type { PresetModel, PresetProvider };
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -279,57 +289,3 @@ export async function hasApiConfig(userId: string): Promise<boolean> {
   return providers.some((p) => !!p.apiKey);
 }
 
-// ─── Preset Definitions ──────────────────────────────────────────────────
-
-export const PRESET_PROVIDERS = [
-  { id: "openai-compatible", name: "OpenAI Compatible", needsBaseUrl: true },
-  { id: "fal", name: "FAL" },
-  { id: "google", name: "Google AI Studio" },
-  { id: "fish-audio", name: "Fish Audio" },
-  { id: "elevenlabs", name: "ElevenLabs" },
-] as const;
-
-export interface PresetModel {
-  modelId: string;
-  name: string;
-  type: ModelMediaType;
-  provider: string; // which preset provider key this belongs to
-}
-
-export const PRESET_MODELS: PresetModel[] = [
-  // OpenAI Compatible - LLM
-  { modelId: "gpt-4o", name: "GPT-4o", type: "llm", provider: "openai-compatible" },
-  { modelId: "gpt-4o-mini", name: "GPT-4o Mini", type: "llm", provider: "openai-compatible" },
-  { modelId: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", type: "llm", provider: "openai-compatible" },
-  { modelId: "gemini-2.5-flash", name: "Gemini 2.5 Flash", type: "llm", provider: "openai-compatible" },
-  { modelId: "deepseek-chat", name: "DeepSeek Chat", type: "llm", provider: "openai-compatible" },
-
-  // OpenAI Compatible - Image
-  { modelId: "gpt-image-1", name: "GPT Image 1", type: "image", provider: "openai-compatible" },
-  { modelId: "dall-e-3", name: "DALL-E 3", type: "image", provider: "openai-compatible" },
-
-  // OpenAI Compatible - Video
-  { modelId: "sora", name: "Sora", type: "video", provider: "openai-compatible" },
-
-  // OpenAI Compatible - Audio
-  { modelId: "tts-1", name: "OpenAI TTS-1", type: "audio", provider: "openai-compatible" },
-  { modelId: "tts-1-hd", name: "OpenAI TTS-1 HD", type: "audio", provider: "openai-compatible" },
-
-  // FAL - Image
-  { modelId: "fal-ai/flux-pro/v1.1", name: "Flux Pro v1.1", type: "image", provider: "fal" },
-  { modelId: "fal-ai/flux/dev", name: "Flux Dev", type: "image", provider: "fal" },
-
-  // FAL - Video
-  { modelId: "fal-ai/kling-video/v1.6/pro/image-to-video", name: "Kling v1.6 Pro", type: "video", provider: "fal" },
-  { modelId: "fal-ai/runway-gen3/turbo/image-to-video", name: "Runway Gen3 Turbo", type: "video", provider: "fal" },
-
-  // Google - Image
-  { modelId: "gemini-2.0-flash-preview-image-generation", name: "Gemini Image Gen", type: "image", provider: "google" },
-  { modelId: "imagen-3.0-generate-002", name: "Imagen 3", type: "image", provider: "google" },
-
-  // Fish Audio - Audio
-  { modelId: "default", name: "Fish Audio Default", type: "audio", provider: "fish-audio" },
-
-  // ElevenLabs - Audio
-  { modelId: "eleven_multilingual_v2", name: "Multilingual v2", type: "audio", provider: "elevenlabs" },
-];

@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import { composeModelKey } from "@/lib/api-config";
+import {
+  PRESET_PROVIDERS as _PRESET_PROVIDERS,
+  PRESET_MODELS as SHARED_PRESET_MODELS,
+  type ModelMediaType,
+} from "@/lib/preset-models";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -14,7 +19,7 @@ export interface Provider {
   hasApiKey?: boolean;
 }
 
-export type ModelType = "llm" | "image" | "video" | "audio";
+export type ModelType = ModelMediaType;
 
 export interface CustomModel {
   modelId: string;
@@ -27,13 +32,7 @@ export interface CustomModel {
 
 // ─── Preset Providers ─────────────────────────────────────────────────────
 
-export const PRESET_PROVIDERS: Omit<Provider, "apiKey" | "hasApiKey">[] = [
-  { id: "openai-compatible", name: "OpenAI Compatible" },
-  { id: "fal", name: "FAL" },
-  { id: "google", name: "Google AI Studio" },
-  { id: "fish-audio", name: "Fish Audio" },
-  { id: "elevenlabs", name: "ElevenLabs" },
-];
+export const PRESET_PROVIDERS: Omit<Provider, "apiKey" | "hasApiKey">[] = _PRESET_PROVIDERS;
 
 const ZH_PROVIDER_NAME: Record<string, string> = {
   "openai-compatible": "OpenAI 兼容 (NewAPI/OneAPI)",
@@ -49,44 +48,7 @@ export function getProviderDisplayName(id: string, locale?: string): string {
 
 // ─── Preset Models ────────────────────────────────────────────────────────
 
-type PresetModel = Omit<CustomModel, "enabled" | "modelKey">;
-
-export const PRESET_MODELS: PresetModel[] = [
-  // OpenAI Compatible - LLM
-  { modelId: "gpt-4o", name: "GPT-4o", type: "llm", provider: "openai-compatible" },
-  { modelId: "gpt-4o-mini", name: "GPT-4o Mini", type: "llm", provider: "openai-compatible" },
-  { modelId: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", type: "llm", provider: "openai-compatible" },
-  { modelId: "gemini-2.5-flash", name: "Gemini 2.5 Flash", type: "llm", provider: "openai-compatible" },
-  { modelId: "deepseek-chat", name: "DeepSeek V3", type: "llm", provider: "openai-compatible" },
-  // OpenAI Compatible - Image
-  { modelId: "gpt-image-1", name: "GPT Image 1", type: "image", provider: "openai-compatible" },
-  { modelId: "dall-e-3", name: "DALL-E 3", type: "image", provider: "openai-compatible" },
-  // OpenAI Compatible - Video
-  { modelId: "sora", name: "Sora", type: "video", provider: "openai-compatible" },
-  // OpenAI Compatible - Audio
-  { modelId: "tts-1", name: "TTS-1", type: "audio", provider: "openai-compatible" },
-  { modelId: "tts-1-hd", name: "TTS-1 HD", type: "audio", provider: "openai-compatible" },
-  // FAL - Image
-  { modelId: "fal-ai/flux-pro/v1.1", name: "Flux Pro v1.1", type: "image", provider: "fal" },
-  { modelId: "fal-ai/flux/dev", name: "Flux Dev", type: "image", provider: "fal" },
-  // FAL - Video
-  { modelId: "fal-ai/kling-video/v2.5-turbo/pro/image-to-video", name: "Kling 2.5 Turbo Pro", type: "video", provider: "fal" },
-  { modelId: "fal-ai/kling-video/v3/pro/image-to-video", name: "Kling 3 Pro", type: "video", provider: "fal" },
-  { modelId: "fal-ai/runway-gen3/turbo/image-to-video", name: "Runway Gen3 Turbo", type: "video", provider: "fal" },
-  // FAL - Audio
-  { modelId: "fal-ai/index-tts-2/text-to-speech", name: "IndexTTS 2", type: "audio", provider: "fal" },
-  // Google - Image
-  { modelId: "gemini-2.0-flash-preview-image-generation", name: "Gemini Image Gen", type: "image", provider: "google" },
-  { modelId: "imagen-4.0-generate-001", name: "Imagen 4", type: "image", provider: "google" },
-  { modelId: "imagen-4.0-fast-generate-001", name: "Imagen 4 Fast", type: "image", provider: "google" },
-  // Google - Video
-  { modelId: "veo-3.0-generate-001", name: "Veo 3.0", type: "video", provider: "google" },
-  { modelId: "veo-2.0-generate-001", name: "Veo 2.0", type: "video", provider: "google" },
-  // Fish Audio
-  { modelId: "default", name: "Fish Audio Default", type: "audio", provider: "fish-audio" },
-  // ElevenLabs
-  { modelId: "eleven_multilingual_v2", name: "Multilingual v2", type: "audio", provider: "elevenlabs" },
-];
+export const PRESET_MODELS = SHARED_PRESET_MODELS;
 
 // ─── Provider Tutorials ───────────────────────────────────────────────────
 
@@ -121,6 +83,15 @@ export function getProviderKey(providerId: string): string {
   return colonIndex === -1 ? providerId : providerId.slice(0, colonIndex);
 }
 
+// ─── Defaults Type ────────────────────────────────────────────────────────
+
+export interface ModelDefaults {
+  llmModel: string | null;
+  imageModel: string | null;
+  videoModel: string | null;
+  audioModel: string | null;
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────
 
 export function useProviders() {
@@ -134,15 +105,23 @@ export function useProviders() {
       enabled: false,
     }))
   );
+  const [defaults, setDefaults] = useState<ModelDefaults>({
+    llmModel: null,
+    imageModel: null,
+    videoModel: null,
+    audioModel: null,
+  });
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const latestProvidersRef = useRef(providers);
   const latestModelsRef = useRef(models);
+  const latestDefaultsRef = useRef(defaults);
   const initializedRef = useRef(false);
 
   useEffect(() => { latestProvidersRef.current = providers; }, [providers]);
   useEffect(() => { latestModelsRef.current = models; }, [models]);
+  useEffect(() => { latestDefaultsRef.current = defaults; }, [defaults]);
 
   // Load config
   useEffect(() => {
@@ -193,6 +172,18 @@ export function useProviders() {
         (m: CustomModel) => !PRESET_MODELS.find((p) => composeModelKey(p.provider, p.modelId) === m.modelKey)
       ).map((m: CustomModel) => ({ ...m, enabled: m.enabled !== false }));
       setModels([...mergedModels, ...customModels]);
+
+      // Load defaults
+      if (data.defaults) {
+        const d: ModelDefaults = {
+          llmModel: data.defaults.llmModel || null,
+          imageModel: data.defaults.imageModel || null,
+          videoModel: data.defaults.videoModel || null,
+          audioModel: data.defaults.audioModel || null,
+        };
+        setDefaults(d);
+        latestDefaultsRef.current = d;
+      }
     } catch {
       setSaveStatus("error");
     } finally {
@@ -208,10 +199,15 @@ export function useProviders() {
     try {
       const currentProviders = latestProvidersRef.current;
       const currentModels = latestModelsRef.current.filter((m) => m.enabled);
+      const currentDefaults = latestDefaultsRef.current;
       const res = await fetch("/api/user/api-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providers: currentProviders, models: currentModels }),
+        body: JSON.stringify({
+          providers: currentProviders,
+          models: currentModels,
+          defaults: currentDefaults,
+        }),
       });
       if (!res.ok) {
         setSaveStatus("error");
@@ -327,9 +323,26 @@ export function useProviders() {
     });
   }, [performSave]);
 
+  // Default model actions
+  const updateDefault = useCallback((type: ModelType, modelKey: string | null) => {
+    setDefaults((prev) => {
+      const fieldMap: Record<ModelType, keyof ModelDefaults> = {
+        llm: "llmModel",
+        image: "imageModel",
+        video: "videoModel",
+        audio: "audioModel",
+      };
+      const next = { ...prev, [fieldMap[type]]: modelKey };
+      latestDefaultsRef.current = next;
+      void performSave();
+      return next;
+    });
+  }, [performSave]);
+
   return {
     providers,
     models,
+    defaults,
     loading,
     saveStatus,
     updateProviderApiKey,
@@ -340,5 +353,6 @@ export function useProviders() {
     toggleModel,
     addModel,
     deleteModel,
+    updateDefault,
   };
 }
