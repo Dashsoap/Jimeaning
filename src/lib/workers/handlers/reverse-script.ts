@@ -3,7 +3,7 @@ import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getProviderConfig, resolveDefaultModel } from "@/lib/api-config";
-import { REVERSE_SCRIPT_PROMPT } from "@/lib/llm/prompts/reverse-script";
+import { REVERSE_SCRIPT_PROMPT, ANALYZE_SCRIPT_PROMPT } from "@/lib/llm/prompts/reverse-script";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 
@@ -148,7 +148,34 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
   const title = lines[0].replace(/^[#\s*]+/, "").trim() || "倒推剧本";
   const content = lines.slice(1).join("\n").trim() || resultText.trim();
 
-  // 7. Save to Script table
+  // 7. Phase 2: Structured analysis via non-streaming Gemini call
+  await ctx.reportProgress(85);
+  let analysisData: Record<string, unknown> | null = null;
+  try {
+    const analysisResult = await genai.models.generateContent({
+      model: modelId,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${ANALYZE_SCRIPT_PROMPT}\n\n---\n\n${resultText}` }],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    const analysisText = analysisResult.text ?? "";
+    if (analysisText.trim()) {
+      analysisData = JSON.parse(analysisText);
+    }
+  } catch {
+    // Analysis failed — non-critical, continue saving without it
+  }
+
+  await ctx.reportProgress(95);
+
+  // 8. Save to Script table
   const script = await prisma.script.create({
     data: {
       userId,
@@ -157,6 +184,7 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
       sourceType: "reverse",
       sourceMedia: mediaPath,
       prompt: customPrompt,
+      ...(analysisData ? { analysisData } : {}),
     },
   });
 

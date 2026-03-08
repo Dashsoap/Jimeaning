@@ -5,8 +5,15 @@ import { useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { useTaskTextStream } from "@/hooks/useTaskTextStream";
-import { Upload, FileVideo, FileAudio, Image as ImageIcon, X, Loader2 } from "lucide-react";
+import { Upload, FileVideo, FileAudio, Image as ImageIcon, X, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
+
+interface ScriptAnalysis {
+  scenes: { number: number; description: string; timestamp: string; emotion: string }[];
+  characters: { name: string; description: string; relationship: string }[];
+  plotElements: { name: string; category: string; description: string; tags: string[] }[];
+  narrativeStructure: { hook: string; conflict: string; climax: string; resolution: string };
+}
 
 interface ReverseScriptDialogProps {
   open: boolean;
@@ -30,6 +37,14 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
   const [taskId, setTaskId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [editedText, setEditedText] = useState("");
+  const [analysisData, setAnalysisData] = useState<ScriptAnalysis | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    scenes: true,
+    characters: true,
+    plotElements: false,
+    narrative: true,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<HTMLDivElement>(null);
 
@@ -57,12 +72,28 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     }
   }, [streamedText, phase]);
 
-  // When complete, set edited text
+  // When complete, set edited text and fetch analysis data
   useEffect(() => {
     if (isComplete && streamedText) {
       setEditedText(streamedText);
     }
   }, [isComplete, streamedText]);
+
+  // Fetch analysis data from script when result is available
+  useEffect(() => {
+    const scriptId = taskResult?.scriptId as string | undefined;
+    if (!scriptId) return;
+    setAnalysisLoading(true);
+    fetch(`/api/scripts/${scriptId}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.analysisData) {
+          setAnalysisData(data.analysisData as ScriptAnalysis);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAnalysisLoading(false));
+  }, [taskResult]);
 
   // Handle failure
   useEffect(() => {
@@ -78,6 +109,8 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     setTaskId(null);
     setUploading(false);
     setEditedText("");
+    setAnalysisData(null);
+    setAnalysisLoading(false);
     onClose();
   };
 
@@ -178,12 +211,16 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
 
   const isBusy = uploading || isStreaming;
 
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <Modal
       open={open}
       onClose={isBusy ? () => {} : (phase === "result" ? handleDiscard : resetAndClose)}
       title={t("reverseScript")}
-      className="max-w-2xl"
+      className={phase === "result" ? "max-w-4xl" : "max-w-2xl"}
     >
       <div className="space-y-4">
         {/* Phase: Input */}
@@ -283,9 +320,133 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
         {/* Phase: Result */}
         {phase === "result" && (
           <>
+            {/* Structured Analysis */}
+            {analysisLoading && (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <Loader2 size={16} className="animate-spin" />
+                <span>{t("analyzingStructure")}</span>
+              </div>
+            )}
+            {analysisData && (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {/* Narrative Structure */}
+                {analysisData.narrativeStructure && (
+                  <AnalysisSection
+                    title={t("analysisNarrative")}
+                    expanded={expandedSections.narrative}
+                    onToggle={() => toggleSection("narrative")}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["hook", "conflict", "climax", "resolution"] as const).map((key) => (
+                        <div key={key} className="rounded-md bg-gray-50 p-2 dark:bg-gray-800">
+                          <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {t(`narrative${key.charAt(0).toUpperCase() + key.slice(1)}` as "narrativeHook")}
+                          </p>
+                          <p className="text-sm mt-0.5">{analysisData.narrativeStructure[key] || "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </AnalysisSection>
+                )}
+
+                {/* Scenes */}
+                {analysisData.scenes?.length > 0 && (
+                  <AnalysisSection
+                    title={t("analysisScenes")}
+                    count={analysisData.scenes.length}
+                    expanded={expandedSections.scenes}
+                    onToggle={() => toggleSection("scenes")}
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-gray-500 dark:text-gray-400">
+                            <th className="pb-1 pr-3">#</th>
+                            <th className="pb-1 pr-3">{tc("description")}</th>
+                            <th className="pb-1 pr-3">{t("sceneTimestamp")}</th>
+                            <th className="pb-1">{t("sceneEmotion")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                          {analysisData.scenes.map((scene, i) => (
+                            <tr key={i}>
+                              <td className="py-1 pr-3 text-gray-400">{scene.number}</td>
+                              <td className="py-1 pr-3">{scene.description}</td>
+                              <td className="py-1 pr-3 text-xs text-gray-500">{scene.timestamp}</td>
+                              <td className="py-1 text-xs">
+                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                  {scene.emotion}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AnalysisSection>
+                )}
+
+                {/* Characters */}
+                {analysisData.characters?.length > 0 && (
+                  <AnalysisSection
+                    title={t("analysisCharacters")}
+                    count={analysisData.characters.length}
+                    expanded={expandedSections.characters}
+                    onToggle={() => toggleSection("characters")}
+                  >
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {analysisData.characters.map((char, i) => (
+                        <div key={i} className="rounded-md border border-gray-200 p-2 dark:border-gray-700">
+                          <p className="text-sm font-medium">{char.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{char.description}</p>
+                          {char.relationship && (
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              <span className="font-medium">{t("characterRelationship")}:</span> {char.relationship}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </AnalysisSection>
+                )}
+
+                {/* Plot Elements */}
+                {analysisData.plotElements?.length > 0 && (
+                  <AnalysisSection
+                    title={t("analysisPlotElements")}
+                    count={analysisData.plotElements.length}
+                    expanded={expandedSections.plotElements}
+                    onToggle={() => toggleSection("plotElements")}
+                  >
+                    <div className="space-y-1.5">
+                      {analysisData.plotElements.map((elem, i) => (
+                        <div key={i} className="flex items-start gap-2 text-sm">
+                          <span className="shrink-0 rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            {elem.category}
+                          </span>
+                          <div>
+                            <span className="font-medium">{elem.name}</span>
+                            <span className="text-gray-500 ml-1">{elem.description}</span>
+                            {elem.tags?.length > 0 && (
+                              <span className="ml-2">
+                                {elem.tags.map((tag, j) => (
+                                  <span key={j} className="mr-1 text-xs text-blue-500">#{tag}</span>
+                                ))}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </AnalysisSection>
+                )}
+              </div>
+            )}
+
+            {/* Editable script text */}
             <textarea
               className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
-              rows={16}
+              rows={12}
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}
             />
@@ -301,5 +462,35 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
         )}
       </div>
     </Modal>
+  );
+}
+
+function AnalysisSection({
+  title,
+  count,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  count?: number;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800/50"
+      >
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>{title}</span>
+        {count !== undefined && (
+          <span className="text-xs text-gray-400">({count})</span>
+        )}
+      </button>
+      {expanded && <div className="px-3 pb-3">{children}</div>}
+    </div>
   );
 }

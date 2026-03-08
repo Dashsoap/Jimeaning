@@ -21,6 +21,7 @@
     "status": "Status",
     "delete": "Delete Project",
     "noProjects": "No projects yet. Create one to get started.",
+    "childProjects": "Sub-projects",
     "tabs": {
       "script": "Script",
       "assets": "Assets",
@@ -131,7 +132,23 @@
     "smartImportDesc": "Import novels, AI auto-splits chapters and batch rewrites into scripts",
     "sourceImport": "Imported",
     "sourceChapter": "Chapter",
-    "chaptersCount": "chapters"
+    "chaptersCount": "chapters",
+    "projectAlreadyExists": "Project already exists for this import",
+    "analyzingStructure": "Analyzing structure...",
+    "analysisScenes": "Scenes",
+    "analysisCharacters": "Characters",
+    "analysisPlotElements": "Plot Elements",
+    "analysisNarrative": "Narrative Structure",
+    "sceneNumber": "Scene",
+    "sceneTimestamp": "Time",
+    "sceneEmotion": "Emotion",
+    "characterRelationship": "Relationship",
+    "plotCategory": "Category",
+    "plotTags": "Tags",
+    "narrativeHook": "Hook",
+    "narrativeConflict": "Conflict",
+    "narrativeClimax": "Climax",
+    "narrativeResolution": "Resolution"
   },
   "smartImport": {
     "title": "Smart Import",

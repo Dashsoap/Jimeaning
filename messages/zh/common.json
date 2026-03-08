@@ -21,6 +21,7 @@
     "status": "状态",
     "delete": "删除项目",
     "noProjects": "还没有项目，创建一个开始吧",
+    "childProjects": "子项目",
     "tabs": {
       "script": "剧本",
       "assets": "素材",
@@ -131,7 +132,23 @@
     "smartImportDesc": "导入长篇小说，AI 自动分章并批量改写为剧本",
     "sourceImport": "导入",
     "sourceChapter": "章节",
-    "chaptersCount": "章"
+    "chaptersCount": "章",
+    "projectAlreadyExists": "该小说已创建项目",
+    "analyzingStructure": "结构分析中...",
+    "analysisScenes": "场景列表",
+    "analysisCharacters": "角色分析",
+    "analysisPlotElements": "情节元素",
+    "analysisNarrative": "叙事结构",
+    "sceneNumber": "场景",
+    "sceneTimestamp": "时间",
+    "sceneEmotion": "情绪",
+    "characterRelationship": "关系",
+    "plotCategory": "类别",
+    "plotTags": "标签",
+    "narrativeHook": "开场钩子",
+    "narrativeConflict": "核心冲突",
+    "narrativeClimax": "高潮",
+    "narrativeResolution": "结局"
   },
   "smartImport": {
     "title": "智能导入",

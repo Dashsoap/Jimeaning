@@ -124,16 +124,24 @@ model Project {
   aspectRatio String @default("16:9")
   status      String @default("draft") // draft | analyzing | ready | generating | completed
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  episodes   Episode[]
-  characters Character[]
-  locations  Location[]
-  tasks      Task[]
+  // Parent-child hierarchy (for import-type master scripts)
+  parentId       String?
+  masterScriptId String? // links to the master Script that created this project
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentProject Project?    @relation("ProjectChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  childProjects Project[]   @relation("ProjectChildren")
+  episodes      Episode[]
+  characters    Character[]
+  locations     Location[]
+  tasks         Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([parentId])
+  @@index([masterScriptId])
   @@map("projects")
 }
 
@@ -193,6 +201,16 @@ model Panel {
   shotType         String? // establishing | action | dialogue | reaction | detail | transition
   cameraMove       String? // static | pan-left | pan-right | tilt-up | tilt-down | zoom-in | zoom-out | dolly | tracking
   imagePrompt      String? @db.Text
+
+  // 4-phase storyboard pipeline data
+  sceneType          String?          // daily | emotion | action | epic | suspense
+  videoPrompt        String? @db.Text // motion-rich video generation prompt
+  sourceText         String? @db.Text // original text excerpt this panel is based on
+  photographyRules   String? @db.Text // JSON: lighting, depth_of_field, color_tone, character positions
+  actingNotes        String? @db.Text // JSON: per-character acting directions
+  candidateImages    String? @db.Text // JSON: array of candidate image URLs
+  selectedImageIndex Int     @default(0)
+  videoGenerationMode String?         // normal | firstlastframe
 
   // Generated media URLs
   imageUrl String? @db.MediumText
@@ -436,6 +454,7 @@ model Script {
   chapterSummary String?  @db.Text       // 章节摘要
   masterScriptId String?                 // 指向母本（分章关系，区别于 parentId 的改写版本链）
   importMeta     Json?                   // { targetDuration, targetEpisodes, direction, contentType }
+  analysisData   Json?                   // 结构化分析（scenes, characters, plotElements, narrativeStructure）
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   Script?  @relation("ScriptVersions", fields: [parentId], references: [id], onDelete: SetNull)
