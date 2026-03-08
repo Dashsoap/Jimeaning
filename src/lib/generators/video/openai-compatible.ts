@@ -12,7 +12,7 @@ export class OpenAIVideoGenerator implements VideoGenerator {
 
   constructor(config: ProviderConfig) {
     this.apiKey = config.apiKey;
-    this.baseUrl = config.baseUrl || "https://api.openai.com";
+    this.baseUrl = (config.baseUrl || "https://api.openai.com").replace(/\/v1\/?$/, "");
     this.defaultModel = config.model || "sora";
   }
 
