@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { getProviderConfig, resolveDefaultModel } from "@/lib/api-config";
 import { REVERSE_SCRIPT_PROMPT, ANALYZE_SCRIPT_PROMPT } from "@/lib/llm/prompts/reverse-script";
 import { withTaskLifecycle } from "@/lib/workers/shared";
@@ -150,7 +151,7 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
 
   // 7. Phase 2: Structured analysis via non-streaming Gemini call
   await ctx.reportProgress(85);
-  let analysisData: Record<string, unknown> | null = null;
+  let analysisData: Prisma.InputJsonValue | null = null;
   try {
     const analysisResult = await genai.models.generateContent({
       model: modelId,
