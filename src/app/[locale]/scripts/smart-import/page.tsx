@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -176,6 +177,14 @@ export default function SmartImportPage() {
   const pathname = usePathname();
   const router = useRouter();
   const locale = pathname.split("/")[1] || "zh";
+  const { status } = useSession();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace(`/${locale}/auth/signin`);
+    }
+  }, [status, router, locale]);
 
   // Restore persisted state (survives locale switch)
   const persisted = useRef(loadState());
@@ -583,6 +592,16 @@ export default function SmartImportPage() {
   const stepLabels = [ti("step1"), ti("step2"), ti("step3"), ti("step4"), ti("step5")];
   const isBusy = splitStream.isStreaming || rewriteStream.isStreaming || importing || saving;
   const charCount = textContent.length;
+
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
