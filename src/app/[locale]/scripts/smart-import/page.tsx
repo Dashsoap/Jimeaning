@@ -67,6 +67,11 @@ function loadState(): PersistedState | null {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
+    // Protect against huge persisted data freezing the page
+    if (raw.length > 500_000) {
+      sessionStorage.removeItem(SESSION_KEY);
+      return null;
+    }
     return JSON.parse(raw) as PersistedState;
   } catch {
     return null;
@@ -210,13 +215,21 @@ export default function SmartImportPage() {
   const rewriteStreamRef = useRef<HTMLDivElement>(null);
 
   // Persist state on changes (so locale switch doesn't lose progress)
+  // Debounce to avoid freezing on large textContent
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    saveState({
-      step, textContent, direction, targetDuration, customDuration,
-      targetEpisodes, analysisModelKey, rewriteModelKey,
-      splitTaskId, rewriteTaskId, masterScriptId,
-      chapters, contentType, rewritePrompt,
-    });
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      // Don't persist huge textContent — it freezes JSON.stringify + sessionStorage
+      const textToSave = textContent.length > 200_000 ? "" : textContent;
+      saveState({
+        step, textContent: textToSave, direction, targetDuration, customDuration,
+        targetEpisodes, analysisModelKey, rewriteModelKey,
+        splitTaskId, rewriteTaskId, masterScriptId,
+        chapters, contentType, rewritePrompt,
+      });
+    }, 500);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [
     step, textContent, direction, targetDuration, customDuration,
     targetEpisodes, analysisModelKey, rewriteModelKey,
@@ -341,6 +354,8 @@ export default function SmartImportPage() {
     }
 
     setImporting(true);
+    // Yield to event loop so loading spinner renders before heavy work
+    await new Promise((r) => setTimeout(r, 50));
     try {
       let text: string;
       const name = file.name.toLowerCase();

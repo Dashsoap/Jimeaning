@@ -212,6 +212,9 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
     }
 
     setImporting(true);
+    // Yield to the event loop so the loading state renders before heavy work
+    await new Promise((r) => setTimeout(r, 50));
+
     try {
       let text: string;
       const name = file.name.toLowerCase();
@@ -231,7 +234,8 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
       }
       setTextContent(text);
       toast.success(t("importSuccess"));
-    } catch {
+    } catch (err) {
+      console.error("File import failed:", err);
       toast.error(t("importFailed"));
     } finally {
       setImporting(false);
