@@ -17,6 +17,7 @@ import {
   MoreHorizontal,
   Copy,
   Trash2,
+  LayoutDashboard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import toast from "react-hot-toast";
@@ -114,6 +115,14 @@ export default function ProjectWorkspacePage() {
           <h1 className="text-2xl font-bold">{project.title}</h1>
           <ProjectStatusBadge status={project.status} />
           <div className="flex-1" />
+          <button
+            onClick={() => router.push(`/${locale}/projects/${projectId}/canvas`)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+            title="Canvas View"
+          >
+            <LayoutDashboard size={16} />
+            <span className="hidden sm:inline">Canvas</span>
+          </button>
           <MoreActionsMenu
             projectId={projectId}
             projectTitle={project.title}

@@ -38,11 +38,29 @@ export class OpenAIVideoGenerator implements VideoGenerator {
 
   /**
    * Sora: POST /v1/responses
+   * Supports multiple reference images via input_image entries.
    */
   private async generateViaSoraApi(
     model: string,
     params: VideoGenerateParams,
   ): Promise<GenerateResult> {
+    // Build content array with reference images first, then main image
+    const content: Array<Record<string, unknown>> = [];
+
+    // Add character/location reference images
+    for (const ref of params.referenceImages || []) {
+      content.push({ type: "input_image", image_url: ref.url });
+    }
+
+    // Add main panel image (keyframe)
+    content.push({ type: "input_image", image_url: params.imageUrl });
+
+    // Add prompt text (already includes "图1是..." prefix from build-prompt)
+    content.push({
+      type: "input_text",
+      text: params.prompt || "Animate this image with subtle motion",
+    });
+
     const response = await fetch(`${this.baseUrl}/v1/responses`, {
       method: "POST",
       headers: {
@@ -51,21 +69,7 @@ export class OpenAIVideoGenerator implements VideoGenerator {
       },
       body: JSON.stringify({
         model,
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_image",
-                image_url: params.imageUrl,
-              },
-              {
-                type: "input_text",
-                text: params.prompt || "Animate this image with subtle motion",
-              },
-            ],
-          },
-        ],
+        input: [{ role: "user", content }],
       }),
     });
 
@@ -95,9 +99,18 @@ export class OpenAIVideoGenerator implements VideoGenerator {
   ): Promise<GenerateResult> {
     const prompt = params.prompt || "Animate this image with subtle, natural motion";
 
-    // Build message content - text + optional image
+    // Build message content — reference images + main image + text prompt
     const content: Array<Record<string, unknown>> = [];
 
+    // Add character/location reference images first
+    for (const ref of params.referenceImages || []) {
+      content.push({
+        type: "image_url",
+        image_url: { url: ref.url },
+      });
+    }
+
+    // Add main panel image (keyframe)
     if (params.imageUrl) {
       content.push({
         type: "image_url",
@@ -105,6 +118,7 @@ export class OpenAIVideoGenerator implements VideoGenerator {
       });
     }
 
+    // Add prompt text (already includes "图1是..." prefix from build-prompt)
     content.push({
       type: "text",
       text: prompt,

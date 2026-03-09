@@ -4,6 +4,12 @@ import { resolveVideoConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 import { createScopedLogger } from "@/lib/logging";
+import {
+  collectReferenceImages,
+  buildVideoPromptWithReferences,
+  parseCharacterNamesFromActingNotes,
+  matchCharacterNamesFromText,
+} from "@/lib/video/build-prompt";
 
 const logger = createScopedLogger({ module: "generate-panel-video" });
 
@@ -13,11 +19,58 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
 
   const panel = await prisma.panel.findUniqueOrThrow({
     where: { id: panelId },
+    include: {
+      clip: {
+        include: {
+          episode: { select: { projectId: true } },
+        },
+      },
+    },
   });
 
   if (!panel.imageUrl) {
     throw new Error("Panel has no image — generate image first");
   }
+
+  const projectId = panel.clip.episode.projectId;
+
+  await ctx.reportProgress(10);
+
+  // ─── Collect reference images (adapted from anime-ai-studio directorService) ──
+
+  const [characters, locations] = await Promise.all([
+    prisma.character.findMany({
+      where: { projectId, imageUrl: { not: null } },
+      select: { name: true, imageUrl: true },
+    }),
+    prisma.location.findMany({
+      where: { projectId, imageUrl: { not: null } },
+      select: { name: true, imageUrl: true },
+    }),
+  ]);
+
+  // Parse character names from actingNotes or match from sceneDescription
+  let characterNames = parseCharacterNamesFromActingNotes(panel.actingNotes);
+  if (characterNames.length === 0) {
+    characterNames = matchCharacterNamesFromText(
+      panel.sceneDescription,
+      characters.map((c) => c.name),
+    );
+  }
+
+  const referenceImages = collectReferenceImages(
+    panel.imageUrl,
+    characters,
+    locations,
+    characterNames,
+    panel.sceneDescription,
+  );
+
+  logger.info("Collected reference images", {
+    panelId,
+    refCount: referenceImages.length,
+    types: referenceImages.map((r) => `${r.type}:${r.name}`),
+  });
 
   await ctx.reportProgress(20);
 
@@ -26,13 +79,23 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
 
   await ctx.reportProgress(40);
 
-  // Use videoPrompt (from Stage 3) if available, fallback to sceneDescription
-  const prompt = panel.videoPrompt || panel.sceneDescription || undefined;
+  // Build enhanced prompt with reference image descriptions
+  const basePrompt = panel.videoPrompt || panel.sceneDescription || "";
+  const enhancedPrompt = buildVideoPromptWithReferences(
+    referenceImages,
+    basePrompt,
+    panel,
+  );
+
+  logger.info("Built enhanced video prompt", {
+    panelId,
+    promptLength: enhancedPrompt.length,
+    hasReferences: referenceImages.length > 1, // >1 means more than just the keyframe
+  });
 
   // Check for first-last-frame mode
   let lastFrameImageUrl: string | undefined;
   if (panel.videoGenerationMode === "firstlastframe") {
-    // Find next panel in the same clip by sortOrder
     const nextPanel = await prisma.panel.findFirst({
       where: {
         clipId: panel.clipId,
@@ -53,9 +116,10 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
 
   const result = await generator.generate({
     imageUrl: panel.imageUrl,
-    prompt,
+    prompt: enhancedPrompt,
     durationMs: panel.durationMs,
     lastFrameImageUrl,
+    referenceImages: referenceImages.filter((r) => r.type !== "keyframe"), // exclude keyframe (already in imageUrl)
   });
 
   const videoUrl = result.url;

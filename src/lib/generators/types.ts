@@ -23,12 +23,19 @@ export interface ImageGenerator {
 
 // ─── Video Generator ────────────────────────────────────────────────────
 
+export interface VideoReferenceImage {
+  url: string;
+  type: "character" | "location" | "keyframe";
+  name: string;
+}
+
 export interface VideoGenerateParams {
   imageUrl: string;
   prompt?: string;
   durationMs?: number;
   model?: string;
   lastFrameImageUrl?: string; // for first-last-frame mode
+  referenceImages?: VideoReferenceImage[]; // character/location/keyframe references
 }
 
 export interface VideoGenerator {
