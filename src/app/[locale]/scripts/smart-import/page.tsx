@@ -837,6 +837,17 @@ export default function SmartImportPage() {
                   />
                 </div>
               )}
+              <div className="flex justify-start pt-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setSplitTaskId(null);
+                    setStep(2);
+                  }}
+                >
+                  {tc("cancel")}
+                </Button>
+              </div>
             </div>
           </Card>
         )}
