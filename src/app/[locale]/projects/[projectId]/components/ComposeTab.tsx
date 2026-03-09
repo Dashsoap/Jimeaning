@@ -16,15 +16,19 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
+  ArrowRight,
 } from "lucide-react";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
+import { useTranslations } from "next-intl";
 import type { ProjectData, EpisodeData, CompositionData } from "./types";
 
 interface ComposeTabProps {
   project: ProjectData;
+  onSwitchTab?: (tab: string) => void;
 }
 
-export function ComposeTab({ project }: ComposeTabProps) {
+export function ComposeTab({ project, onSwitchTab }: ComposeTabProps) {
+  const te = useTranslations("emptyHints");
   const episodes = project.episodes || [];
 
   if (episodes.length === 0) {
@@ -32,9 +36,18 @@ export function ComposeTab({ project }: ComposeTabProps) {
       <div className="text-center py-16">
         <Film className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
         <p className="text-gray-500 font-medium">暂无可合成的集</p>
-        <p className="text-sm text-gray-400 mt-1">
-          请先完成剧本分析和分镜生成
+        <p className="text-sm text-gray-400 mt-1 mb-4">
+          {te("compose")}
         </p>
+        {onSwitchTab && (
+          <button
+            onClick={() => onSwitchTab("storyboard")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            {te("goToStoryboard")}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
     );
   }

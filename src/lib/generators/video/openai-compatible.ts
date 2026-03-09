@@ -143,11 +143,26 @@ export class OpenAIVideoGenerator implements VideoGenerator {
     const messageContent = message?.content || "";
 
     // Try to find a video URL in the response
-    const urlMatch = messageContent.match(/https?:\/\/[^\s"'<>]+\.(mp4|webm|mov)[^\s"'<>]*/i)
-      || messageContent.match(/https?:\/\/[^\s"'<>]+/i);
+    // Proxy responses often wrap URLs in markdown like [text](url)
+    // so we must exclude markdown punctuation from the URL match
+    const cleanUrl = (raw: string) => raw.replace(/[)\]}>.,;!?]+$/, "");
 
-    if (urlMatch) {
-      return { url: urlMatch[0] };
+    // Priority 1: markdown link — [text](url)
+    const mdLinkMatch = messageContent.match(/\[.*?\]\((https?:\/\/[^)]+)\)/i);
+    if (mdLinkMatch) {
+      return { url: cleanUrl(mdLinkMatch[1]) };
+    }
+
+    // Priority 2: explicit video file extensions
+    const videoExtMatch = messageContent.match(/https?:\/\/[^\s"'<>()[\]]+\.(mp4|webm|mov|avi|mkv)[^\s"'<>()[\]]*/i);
+    if (videoExtMatch) {
+      return { url: cleanUrl(videoExtMatch[0]) };
+    }
+
+    // Priority 3: URLs containing video-related path segments
+    const videoPathMatch = messageContent.match(/https?:\/\/[^\s"'<>()[\]]*(?:video|media|stream|playback|download)[^\s"'<>()[\]]*/i);
+    if (videoPathMatch) {
+      return { url: cleanUrl(videoPathMatch[0]) };
     }
 
     // Some providers return video data in a special field
@@ -164,7 +179,7 @@ export class OpenAIVideoGenerator implements VideoGenerator {
     if (messageContent) {
       // The content might be a direct URL
       if (messageContent.startsWith("http")) {
-        return { url: messageContent.trim() };
+        return { url: cleanUrl(messageContent.trim()) };
       }
     }
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
 import {
   Save,
@@ -11,6 +12,7 @@ import {
   FileText,
   AlertCircle,
   BookOpen,
+  PenLine,
 } from "lucide-react";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
 import { SmartImportWizard } from "./SmartImportWizard";
@@ -22,15 +24,27 @@ interface ScriptTabProps {
 }
 
 export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
+  const t = useTranslations("scripts");
   const [text, setText] = useState(project?.sourceText || "");
   const [saving, setSaving] = useState(false);
   const [analyzeTaskId, setAnalyzeTaskId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [showReanalyzeConfirm, setShowReanalyzeConfirm] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
 
   const hasChanges = text !== (project?.sourceText || "");
   const charCount = text.length;
   const isAnalyzed = project.status !== "draft";
+
+  // Compute stats for re-analyze warning
+  const episodeCount = project.episodes?.length || 0;
+  const panelCount =
+    project.episodes?.reduce(
+      (sum, ep) =>
+        sum + ep.clips.reduce((s, c) => s + (c.panels?.length || 0), 0),
+      0,
+    ) || 0;
 
   // Task polling for analyze
   const {
@@ -43,7 +57,6 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
     onComplete: useCallback(() => {
       toast.success("剧本分析完成！已提取角色、场景和片段");
       queryClient.invalidateQueries({ queryKey: ["project", project.id] });
-      // Auto switch to assets tab after analysis
       setTimeout(() => onSwitchTab?.("assets"), 1000);
     }, [queryClient, project.id, onSwitchTab]),
     onFailed: useCallback(
@@ -52,7 +65,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
         setAnalyzeTaskId(null);
         queryClient.invalidateQueries({ queryKey: ["project", project.id] });
       },
-      [queryClient, project.id]
+      [queryClient, project.id],
     ),
   });
 
@@ -78,12 +91,11 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
     }
   };
 
-  const handleAnalyze = async () => {
+  const doAnalyze = async () => {
     if (!text.trim()) {
       toast.error("请先输入文本");
       return;
     }
-    // Save text first if changed
     if (hasChanges) await handleSave();
 
     try {
@@ -103,8 +115,51 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
     }
   };
 
+  const handleAnalyze = () => {
+    // If already analyzed, show confirmation first
+    if (isAnalyzed && (episodeCount > 0 || panelCount > 0)) {
+      setShowReanalyzeConfirm(true);
+      return;
+    }
+    doAnalyze();
+  };
+
+  const hasContent = text.trim().length > 0;
+
   return (
     <div className="space-y-4">
+      {/* Re-analyze Confirmation Dialog */}
+      {showReanalyzeConfirm && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+            {t("analyzeConfirmTitle")}
+          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+            {t("analyzeConfirm", {
+              episodes: episodeCount,
+              panels: panelCount,
+            })}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowReanalyzeConfirm(false);
+                doAnalyze();
+              }}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+            >
+              {t("startReverse").replace("倒推", "分析")}
+            </button>
+            <button
+              onClick={() => setShowReanalyzeConfirm(false)}
+              className="rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Analyzing Overlay */}
       {isAnalyzing && (
         <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
@@ -133,7 +188,6 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
               </p>
             </div>
           </div>
-          {/* Progress Bar */}
           <div className="h-2 rounded-full bg-blue-200 dark:bg-blue-800 overflow-hidden">
             <div
               className="h-full rounded-full bg-blue-600 transition-all duration-700 ease-out"
@@ -168,86 +222,138 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       )}
 
       {/* Stats Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-xs text-gray-400">
-          <span>{charCount} 字符</span>
-          {isAnalyzed && (
-            <span className="inline-flex items-center gap-1 text-green-500">
-              <CheckCircle className="h-3 w-3" />
-              已分析
-            </span>
-          )}
-          {project.episodes && project.episodes.length > 0 && (
-            <span>
-              {project.episodes.length} 集 ·{" "}
-              {project.episodes.reduce(
-                (sum, ep) => sum + (ep.clips?.length || 0),
-                0
-              )}{" "}
-              片段
-            </span>
+      {hasContent && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs text-gray-400">
+            <span>{charCount} 字符</span>
+            {isAnalyzed && (
+              <span className="inline-flex items-center gap-1 text-green-500">
+                <CheckCircle className="h-3 w-3" />
+                已分析
+              </span>
+            )}
+            {project.episodes && project.episodes.length > 0 && (
+              <span>
+                {project.episodes.length} 集 ·{" "}
+                {project.episodes.reduce(
+                  (sum, ep) => sum + (ep.clips?.length || 0),
+                  0,
+                )}{" "}
+                片段
+              </span>
+            )}
+          </div>
+          {hasChanges && (
+            <span className="text-xs text-amber-500">未保存更改</span>
           )}
         </div>
-        {hasChanges && (
-          <span className="text-xs text-amber-500">未保存更改</span>
-        )}
-      </div>
+      )}
 
-      {/* Text Area */}
-      <div className="relative">
-        <textarea
-          className="w-full h-[500px] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono disabled:opacity-60"
-          placeholder={
-            "粘贴小说/剧本文本内容...\n\n支持任意文本格式，AI 会自动分析出：\n• 集数划分\n• 场景片段\n• 角色信息\n• 场景描述\n• 分镜面板"
-          }
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={isAnalyzing}
-        />
-        {!text && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center">
-            <FileText className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-3" />
+      {/* Empty State — show guided entry when no content */}
+      {!hasContent && !isAnalyzing ? (
+        <div className="flex flex-col items-center justify-center py-20 space-y-6">
+          <FileText className="h-16 w-16 text-gray-200 dark:text-gray-700" />
+          <p className="text-lg font-medium text-gray-400 dark:text-gray-500">
+            {t("startCreating")}
+          </p>
+          <div className="grid grid-cols-2 gap-4 max-w-md w-full">
+            {/* Direct Input Card */}
+            <button
+              onClick={() => textareaRef.current?.focus()}
+              className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all group"
+            >
+              <PenLine className="h-8 w-8 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-blue-600">
+                  {t("directInput")}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {t("directInputDesc")}
+                </p>
+              </div>
+            </button>
+            {/* Smart Import Card */}
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group"
+            >
+              <BookOpen className="h-8 w-8 text-gray-300 dark:text-gray-600 group-hover:text-emerald-500 transition-colors" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-emerald-600">
+                  {t("smartImport")}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {t("smartImportHint")}
+                </p>
+              </div>
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3">
-        <button
-          className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-          onClick={handleSave}
-          disabled={saving || !hasChanges || isAnalyzing}
-        >
-          {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4" />
-          )}
-          保存文本
-        </button>
+      {/* Text Area — show when there is content or when analyzing */}
+      {(hasContent || isAnalyzing) && (
+        <>
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              className="w-full h-[500px] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono disabled:opacity-60"
+              placeholder="粘贴小说/剧本文本内容..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={isAnalyzing}
+            />
+          </div>
 
-        <button
-          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          onClick={() => setShowImport(true)}
-          disabled={isAnalyzing}
-        >
-          <BookOpen className="h-4 w-4" />
-          智能导入
-        </button>
+          {/* Action Buttons — clear visual hierarchy */}
+          <div className="flex items-center gap-3">
+            {/* Save — only show when there are unsaved changes */}
+            {hasChanges && (
+              <button
+                className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                onClick={handleSave}
+                disabled={saving || isAnalyzing}
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                保存文本
+              </button>
+            )}
 
-        <button
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
-          onClick={handleAnalyze}
-          disabled={isAnalyzing || !text.trim()}
-        >
-          {isAnalyzing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {isAnalyzing ? "分析中..." : "AI 分析剧本"}
-        </button>
-      </div>
+            {/* Smart Import — secondary style with hint */}
+            <button
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+              onClick={() => setShowImport(true)}
+              disabled={isAnalyzing}
+            >
+              <BookOpen className="h-4 w-4" />
+              {t("smartImport")}
+              <span className="text-xs text-gray-400">
+                ({t("smartImportHint")})
+              </span>
+            </button>
+
+            <div className="flex-1" />
+
+            {/* AI Analyze — primary action, visually dominant */}
+            <button
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || !text.trim()}
+            >
+              {isAnalyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {isAnalyzing ? "分析中..." : "AI 分析剧本"}
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Smart Import Wizard */}
       <SmartImportWizard

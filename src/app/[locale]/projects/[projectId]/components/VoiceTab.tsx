@@ -11,15 +11,18 @@ import {
   User,
   ChevronDown,
   ChevronRight,
+  ArrowRight,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
 import type { ProjectData, EpisodeData, VoiceLineData, CharacterData } from "./types";
 
 interface VoiceTabProps {
   project: ProjectData;
+  onSwitchTab?: (tab: string) => void;
 }
 
-export function VoiceTab({ project }: VoiceTabProps) {
+export function VoiceTab({ project, onSwitchTab }: VoiceTabProps) {
   const episodes = project.episodes || [];
   const characters = project.characters || [];
   const [generatingAll, setGeneratingAll] = useState(false);
@@ -59,14 +62,25 @@ export function VoiceTab({ project }: VoiceTabProps) {
 
   const withAudio = allVoiceLines.filter((vl) => vl.audioUrl).length;
 
+  const te = useTranslations("emptyHints");
+
   if (allVoiceLines.length === 0) {
     return (
       <div className="text-center py-16">
         <Mic className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
         <p className="text-gray-500 font-medium">暂无配音台词</p>
-        <p className="text-sm text-gray-400 mt-1">
-          AI 分析剧本后会自动提取角色对白
+        <p className="text-sm text-gray-400 mt-1 mb-4">
+          {te("voice")}
         </p>
+        {onSwitchTab && (
+          <button
+            onClick={() => onSwitchTab("storyboard")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            {te("goToStoryboard")}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
     );
   }

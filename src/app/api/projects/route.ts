@@ -12,10 +12,38 @@ export const GET = apiHandler(async () => {
     orderBy: { updatedAt: "desc" },
     include: {
       _count: { select: { episodes: true, childProjects: true } },
+      episodes: {
+        select: {
+          clips: {
+            select: {
+              panels: {
+                select: { imageUrl: true, videoUrl: true },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
-  return NextResponse.json(projects);
+  // Aggregate stats on server side to keep response payload small
+  const result = projects.map((p) => {
+    let imageCount = 0;
+    let videoCount = 0;
+    for (const ep of p.episodes) {
+      for (const clip of ep.clips) {
+        for (const panel of clip.panels) {
+          if (panel.imageUrl) imageCount++;
+          if (panel.videoUrl) videoCount++;
+        }
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { episodes: _episodes, ...rest } = p;
+    return { ...rest, imageCount, videoCount };
+  });
+
+  return NextResponse.json(result);
 });
 
 export const POST = apiHandler(async (req: NextRequest) => {

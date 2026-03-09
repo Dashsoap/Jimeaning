@@ -112,7 +112,10 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
     {
       interval: 3000,
       onComplete: useCallback(() => {
-        toast.success("视频生成任务完成（部分）");
+        toast.success("视频生成完成！请及时下载保存，链接可能会过期", {
+          duration: 8000,
+          icon: "🎬",
+        });
         refreshProject();
       }, [refreshProject]),
       onFailed: useCallback(() => {
@@ -304,6 +307,42 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
             下载图片
           </button>
         )}
+        {panelsWithVideos > 0 && (
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch(
+                  `/api/projects/${project.id}/download?type=videos`,
+                );
+                if (!res.ok) {
+                  toast.error("无可下载内容");
+                  return;
+                }
+                const data = await res.json();
+                let downloadCount = 0;
+                for (const item of data.items.slice(0, 10)) {
+                  const a = document.createElement("a");
+                  a.href = item.url;
+                  a.download = item.filename;
+                  a.target = "_blank";
+                  a.click();
+                  downloadCount++;
+                }
+                if (downloadCount > 0) {
+                  toast.success(`开始下载 ${downloadCount} 个视频`);
+                } else {
+                  toast.error("没有可下载的视频");
+                }
+              } catch {
+                toast.error("下载失败");
+              }
+            }}
+            className="inline-flex items-center gap-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 px-3 py-2 text-sm text-violet-600 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            下载视频
+          </button>
+        )}
 
         {/* Stats */}
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-400">
@@ -455,6 +494,7 @@ function PanelCard({
   const [showModifyPrompt, setShowModifyPrompt] = useState(false);
   const [showShotVariants, setShowShotVariants] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const queryClient = useQueryClient();
 
@@ -591,7 +631,10 @@ function PanelCard({
                   playsInline
                   className="w-full h-full object-contain bg-black"
                   onEnded={() => setIsPlaying(false)}
-                  onError={() => setIsPlaying(false)}
+                  onError={() => {
+                    setIsPlaying(false);
+                    setVideoError(true);
+                  }}
                 />
               ) : (
                 <>
@@ -604,15 +647,31 @@ function PanelCard({
                   {/* Play button overlay when video exists */}
                   {panel.videoUrl && (
                     <div
-                      className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer"
+                      className={cn(
+                        "absolute inset-0 flex items-center justify-center cursor-pointer",
+                        videoError ? "bg-black/40" : "bg-black/20",
+                      )}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setIsPlaying(true);
+                        if (!videoError) {
+                          setIsPlaying(true);
+                        }
                       }}
                     >
-                      <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:bg-black/80 transition-all">
-                        <Play className="h-6 w-6 text-white ml-0.5" />
-                      </div>
+                      {videoError ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="w-10 h-10 bg-amber-500/80 rounded-full flex items-center justify-center">
+                            <Film className="h-5 w-5 text-white" />
+                          </div>
+                          <span className="text-[10px] text-white/90 bg-black/50 px-1.5 py-0.5 rounded">
+                            链接已过期
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:bg-black/80 transition-all">
+                          <Play className="h-6 w-6 text-white ml-0.5" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
@@ -707,6 +766,23 @@ function PanelCard({
                 ) : (
                   <Film className="h-4 w-4 text-white" />
                 )}
+              </button>
+            )}
+            {/* Download video button */}
+            {panel.videoUrl && !videoError && (
+              <button
+                className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const a = document.createElement("a");
+                  a.href = panel.videoUrl!;
+                  a.download = `panel-${panel.sortOrder + 1}.mp4`;
+                  a.target = "_blank";
+                  a.click();
+                }}
+                title="下载视频"
+              >
+                <Download className="h-4 w-4 text-white" />
               </button>
             )}
             {/* Info button for details panel */}
@@ -850,12 +926,13 @@ function PanelCard({
             className="max-w-2xl max-h-[80vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {panel.videoUrl ? (
+            {panel.videoUrl && !videoError ? (
               <video
                 src={panel.videoUrl}
                 controls
                 autoPlay
                 className="max-h-[80vh] rounded-lg"
+                onError={() => setVideoError(true)}
               />
             ) : panel.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -865,6 +942,11 @@ function PanelCard({
                 className="max-h-[80vh] rounded-lg"
               />
             ) : null}
+            {videoError && (
+              <p className="text-xs text-amber-400 mt-2 text-center">
+                视频链接已过期，请重新生成视频
+              </p>
+            )}
             {panel.sceneDescription && (
               <p className="text-sm text-white/80 mt-3 text-center max-w-lg mx-auto">
                 {panel.sceneDescription}

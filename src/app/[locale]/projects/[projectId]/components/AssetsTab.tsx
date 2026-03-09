@@ -10,14 +10,18 @@ import {
   ChevronRight,
   Mic,
   ImageIcon,
+  ArrowRight,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { ProjectData, CharacterData, LocationData } from "./types";
 
 interface AssetsTabProps {
   project: ProjectData;
+  onSwitchTab?: (tab: string) => void;
 }
 
-export function AssetsTab({ project }: AssetsTabProps) {
+export function AssetsTab({ project, onSwitchTab }: AssetsTabProps) {
+  const t = useTranslations("emptyHints");
   const characters = project.characters || [];
   const locations = project.locations || [];
 
@@ -26,9 +30,18 @@ export function AssetsTab({ project }: AssetsTabProps) {
       <div className="text-center py-16">
         <Users className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
         <p className="text-gray-500 font-medium">暂无角色和场景</p>
-        <p className="text-sm text-gray-400 mt-1">
-          请先在「剧本」标签页粘贴文本并执行 AI 分析
+        <p className="text-sm text-gray-400 mt-1 mb-4">
+          {t("assets")}
         </p>
+        {onSwitchTab && (
+          <button
+            onClick={() => onSwitchTab("script")}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            {t("goToScript")}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        )}
       </div>
     );
   }

@@ -22,6 +22,23 @@
     "delete": "删除项目",
     "noProjects": "还没有项目，创建一个开始吧",
     "childProjects": "子项目",
+    "back": "返回",
+    "moreActions": "更多操作",
+    "duplicateProject": "复制项目",
+    "deleteConfirm": "确定删除项目「{title}」？此操作不可撤销。",
+    "editProject": "编辑项目",
+    "aspectRatio169": "16:9 横屏",
+    "aspectRatio916": "9:16 竖屏",
+    "aspectRatio11": "1:1 方形",
+    "styleRealistic": "真人风格",
+    "styleAnime": "动漫风",
+    "styleCinematic": "电影感",
+    "stats": "{episodes} 集 · {images} 图 · {videos} 视频",
+    "duplicating": "复制中...",
+    "duplicateSuccess": "项目已复制",
+    "duplicateFailed": "复制失败",
+    "deleteSuccess": "项目已删除",
+    "deleteFailed": "删除失败",
     "tabs": {
       "script": "剧本",
       "assets": "素材",
@@ -164,7 +181,13 @@
     "narrativeHook": "开场钩子",
     "narrativeConflict": "核心冲突",
     "narrativeClimax": "高潮",
-    "narrativeResolution": "结局"
+    "narrativeResolution": "结局",
+    "analyzeConfirmTitle": "确认重新分析",
+    "analyzeConfirm": "重新分析将覆盖现有的 {episodes} 个集和 {panels} 个分镜面板，确定继续？",
+    "directInput": "直接输入文本",
+    "directInputDesc": "粘贴或输入剧本/故事文本",
+    "smartImportHint": "适合长篇小说，自动拆分章节",
+    "startCreating": "开始创作"
   },
   "smartImport": {
     "title": "智能导入",
@@ -317,6 +340,13 @@
       "epic": "史诗",
       "suspense": "悬疑"
     }
+  },
+  "emptyHints": {
+    "assets": "请先在「剧本」标签页分析文本以提取角色和场景",
+    "voice": "请先在「分镜」标签页生成面板以获取配音台词",
+    "compose": "请先生成视频和配音",
+    "goToScript": "前往剧本",
+    "goToStoryboard": "前往分镜"
   },
   "taskStatus": {
     "pending": "等待中...",
