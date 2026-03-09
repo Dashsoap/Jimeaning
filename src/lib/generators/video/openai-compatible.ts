@@ -10,8 +10,8 @@ import type {
  *
  * Supports two API patterns:
  * 1. Sora → POST /v1/responses (OpenAI Responses API)
- * 2. Other models (Grok, etc.) → POST /v1/images/generations
- *    (used by NewAPI/OneAPI proxies for video models)
+ * 2. Other models (Grok, etc.) → POST /v1/chat/completions
+ *    NewAPI/OneAPI proxies route video models through chat completions relay.
  */
 export class OpenAIVideoGenerator implements VideoGenerator {
   private apiKey: string;
@@ -32,8 +32,8 @@ export class OpenAIVideoGenerator implements VideoGenerator {
       return this.generateViaSoraApi(model, params);
     }
 
-    // All other models use /v1/images/generations (proxy-compatible)
-    return this.generateViaImagesApi(model, params);
+    // Other video models (Grok, etc.) use chat completions
+    return this.generateViaChatCompletions(model, params);
   }
 
   /**
@@ -85,36 +85,47 @@ export class OpenAIVideoGenerator implements VideoGenerator {
   }
 
   /**
-   * Generic: POST /v1/images/generations
-   * Used by NewAPI/OneAPI proxies for Grok video, etc.
+   * Generic: POST /v1/chat/completions
+   * Used by NewAPI/OneAPI proxies for Grok video and other video models.
+   * The proxy handles the upstream video generation API internally.
    */
-  private async generateViaImagesApi(
+  private async generateViaChatCompletions(
     model: string,
     params: VideoGenerateParams,
   ): Promise<GenerateResult> {
     const prompt = params.prompt || "Animate this image with subtle, natural motion";
 
-    const body: Record<string, unknown> = {
-      model,
-      prompt: params.imageUrl
-        ? `${prompt}\n\nReference image: ${params.imageUrl}`
-        : prompt,
-      n: 1,
-      response_format: "url",
-    };
+    // Build message content - text + optional image
+    const content: Array<Record<string, unknown>> = [];
 
-    // Some proxies support image_url as a separate field
     if (params.imageUrl) {
-      body.image_url = params.imageUrl;
+      content.push({
+        type: "image_url",
+        image_url: { url: params.imageUrl },
+      });
     }
 
-    const response = await fetch(`${this.baseUrl}/v1/images/generations`, {
+    content.push({
+      type: "text",
+      text: prompt,
+    });
+
+    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: "user",
+            content: content.length === 1 ? prompt : content,
+          },
+        ],
+        stream: false,
+      }),
     });
 
     if (!response.ok) {
@@ -124,15 +135,39 @@ export class OpenAIVideoGenerator implements VideoGenerator {
 
     const data = await response.json();
 
-    // Standard OpenAI images response: { data: [{ url, b64_json }] }
-    const result = data.data?.[0];
-    if (!result) {
-      throw new Error("Video generation returned no result");
+    // Extract video URL from response
+    // Different providers return video URLs in different ways:
+    // 1. In message content as a URL string
+    // 2. In a special data field
+    const message = data.choices?.[0]?.message;
+    const messageContent = message?.content || "";
+
+    // Try to find a video URL in the response
+    const urlMatch = messageContent.match(/https?:\/\/[^\s"'<>]+\.(mp4|webm|mov)[^\s"'<>]*/i)
+      || messageContent.match(/https?:\/\/[^\s"'<>]+/i);
+
+    if (urlMatch) {
+      return { url: urlMatch[0] };
     }
 
-    return {
-      url: result.url,
-      base64: result.b64_json,
-    };
+    // Some providers return video data in a special field
+    if (data.data?.[0]?.url) {
+      return { url: data.data[0].url };
+    }
+
+    // If content contains base64 video data
+    if (data.data?.[0]?.b64_json) {
+      return { base64: data.data[0].b64_json };
+    }
+
+    // Return the raw content - the caller can handle it
+    if (messageContent) {
+      // The content might be a direct URL
+      if (messageContent.startsWith("http")) {
+        return { url: messageContent.trim() };
+      }
+    }
+
+    throw new Error(`Video generation returned no video URL. Response: ${messageContent.slice(0, 200)}`);
   }
 }
