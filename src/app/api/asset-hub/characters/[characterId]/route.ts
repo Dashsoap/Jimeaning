@@ -13,6 +13,7 @@ export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams)
 
   const character = await prisma.character.findFirst({
     where: { id: characterId, userId: auth.user.id, projectId: null },
+    include: { appearances: { orderBy: { appearanceIndex: "asc" } } },
   });
   if (!character) throw new ApiError("NOT_FOUND", "Character not found", 404);
 
@@ -39,9 +40,31 @@ export const PATCH = apiHandler(async (req: NextRequest, { params }: RouteParams
   if (typeof body.voiceId === "string") data.voiceId = body.voiceId;
   if (typeof body.voiceSample === "string") data.voiceSample = body.voiceSample;
 
+  // Voice binding via globalVoiceId
+  if ("globalVoiceId" in body) {
+    if (body.globalVoiceId === null) {
+      // Unbind voice
+      data.globalVoiceId = null;
+      data.voiceProvider = null;
+      data.voiceId = null;
+      data.voiceSample = null;
+    } else if (typeof body.globalVoiceId === "string") {
+      // Bind voice — copy provider/voiceId from Voice record
+      const voice = await prisma.voice.findFirst({
+        where: { id: body.globalVoiceId, userId: auth.user.id },
+      });
+      if (!voice) throw new ApiError("NOT_FOUND", "Voice not found", 404);
+      data.globalVoiceId = voice.id;
+      data.voiceProvider = voice.provider;
+      data.voiceId = voice.voiceId;
+      data.voiceSample = voice.sampleUrl;
+    }
+  }
+
   const character = await prisma.character.update({
     where: { id: characterId },
     data,
+    include: { appearances: { orderBy: { appearanceIndex: "asc" } } },
   });
 
   return NextResponse.json(character);

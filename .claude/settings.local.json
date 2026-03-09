@@ -10,7 +10,12 @@
       "Bash(npm test:*)",
       "Bash(sshpass:*)",
       "Bash(git:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "WebSearch",
+      "WebFetch(domain:ai.google.dev)"
     ]
   }
 }

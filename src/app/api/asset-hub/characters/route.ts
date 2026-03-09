@@ -10,6 +10,7 @@ export const GET = apiHandler(async (_req: NextRequest) => {
 
   const characters = await prisma.character.findMany({
     where: { userId: auth.user.id, projectId: null },
+    include: { appearances: { orderBy: { appearanceIndex: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Camera,
   Eye,
+  Play,
   X,
   RefreshCw,
   Download,
@@ -453,6 +454,8 @@ function PanelCard({
   );
   const [showModifyPrompt, setShowModifyPrompt] = useState(false);
   const [showShotVariants, setShowShotVariants] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const queryClient = useQueryClient();
 
   const refreshProject = useCallback(() => {
@@ -568,17 +571,52 @@ function PanelCard({
               : "border-dashed border-gray-300 dark:border-gray-600",
           )}
           onClick={() => {
-            if (panel.imageUrl || panel.videoUrl) setShowPreview(true);
+            if (isPlaying) {
+              setIsPlaying(false);
+            } else if (panel.imageUrl || panel.videoUrl) {
+              setShowPreview(true);
+            }
           }}
         >
           {panel.imageUrl ? (
-            <div className="aspect-[9/16] bg-gray-100 dark:bg-gray-800 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={panel.imageUrl}
-                alt={panel.sceneDescription || "Panel"}
-                className="w-full h-full object-cover"
-              />
+            <div className="aspect-[9/16] bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
+              {/* Inline video playback */}
+              {isPlaying && panel.videoUrl ? (
+                <video
+                  ref={videoRef}
+                  key={`video-${panel.id}-${panel.videoUrl}`}
+                  src={panel.videoUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain bg-black"
+                  onEnded={() => setIsPlaying(false)}
+                  onError={() => setIsPlaying(false)}
+                />
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={panel.imageUrl}
+                    alt={panel.sceneDescription || "Panel"}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Play button overlay when video exists */}
+                  {panel.videoUrl && (
+                    <div
+                      className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPlaying(true);
+                      }}
+                    >
+                      <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:bg-black/80 transition-all">
+                        <Play className="h-6 w-6 text-white ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           ) : (
             <div className="aspect-[9/16] bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center">
@@ -590,18 +628,18 @@ function PanelCard({
             </div>
           )}
 
+          {/* Task status overlay — shown during regeneration */}
+          {regenerating && !isPlaying && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10">
+              <Loader2 className="h-7 w-7 text-white animate-spin" />
+              <span className="mt-2 text-xs text-white">
+                {regenerating === "image" ? "生成图片中..." : "生成视频中..."}
+              </span>
+            </div>
+          )}
+
           {/* Status badges */}
           <div className="absolute top-1 right-1 flex gap-1">
-            {regenerating && (
-              <span className="rounded bg-blue-500/90 p-0.5">
-                <Loader2 className="h-3 w-3 text-white animate-spin" />
-              </span>
-            )}
-            {panel.videoUrl && (
-              <span className="rounded bg-violet-500/90 p-0.5">
-                <Film className="h-3 w-3 text-white" />
-              </span>
-            )}
             {panel.sceneType && (
               <span
                 className={cn(
@@ -628,8 +666,11 @@ function PanelCard({
             </div>
           )}
 
-          {/* Hover overlay with action buttons */}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+          {/* Hover overlay with action buttons — hidden during playback */}
+          <div className={cn(
+            "absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100",
+            isPlaying && "!opacity-0 pointer-events-none",
+          )}>
             {(panel.imageUrl || panel.videoUrl) && (
               <button
                 className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
