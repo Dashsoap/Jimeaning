@@ -4,11 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
-  LayoutDashboard,
+  Home,
   FolderOpen,
-  Image as ImageIcon,
-  Film,
   FileText,
+  Image as ImageIcon,
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,7 +26,7 @@ export function Sidebar() {
   const navItems: NavItem[] = [
     {
       href: `/${locale}`,
-      icon: <LayoutDashboard size={20} />,
+      icon: <Home size={20} />,
       labelKey: "dashboard",
     },
     {
@@ -48,53 +47,43 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="flex h-screen w-[68px] flex-col items-center bg-[var(--color-bg-secondary)] py-5">
-      {/* Logo */}
-      <Link
-        href={`/${locale}`}
-        className="mb-8 flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white shadow-sm"
-      >
-        <Film size={20} />
-      </Link>
-
-      {/* New Project shortcut */}
+    <aside className="fixed left-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2">
+      {/* New Project */}
       <Link
         href={`/${locale}/projects`}
-        className="group relative mb-6 flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed border-[var(--color-border)] text-[var(--color-text-tertiary)] transition-all hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+        className="group relative mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--color-text-secondary)] shadow-md transition-all hover:shadow-lg hover:text-[var(--color-accent)] cursor-pointer"
       >
-        <Plus size={20} />
-        <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">
+        <Plus size={20} strokeWidth={2} />
+        <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           {t("projects")}
         </span>
       </Link>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col items-center gap-1.5">
-        {navItems.map((item) => {
-          const isActive =
-            item.href === `/${locale}`
-              ? pathname === `/${locale}` || pathname === `/${locale}/`
-              : pathname.startsWith(item.href);
+      {navItems.map((item) => {
+        const isActive =
+          item.href === `/${locale}`
+            ? pathname === `/${locale}` || pathname === `/${locale}/`
+            : pathname.startsWith(item.href);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "group relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors",
-                isActive
-                  ? "bg-white text-[var(--color-accent)] shadow-sm"
-                  : "text-[var(--color-text-tertiary)] hover:bg-white/60 hover:text-[var(--color-text-secondary)]"
-              )}
-            >
-              {item.icon}
-              <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">
-                {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets")}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "group relative flex h-11 w-11 items-center justify-center rounded-full transition-all cursor-pointer",
+              isActive
+                ? "bg-white text-[var(--color-text)] shadow-md ring-2 ring-[var(--color-text)]/10"
+                : "bg-white/80 text-[var(--color-text-tertiary)] shadow-sm hover:bg-white hover:shadow-md hover:text-[var(--color-text-secondary)]"
+            )}
+          >
+            {item.icon}
+            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+              {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets")}
+            </span>
+          </Link>
+        );
+      })}
     </aside>
   );
 }
