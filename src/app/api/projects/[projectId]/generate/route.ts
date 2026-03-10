@@ -16,6 +16,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
   const body = await req.json().catch(() => ({}));
   const generateType = body.type || "image"; // "image" | "video" | "both"
   const candidateCount = Math.min(Math.max(body.candidateCount || 1, 1), 4); // 1-4
+  const videoModel = body.videoModel as string | undefined;
 
   // Pre-validate: check user has the required models configured
   if (generateType === "image" || generateType === "both") {
@@ -42,6 +43,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
   });
 
   const taskIds: string[] = [];
+  const taskMap: Record<string, string> = {}; // panelId → taskId
 
   for (const panel of panels) {
     if (generateType === "image" || generateType === "both") {
@@ -53,6 +55,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
           data: { panelId: panel.id, candidateCount },
         });
         taskIds.push(taskId);
+        taskMap[panel.id] = taskId;
       }
     }
 
@@ -62,12 +65,13 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
           userId: auth.session.user.id,
           projectId,
           type: TaskType.GENERATE_PANEL_VIDEO,
-          data: { panelId: panel.id },
+          data: { panelId: panel.id, ...(videoModel && { videoModel }) },
         });
         taskIds.push(taskId);
+        taskMap[panel.id] = taskId;
       }
     }
   }
 
-  return NextResponse.json({ taskIds, count: taskIds.length });
+  return NextResponse.json({ taskIds, taskMap, count: taskIds.length });
 });

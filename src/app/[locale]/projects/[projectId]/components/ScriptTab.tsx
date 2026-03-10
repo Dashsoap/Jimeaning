@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import toast from "react-hot-toast";
@@ -30,8 +30,16 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
   const [analyzeTaskId, setAnalyzeTaskId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showReanalyzeConfirm, setShowReanalyzeConfirm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
+
+  // Auto-focus textarea when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      setTimeout(() => textareaRef.current?.focus(), 50);
+    }
+  }, [isEditing]);
 
   const hasChanges = text !== (project?.sourceText || "");
   const charCount = text.length;
@@ -250,7 +258,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       )}
 
       {/* Empty State — show guided entry when no content */}
-      {!hasContent && !isAnalyzing ? (
+      {!hasContent && !isAnalyzing && !isEditing ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6">
           <FileText className="h-16 w-16 text-[var(--color-border-default)]" />
           <p className="text-lg font-medium text-[var(--color-text-tertiary)]">
@@ -259,7 +267,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
           <div className="grid grid-cols-2 gap-4 max-w-md w-full">
             {/* Direct Input Card */}
             <button
-              onClick={() => textareaRef.current?.focus()}
+              onClick={() => setIsEditing(true)}
               className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border-default)] p-6 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-all group"
             >
               <PenLine className="h-8 w-8 text-[var(--color-border-default)] group-hover:text-[var(--color-accent)] transition-colors" />
@@ -292,7 +300,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       ) : null}
 
       {/* Text Area — show when there is content or when analyzing */}
-      {(hasContent || isAnalyzing) && (
+      {(hasContent || isAnalyzing || isEditing) && (
         <>
           <div className="relative">
             <textarea

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import {
   LayoutPanelTop,
@@ -19,6 +19,7 @@ import {
   Download,
   Link2,
   Check,
+  CheckCircle,
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,19 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
   const [imageTaskIds, setImageTaskIds] = useState<string[] | null>(null);
   const [videoTaskIds, setVideoTaskIds] = useState<string[] | null>(null);
   const [candidateCount, setCandidateCount] = useState(1);
+  const [panelTaskMap, setPanelTaskMap] = useState<Record<string, { taskId: string; type: "image" | "video" }>>({});
+  const [selectedVideoModel, setSelectedVideoModel] = useState("");
   const queryClient = useQueryClient();
+
+  // Fetch available video models for the dropdown
+  const { data: apiConfig } = useQuery<{
+    models: { modelId: string; name: string; type: string; provider: string; enabled: boolean }[];
+  }>({
+    queryKey: ["api-config"],
+    queryFn: () => fetch("/api/user/api-config").then((r) => r.json()),
+    staleTime: 60_000,
+  });
+  const videoModels = apiConfig?.models?.filter((m) => m.type === "video" && m.enabled) || [];
 
   const totalPanels = episodes.reduce(
     (sum, ep) => sum + ep.clips.reduce((s, c) => s + c.panels.length, 0),
@@ -165,6 +178,13 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
       }
       const data = await res.json();
       setImageTaskIds(data.taskIds);
+      if (data.taskMap) {
+        const map: Record<string, { taskId: string; type: "image" | "video" }> = {};
+        for (const [panelId, taskId] of Object.entries(data.taskMap)) {
+          map[panelId] = { taskId: taskId as string, type: "image" };
+        }
+        setPanelTaskMap((prev) => ({ ...prev, ...map }));
+      }
       toast.success(`已提交 ${data.count} 个图片生成任务`);
     } catch {
       toast.error("提交失败");
@@ -176,7 +196,10 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
       const res = await fetch(`/api/projects/${project.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "video" }),
+        body: JSON.stringify({
+          type: "video",
+          ...(selectedVideoModel && { videoModel: selectedVideoModel }),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -185,6 +208,13 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
       }
       const data = await res.json();
       setVideoTaskIds(data.taskIds);
+      if (data.taskMap) {
+        const map: Record<string, { taskId: string; type: "image" | "video" }> = {};
+        for (const [panelId, taskId] of Object.entries(data.taskMap)) {
+          map[panelId] = { taskId: taskId as string, type: "video" };
+        }
+        setPanelTaskMap((prev) => ({ ...prev, ...map }));
+      }
       toast.success(`已提交 ${data.count} 个视频生成任务`);
     } catch {
       toast.error("提交失败");
@@ -258,18 +288,40 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           </select>
         </div>
 
-        <button
-          onClick={handleGenerateVideos}
-          disabled={isGeneratingVideos || panelsWithImages === 0}
-          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] disabled:opacity-50 transition-colors"
-        >
-          {isGeneratingVideos ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Film className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleGenerateVideos}
+            disabled={isGeneratingVideos || panelsWithImages === 0}
+            className={cn(
+              "cursor-pointer inline-flex items-center gap-2 bg-[var(--color-btn-primary)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] disabled:opacity-50 transition-colors",
+              videoModels.length > 1
+                ? "rounded-[var(--radius-md)] rounded-r-none"
+                : "rounded-[var(--radius-md)]",
+            )}
+          >
+            {isGeneratingVideos ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Film className="h-4 w-4" />
+            )}
+            生成视频
+          </button>
+          {videoModels.length > 1 && (
+            <select
+              value={selectedVideoModel}
+              onChange={(e) => setSelectedVideoModel(e.target.value)}
+              className="h-[38px] rounded-[var(--radius-md)] rounded-l-none border-l border-[var(--color-btn-primary-hover)] bg-[var(--color-btn-primary)] px-2 text-sm text-white hover:bg-[var(--color-btn-primary-hover)] cursor-pointer max-w-[120px]"
+              title="选择视频模型"
+            >
+              <option value="">默认</option>
+              {videoModels.map((m) => (
+                <option key={`${m.provider}::${m.modelId}`} value={`${m.provider}::${m.modelId}`}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
           )}
-          生成视频
-        </button>
+        </div>
         <button
           onClick={refreshProject}
           className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:opacity-80 transition-colors"
@@ -361,6 +413,15 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           projectId={project.id}
           characters={project.characters || []}
           locations={project.locations || []}
+          panelTaskMap={panelTaskMap}
+          onPanelTaskDone={(panelId) => {
+            setPanelTaskMap((prev) => {
+              const next = { ...prev };
+              delete next[panelId];
+              return next;
+            });
+            refreshProject();
+          }}
         />
       ))}
     </div>
@@ -414,11 +475,15 @@ function EpisodeSection({
   projectId,
   characters,
   locations,
+  panelTaskMap,
+  onPanelTaskDone,
 }: {
   episode: EpisodeData;
   projectId: string;
   characters: CharacterData[];
   locations: LocationData[];
+  panelTaskMap: Record<string, { taskId: string; type: "image" | "video" }>;
+  onPanelTaskDone: (panelId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -517,6 +582,8 @@ function EpisodeSection({
                           nextPanel={clip.panels[panelIndex + 1] || null}
                           characters={characters}
                           locations={locations}
+                          batchTask={panelTaskMap[panel.id]}
+                          onBatchTaskDone={() => onPanelTaskDone(panel.id)}
                         />
                       ))}
                     </div>
@@ -539,12 +606,16 @@ function PanelCard({
   nextPanel,
   characters,
   locations,
+  batchTask,
+  onBatchTaskDone,
 }: {
   panel: PanelData;
   projectId: string;
   nextPanel: PanelData | null;
   characters: CharacterData[];
   locations: LocationData[];
+  batchTask?: { taskId: string; type: "image" | "video" };
+  onBatchTaskDone?: () => void;
 }) {
   const [showPreview, setShowPreview] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -556,8 +627,27 @@ function PanelCard({
   const [showShotVariants, setShowShotVariants] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [batchDone, setBatchDone] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const queryClient = useQueryClient();
+
+  // Poll batch task progress
+  const {
+    task: batchTaskStatus,
+    progressPercent: batchProgress,
+    isRunning: batchRunning,
+  } = useTaskPolling(batchTask?.taskId ?? null, {
+    interval: 3000,
+    onComplete: useCallback(() => {
+      setBatchDone(true);
+      onBatchTaskDone?.();
+      setTimeout(() => setBatchDone(false), 2000);
+    }, [onBatchTaskDone]),
+    onFailed: useCallback((error: string) => {
+      toast.error(error || "生成失败");
+      onBatchTaskDone?.();
+    }, [onBatchTaskDone]),
+  });
 
   const refreshProject = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["project", projectId] });
@@ -754,24 +844,42 @@ function PanelCard({
                   )}
                 </>
               )}
+              {/* Task status overlay — shown during regeneration or batch task */}
+              {(regenerating || batchRunning || batchDone) && !isPlaying && (
+                <div className={cn(
+                  "absolute inset-0 flex flex-col items-center justify-center z-10",
+                  batchDone ? "bg-black/30" : "bg-black/50",
+                )}>
+                  {batchDone ? (
+                    <CheckCircle className="h-8 w-8 text-emerald-400" />
+                  ) : (
+                    <>
+                      <Loader2 className="h-7 w-7 text-white animate-spin" />
+                      <span className="mt-2 text-xs text-white">
+                        {(batchTask?.type || regenerating) === "image" ? "生成图片中..." : "生成视频中..."}
+                      </span>
+                      {batchRunning && batchProgress > 0 && (
+                        <span className="mt-1 text-[10px] text-white/80">{batchProgress}%</span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="aspect-[9/16] bg-[var(--color-bg-surface)] flex items-center justify-center">
-              {regenerating === "image" ? (
-                <Loader2 className="h-6 w-6 text-[var(--color-accent)] animate-spin" />
+            <div className="aspect-[9/16] bg-[var(--color-bg-surface)] flex items-center justify-center relative">
+              {(regenerating === "image" || batchRunning) ? (
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-6 w-6 text-[var(--color-accent)] animate-spin" />
+                  {batchRunning && batchProgress > 0 && (
+                    <span className="text-[10px] text-[var(--color-text-tertiary)]">{batchProgress}%</span>
+                  )}
+                </div>
+              ) : batchDone ? (
+                <CheckCircle className="h-8 w-8 text-emerald-400" />
               ) : (
                 <ImageIcon className="h-6 w-6 text-[var(--color-border-default)]" />
               )}
-            </div>
-          )}
-
-          {/* Task status overlay — shown during regeneration */}
-          {regenerating && !isPlaying && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10">
-              <Loader2 className="h-7 w-7 text-white animate-spin" />
-              <span className="mt-2 text-xs text-white">
-                {regenerating === "image" ? "生成图片中..." : "生成视频中..."}
-              </span>
             </div>
           )}
 

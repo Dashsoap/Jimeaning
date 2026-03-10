@@ -84,7 +84,7 @@ export function useTaskPolling(
 
   const progressPercent =
     task && task.totalSteps > 0
-      ? Math.round((task.progress / task.totalSteps) * 100)
+      ? Math.min(Math.round((task.progress / task.totalSteps) * 100), 100)
       : 0;
 
   return {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   Home,
@@ -21,6 +21,7 @@ interface NavItem {
 export function Sidebar() {
   const t = useTranslations("app");
   const pathname = usePathname();
+  const router = useRouter();
   const locale = pathname.split("/")[1] || "zh";
 
   const navItems: NavItem[] = [
@@ -49,15 +50,15 @@ export function Sidebar() {
   return (
     <aside className="fixed left-3 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-2">
       {/* New Project */}
-      <Link
-        href={`/${locale}/projects`}
+      <button
+        onClick={() => router.push(`/${locale}/projects?create=true`)}
         className="group relative mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--color-text-secondary)] shadow-md transition-all hover:shadow-lg hover:text-[var(--color-accent)] cursor-pointer"
       >
         <Plus size={20} strokeWidth={2} />
         <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text-primary)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-          {t("projects")}
+          {t("newProject")}
         </span>
-      </Link>
+      </button>
 
       {/* Navigation */}
       {navItems.map((item) => {

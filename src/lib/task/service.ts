@@ -100,8 +100,8 @@ export async function completeTask(
   await publishTaskProgress({
     taskId,
     projectId: task.projectId ?? undefined,
-    progress: task.totalSteps,
-    totalSteps: task.totalSteps,
+    progress: 100,
+    totalSteps: 100,
     status: "completed",
   });
 }

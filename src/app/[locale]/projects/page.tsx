@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -78,8 +78,17 @@ export default function ProjectsPage() {
   const locale = pathname.split("/")[1] || "zh";
   const { status } = useSession();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
 
   const [showCreate, setShowCreate] = useState(false);
+
+  // Auto-open create modal when navigating with ?create=true
+  useEffect(() => {
+    if (searchParams.get("create") === "true") {
+      setShowCreate(true);
+      router.replace(`/${locale}/projects`, { scroll: false });
+    }
+  }, [searchParams, router, locale]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [aspectRatio, setAspectRatio] = useState("16:9");

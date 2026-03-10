@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { createVideoGenerator } from "@/lib/generators/factory";
-import { resolveVideoConfig } from "@/lib/providers/resolve";
+import { resolveVideoConfig, resolveProviderConfig, mapToVideoProvider } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 import { createScopedLogger } from "@/lib/logging";
@@ -74,7 +74,18 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
 
   await ctx.reportProgress(20);
 
-  const { provider, config } = await resolveVideoConfig(userId);
+  const videoModelKey = data.videoModel as string | undefined;
+  let provider: "openai" | "fal" | "google";
+  let config;
+  if (videoModelKey) {
+    const resolved = await resolveProviderConfig(userId, "video", videoModelKey);
+    provider = mapToVideoProvider(resolved.provider);
+    config = resolved.config;
+  } else {
+    const resolved = await resolveVideoConfig(userId);
+    provider = resolved.provider;
+    config = resolved.config;
+  }
   const generator = createVideoGenerator(provider, config);
 
   await ctx.reportProgress(40);
