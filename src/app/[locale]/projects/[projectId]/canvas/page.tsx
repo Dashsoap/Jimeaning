@@ -2,7 +2,7 @@
 
 /**
  * Canvas page — tldraw infinite canvas view for project workflow.
- * Adapted from anime-ai-studio CanvasPanel.tsx + MainLayout.tsx stage nav.
+ * Left sidebar switches tools based on active stage (like anime-ai-studio ChatPanel).
  */
 
 import { useCallback, useState, useEffect, useRef } from "react";
@@ -23,6 +23,11 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  Mic,
+  Users,
+  MapPin,
+  FileText,
+  Clapperboard,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -44,7 +49,35 @@ const STAGES: Array<{ id: CanvasStage; label: string; icon: string }> = [
   { id: "compose", label: "Compose", icon: "🎥" },
 ];
 
-// ─── Keyboard shortcuts (undo/redo since hideUi disables them) ──────────────
+const STAGE_CONFIG: Record<CanvasStage, { title: string; icon: string; greeting: string }> = {
+  script: {
+    title: "编剧工具",
+    icon: "✍️",
+    greeting: "管理剧本文本、分析角色和场景，为分镜做准备。",
+  },
+  assets: {
+    title: "美术工具",
+    icon: "🎨",
+    greeting: "管理角色和场景资产，生成参考图片。",
+  },
+  storyboard: {
+    title: "分镜工具",
+    icon: "🎬",
+    greeting: "生成分镜文本，批量生成关键帧图片。",
+  },
+  voice: {
+    title: "配音工具",
+    icon: "🎙️",
+    greeting: "为角色台词生成语音配音。",
+  },
+  compose: {
+    title: "导演工具",
+    icon: "🎥",
+    greeting: "批量生成视频，下载和导出最终成片。",
+  },
+};
+
+// ─── Keyboard shortcuts ─────────────────────────────────────────────────────
 
 function KeyboardShortcutsHandler() {
   const editor = useEditor();
@@ -103,6 +136,8 @@ function getProjectStats(data: CanvasProjectData) {
   let withImage = 0;
   let withVideo = 0;
   let withVoice = 0;
+  let totalVoiceLines = 0;
+  let voiceLinesWithAudio = 0;
 
   for (const ep of data.episodes) {
     for (const clip of ep.clips) {
@@ -111,120 +146,76 @@ function getProjectStats(data: CanvasProjectData) {
         if (panel.imageUrl) withImage++;
         if (panel.videoUrl) withVideo++;
         if (panel.voiceLines.some((vl) => vl.audioUrl)) withVoice++;
+        for (const vl of panel.voiceLines) {
+          totalVoiceLines++;
+          if (vl.audioUrl) voiceLinesWithAudio++;
+        }
       }
     }
   }
 
-  return { totalPanels, withImage, withVideo, withVoice };
+  return {
+    totalPanels, withImage, withVideo, withVoice,
+    totalVoiceLines, voiceLinesWithAudio,
+    characters: data.characters.length,
+    locations: data.locations.length,
+    charsWithImage: data.characters.filter((c) => c.imageUrl).length,
+    locsWithImage: data.locations.filter((l) => l.imageUrl).length,
+    episodes: data.episodes.length,
+    clips: data.episodes.reduce((s, ep) => s + ep.clips.length, 0),
+  };
 }
 
-// ─── Director Panel (left sidebar) ──────────────────────────────────────────
+// ─── Stage-Aware Sidebar ────────────────────────────────────────────────────
 
-function DirectorPanel({
+function StageSidebar({
   projectId,
   data,
+  activeStage,
   onRefresh,
 }: {
   projectId: string;
   data: CanvasProjectData | undefined;
+  activeStage: CanvasStage;
   onRefresh: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [candidateCount, setCandidateCount] = useState(1);
-  const [generatingStoryboard, setGeneratingStoryboard] = useState(false);
-  const [generatingImages, setGeneratingImages] = useState(false);
-  const [generatingVideos, setGeneratingVideos] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
 
   const stats = data ? getProjectStats(data) : null;
-  const progressPct = stats && stats.totalPanels > 0
-    ? Math.round((stats.withVideo / stats.totalPanels) * 100)
-    : 0;
+  const config = STAGE_CONFIG[activeStage];
 
-  const handleGenerateStoryboard = async () => {
-    setGeneratingStoryboard(true);
+  const apiCall = async (label: string, url: string, opts?: RequestInit) => {
+    setLoading(label);
     try {
-      const res = await fetch(`/api/projects/${projectId}/storyboard`, {
-        method: "POST",
-      });
+      const res = await fetch(url, opts);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "提交失败");
-        return;
+        toast.error(err.error || "操作失败");
+        return null;
       }
-      toast.success("分镜生成任务已提交");
+      return await res.json();
     } catch {
-      toast.error("提交失败");
+      toast.error("操作失败");
+      return null;
     } finally {
-      setGeneratingStoryboard(false);
-    }
-  };
-
-  const handleGenerateImages = async () => {
-    setGeneratingImages(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "image", candidateCount }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "提交失败");
-        return;
-      }
-      const d = await res.json();
-      toast.success(`已提交 ${d.count} 个图片生成任务`);
-    } catch {
-      toast.error("提交失败");
-    } finally {
-      setGeneratingImages(false);
-    }
-  };
-
-  const handleGenerateVideos = async () => {
-    setGeneratingVideos(true);
-    try {
-      const res = await fetch(`/api/projects/${projectId}/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "video" }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "提交失败");
-        return;
-      }
-      const d = await res.json();
-      toast.success(`已提交 ${d.count} 个视频生成任务`);
-    } catch {
-      toast.error("提交失败");
-    } finally {
-      setGeneratingVideos(false);
+      setLoading(null);
     }
   };
 
   const handleDownload = async (type: "images" | "videos") => {
-    try {
-      const res = await fetch(
-        `/api/projects/${projectId}/download?type=${type}`,
-      );
-      if (!res.ok) {
-        toast.error("无可下载内容");
-        return;
-      }
-      const d = await res.json();
-      const limit = type === "images" ? 20 : 10;
-      for (const item of d.items.slice(0, limit)) {
-        const a = document.createElement("a");
-        a.href = item.url;
-        a.download = item.filename;
-        a.target = "_blank";
-        a.click();
-      }
-      toast.success(`开始下载 ${Math.min(d.items.length, limit)} 个${type === "images" ? "图片" : "视频"}`);
-    } catch {
-      toast.error("下载失败");
+    const d = await apiCall("download", `/api/projects/${projectId}/download?type=${type}`);
+    if (!d) return;
+    const limit = type === "images" ? 20 : 10;
+    for (const item of d.items.slice(0, limit)) {
+      const a = document.createElement("a");
+      a.href = item.url;
+      a.download = item.filename;
+      a.target = "_blank";
+      a.click();
     }
+    toast.success(`开始下载 ${Math.min(d.items.length, limit)} 个${type === "images" ? "图片" : "视频"}`);
   };
 
   if (collapsed) {
@@ -233,7 +224,7 @@ function DirectorPanel({
         <button
           onClick={() => setCollapsed(false)}
           className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          title="展开导演工具"
+          title="展开工具面板"
         >
           <PanelLeftOpen size={16} />
         </button>
@@ -246,173 +237,398 @@ function DirectorPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 dark:border-gray-800">
         <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-          导演工具
+          {config.icon} {config.title}
         </span>
         <button
           onClick={() => setCollapsed(true)}
           className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          title="收起"
         >
           <PanelLeftClose size={14} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        {/* Stats */}
-        {stats && (
-          <div className="space-y-2">
-            <div className="text-[10px] text-gray-400 uppercase tracking-wider">统计</div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-gray-700 dark:text-gray-200">{stats.totalPanels}</div>
-                <div className="text-[10px] text-gray-400">总镜头</div>
+        {/* Greeting */}
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed bg-white dark:bg-gray-800 rounded-lg p-2.5 border border-gray-100 dark:border-gray-700">
+          {config.greeting}
+        </p>
+
+        {/* ── SCRIPT STAGE ─────────────────────────────────────── */}
+        {activeStage === "script" && (
+          <>
+            {stats && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">概览</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatCard value={stats.episodes} label="集数" color="text-indigo-600" />
+                  <StatCard value={stats.clips} label="片段" color="text-blue-600" />
+                  <StatCard value={stats.characters} label="角色" color="text-pink-600" />
+                  <StatCard value={stats.locations} label="场景" color="text-emerald-600" />
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-emerald-600">{stats.withImage}</div>
-                <div className="text-[10px] text-gray-400">已生成图</div>
+            )}
+
+            {data?.project.sourceText && (
+              <div className="text-[10px] text-gray-400">
+                剧本长度: {data.project.sourceText.length.toLocaleString()} 字
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-violet-600">{stats.withVideo}</div>
-                <div className="text-[10px] text-gray-400">已生成视频</div>
+            )}
+
+            <ActionButton
+              icon={<Sparkles className="h-3.5 w-3.5" />}
+              label="生成分镜文本"
+              color="bg-blue-600 hover:bg-blue-700"
+              loading={loading === "storyboard"}
+              disabled={!stats || stats.clips === 0}
+              onClick={async () => {
+                const d = await apiCall("storyboard", `/api/projects/${projectId}/storyboard`, { method: "POST" });
+                if (d) toast.success("分镜生成任务已提交");
+              }}
+            />
+
+            {stats && stats.clips === 0 && (
+              <Hint text="请先在项目页面添加剧本文本和创建集/片段。" />
+            )}
+          </>
+        )}
+
+        {/* ── ASSETS STAGE ─────────────────────────────────────── */}
+        {activeStage === "assets" && (
+          <>
+            {stats && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">资产统计</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatCard value={stats.characters} label="角色" color="text-pink-600" icon={<Users className="h-3 w-3" />} />
+                  <StatCard value={stats.charsWithImage} label="角色图" color="text-pink-500" />
+                  <StatCard value={stats.locations} label="场景" color="text-emerald-600" icon={<MapPin className="h-3 w-3" />} />
+                  <StatCard value={stats.locsWithImage} label="场景图" color="text-emerald-500" />
+                </div>
+
+                {stats.characters > 0 && (
+                  <ProgressBar
+                    label="角色图进度"
+                    current={stats.charsWithImage}
+                    total={stats.characters}
+                    color="bg-pink-500"
+                  />
+                )}
+                {stats.locations > 0 && (
+                  <ProgressBar
+                    label="场景图进度"
+                    current={stats.locsWithImage}
+                    total={stats.locations}
+                    color="bg-emerald-500"
+                  />
+                )}
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center">
-                <div className="text-lg font-bold text-blue-600">{stats.withVoice}</div>
-                <div className="text-[10px] text-gray-400">已配音</div>
+            )}
+
+            {stats && stats.characters === 0 && stats.locations === 0 && (
+              <Hint text="请先在项目页面「资产」标签创建角色和场景。" />
+            )}
+          </>
+        )}
+
+        {/* ── STORYBOARD STAGE ─────────────────────────────────── */}
+        {activeStage === "storyboard" && (
+          <>
+            {stats && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">分镜统计</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatCard value={stats.totalPanels} label="总镜头" color="text-gray-700 dark:text-gray-200" />
+                  <StatCard value={stats.withImage} label="已生成图" color="text-emerald-600" />
+                </div>
+
+                {stats.totalPanels > 0 && (
+                  <ProgressBar
+                    label="关键帧进度"
+                    current={stats.withImage}
+                    total={stats.totalPanels}
+                    color="bg-emerald-500"
+                  />
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider">生成</div>
+
+              <ActionButton
+                icon={<Sparkles className="h-3.5 w-3.5" />}
+                label="生成分镜文本"
+                color="bg-blue-600 hover:bg-blue-700"
+                loading={loading === "storyboard"}
+                onClick={async () => {
+                  const d = await apiCall("storyboard", `/api/projects/${projectId}/storyboard`, { method: "POST" });
+                  if (d) toast.success("分镜生成任务已提交");
+                }}
+              />
+
+              <div className="flex gap-1">
+                <ActionButton
+                  icon={<ImageIcon className="h-3.5 w-3.5" />}
+                  label="批量生成图片"
+                  color="bg-emerald-600 hover:bg-emerald-700 rounded-r-none"
+                  loading={loading === "images"}
+                  disabled={!stats || stats.totalPanels === 0}
+                  onClick={async () => {
+                    const d = await apiCall("images", `/api/projects/${projectId}/generate`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ type: "image", candidateCount }),
+                    });
+                    if (d) toast.success(`已提交 ${d.count} 个图片生成任务`);
+                  }}
+                />
+                <select
+                  value={candidateCount}
+                  onChange={(e) => setCandidateCount(Number(e.target.value))}
+                  className="h-auto rounded-lg rounded-l-none border-l border-emerald-700 bg-emerald-600 px-1.5 text-xs text-white hover:bg-emerald-700 cursor-pointer"
+                  title="候选数量"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                </select>
               </div>
             </div>
 
-            {/* Progress bar */}
-            {stats.totalPanels > 0 && (
-              <div>
-                <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                  <span>视频进度</span>
-                  <span>{stats.withVideo}/{stats.totalPanels} ({progressPct}%)</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-violet-500 transition-all duration-500"
-                    style={{ width: `${Math.max(progressPct, 2)}%` }}
-                  />
-                </div>
+            {stats && stats.totalPanels === 0 && (
+              <Hint text="请先生成分镜文本，再生成关键帧图片。" />
+            )}
+
+            {stats && stats.withImage > 0 && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">下载</div>
+                <ActionButton
+                  icon={<Download className="h-3.5 w-3.5" />}
+                  label={`下载图片 (${stats.withImage})`}
+                  color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-gray-600 dark:!text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => handleDownload("images")}
+                />
               </div>
             )}
-          </div>
+          </>
         )}
 
-        {/* Generation Controls */}
-        <div className="space-y-2">
-          <div className="text-[10px] text-gray-400 uppercase tracking-wider">生成</div>
+        {/* ── VOICE STAGE ──────────────────────────────────────── */}
+        {activeStage === "voice" && (
+          <>
+            {stats && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">配音统计</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatCard value={stats.totalVoiceLines} label="总台词" color="text-gray-700 dark:text-gray-200" />
+                  <StatCard value={stats.voiceLinesWithAudio} label="已配音" color="text-orange-600" />
+                </div>
 
-          {/* Storyboard */}
-          <button
-            onClick={handleGenerateStoryboard}
-            disabled={generatingStoryboard}
-            className="w-full flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
-          >
-            {generatingStoryboard ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="h-3.5 w-3.5" />
-            )}
-            生成分镜文本
-          </button>
-
-          {/* Images with candidate count */}
-          <div className="flex gap-1">
-            <button
-              onClick={handleGenerateImages}
-              disabled={generatingImages || !stats || stats.totalPanels === 0}
-              className="flex-1 flex items-center gap-2 rounded-lg rounded-r-none bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-            >
-              {generatingImages ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <ImageIcon className="h-3.5 w-3.5" />
-              )}
-              批量生成图片
-            </button>
-            <select
-              value={candidateCount}
-              onChange={(e) => setCandidateCount(Number(e.target.value))}
-              className="h-auto rounded-lg rounded-l-none border-l border-emerald-700 bg-emerald-600 px-1.5 text-xs text-white hover:bg-emerald-700 cursor-pointer"
-              title="候选数量"
-            >
-              <option value={1}>1</option>
-              <option value={2}>2</option>
-              <option value={3}>3</option>
-              <option value={4}>4</option>
-            </select>
-          </div>
-
-          {/* Videos */}
-          <button
-            onClick={handleGenerateVideos}
-            disabled={generatingVideos || !stats || stats.withImage === 0}
-            className="w-full flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-xs font-medium text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
-          >
-            {generatingVideos ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Film className="h-3.5 w-3.5" />
-            )}
-            批量生成视频
-            {stats && stats.withImage > 0 && (
-              <span className="ml-auto text-white/70">
-                {stats.withImage - stats.withVideo} 待生成
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Download */}
-        {stats && (stats.withImage > 0 || stats.withVideo > 0) && (
-          <div className="space-y-2">
-            <div className="text-[10px] text-gray-400 uppercase tracking-wider">下载</div>
-
-            {stats.withImage > 0 && (
-              <button
-                onClick={() => handleDownload("images")}
-                className="w-full flex items-center gap-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <Download className="h-3.5 w-3.5" />
-                下载图片 ({stats.withImage})
-              </button>
+                {stats.totalVoiceLines > 0 && (
+                  <ProgressBar
+                    label="配音进度"
+                    current={stats.voiceLinesWithAudio}
+                    total={stats.totalVoiceLines}
+                    color="bg-orange-500"
+                  />
+                )}
+              </div>
             )}
 
-            {stats.withVideo > 0 && (
-              <button
-                onClick={() => handleDownload("videos")}
-                className="w-full flex items-center gap-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs text-violet-600 dark:text-violet-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <Download className="h-3.5 w-3.5" />
-                下载视频 ({stats.withVideo})
-              </button>
+            <ActionButton
+              icon={<Mic className="h-3.5 w-3.5" />}
+              label="批量生成配音"
+              color="bg-orange-600 hover:bg-orange-700"
+              loading={loading === "voice"}
+              disabled={!stats || stats.totalVoiceLines === 0}
+              onClick={async () => {
+                const d = await apiCall("voice", `/api/projects/${projectId}/voice/generate-all`, { method: "POST" });
+                if (d) toast.success(`已提交配音生成任务`);
+              }}
+            />
+
+            {stats && stats.totalVoiceLines === 0 && (
+              <Hint text="暂无台词，请先生成分镜文本。" />
             )}
-          </div>
+          </>
         )}
 
-        {/* Refresh */}
-        <button
+        {/* ── COMPOSE STAGE ────────────────────────────────────── */}
+        {activeStage === "compose" && (
+          <>
+            {stats && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">导演统计</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <StatCard value={stats.totalPanels} label="总镜头" color="text-gray-700 dark:text-gray-200" />
+                  <StatCard value={stats.withImage} label="关键帧" color="text-emerald-600" />
+                  <StatCard value={stats.withVideo} label="已生成视频" color="text-violet-600" />
+                  <StatCard value={stats.withVoice} label="已配音" color="text-orange-600" />
+                </div>
+
+                {stats.totalPanels > 0 && (
+                  <ProgressBar
+                    label="视频进度"
+                    current={stats.withVideo}
+                    total={stats.totalPanels}
+                    color="bg-violet-500"
+                  />
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="text-[10px] text-gray-400 uppercase tracking-wider">生成</div>
+
+              <ActionButton
+                icon={<Film className="h-3.5 w-3.5" />}
+                label="批量生成视频"
+                color="bg-violet-600 hover:bg-violet-700"
+                loading={loading === "videos"}
+                disabled={!stats || stats.withImage === 0}
+                suffix={stats && stats.withImage > 0 ? `${stats.withImage - stats.withVideo} 待生成` : undefined}
+                onClick={async () => {
+                  const d = await apiCall("videos", `/api/projects/${projectId}/generate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ type: "video" }),
+                  });
+                  if (d) toast.success(`已提交 ${d.count} 个视频生成任务`);
+                }}
+              />
+            </div>
+
+            {stats && stats.withImage === 0 && (
+              <Hint text="请先在分镜阶段生成关键帧图片，再生成视频。" />
+            )}
+
+            {stats && (stats.withImage > 0 || stats.withVideo > 0) && (
+              <div className="space-y-2">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">下载</div>
+                {stats.withImage > 0 && (
+                  <ActionButton
+                    icon={<Download className="h-3.5 w-3.5" />}
+                    label={`下载图片 (${stats.withImage})`}
+                    color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-gray-600 dark:!text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleDownload("images")}
+                  />
+                )}
+                {stats.withVideo > 0 && (
+                  <ActionButton
+                    icon={<Download className="h-3.5 w-3.5" />}
+                    label={`下载视频 (${stats.withVideo})`}
+                    color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-violet-600 dark:!text-violet-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleDownload("videos")}
+                  />
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Refresh — always shown */}
+        <ActionButton
+          icon={<RefreshCw className="h-3.5 w-3.5" />}
+          label="刷新数据"
+          color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
           onClick={onRefresh}
-          className="w-full flex items-center gap-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          刷新数据
-        </button>
-
-        {/* Hint */}
-        {stats && stats.totalPanels === 0 && (
-          <p className="text-[10px] text-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
-            请先生成分镜文本，再进行图片和视频生成。
-          </p>
-        )}
-        {stats && stats.totalPanels > 0 && stats.withImage === 0 && (
-          <p className="text-[10px] text-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
-            请先生成关键帧图片，再生成视频。
-          </p>
-        )}
+        />
       </div>
     </div>
+  );
+}
+
+// ─── Shared UI components ───────────────────────────────────────────────────
+
+function StatCard({
+  value,
+  label,
+  color,
+  icon,
+}: {
+  value: number;
+  label: string;
+  color: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center">
+      <div className={cn("text-lg font-bold", color)}>
+        {icon && <span className="inline-block mr-0.5 align-middle">{icon}</span>}
+        {value}
+      </div>
+      <div className="text-[10px] text-gray-400">{label}</div>
+    </div>
+  );
+}
+
+function ProgressBar({
+  label,
+  current,
+  total,
+  color,
+}: {
+  label: string;
+  current: number;
+  total: number;
+  color: string;
+}) {
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+        <span>{label}</span>
+        <span>{current}/{total} ({pct}%)</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all duration-500", color)}
+          style={{ width: `${Math.max(pct, 2)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  color,
+  loading,
+  disabled,
+  suffix,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  color: string;
+  loading?: boolean;
+  disabled?: boolean;
+  suffix?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading || disabled}
+      className={cn(
+        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-white disabled:opacity-50 transition-colors",
+        color,
+      )}
+    >
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : icon}
+      {label}
+      {suffix && <span className="ml-auto text-white/70 text-[10px]">{suffix}</span>}
+    </button>
+  );
+}
+
+function Hint({ text }: { text: string }) {
+  return (
+    <p className="text-[10px] text-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+      {text}
+    </p>
   );
 }
 
@@ -438,7 +654,6 @@ export default function CanvasPage() {
       const res = await fetch(`/api/projects/${projectId}?include=full`);
       const project = await res.json();
 
-      // Transform API response to CanvasProjectData shape
       return {
         project: {
           name: project.title,
@@ -485,7 +700,6 @@ export default function CanvasPage() {
     queryClient.invalidateQueries({ queryKey: ["canvas-project", projectId] });
   }, [queryClient, projectId]);
 
-  // tldraw mount handler
   const handleMount = useCallback(
     (editor: Editor) => {
       setEditorRef(editor);
@@ -496,14 +710,12 @@ export default function CanvasPage() {
     [activeStage],
   );
 
-  // Navigate when stage changes
   useEffect(() => {
     if (editorRef && isInitialized) {
       navigateToStage(editorRef, activeStage);
     }
   }, [editorRef, activeStage, isInitialized]);
 
-  // Render data when it changes
   useEffect(() => {
     if (!editorRef || !isInitialized || !projectData) return;
 
@@ -514,13 +726,9 @@ export default function CanvasPage() {
     renderAllStages(editorRef, projectData);
   }, [editorRef, isInitialized, projectData]);
 
-  const handleStageChange = (stage: CanvasStage) => {
-    setActiveStage(stage);
-  };
-
   return (
     <div className="fixed inset-0 flex flex-col bg-white dark:bg-gray-950">
-      {/* Top bar: back + stage nav */}
+      {/* Top bar */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 z-10">
         <button
           onClick={() => router.push(`/${locale}/projects/${projectId}`)}
@@ -534,7 +742,6 @@ export default function CanvasPage() {
           {projectData?.project.name || "..."}
         </span>
 
-        {/* Stage Nav */}
         <nav className="flex items-center gap-1">
           {STAGES.map((stage, index) => {
             const completed = projectData
@@ -545,7 +752,7 @@ export default function CanvasPage() {
             return (
               <div key={stage.id} className="relative flex items-center">
                 <button
-                  onClick={() => handleStageChange(stage.id)}
+                  onClick={() => setActiveStage(stage.id)}
                   className={cn(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all",
                     isActive && "bg-blue-50 dark:bg-blue-900/30",
@@ -595,11 +802,12 @@ export default function CanvasPage() {
         </button>
       </div>
 
-      {/* Body: Director Panel + Canvas */}
+      {/* Body */}
       <div className="flex-1 flex overflow-hidden">
-        <DirectorPanel
+        <StageSidebar
           projectId={projectId}
           data={projectData}
+          activeStage={activeStage}
           onRefresh={handleRefresh}
         />
         <div className="flex-1 relative">
