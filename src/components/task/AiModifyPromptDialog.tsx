@@ -61,35 +61,35 @@ export function AiModifyPromptDialog({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6"
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-white border border-[var(--color-border)] shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="cursor-pointer absolute top-3 right-3 rounded p-1 hover:bg-[var(--color-bg-secondary)]"
         >
-          <X className="h-4 w-4 text-gray-400" />
+          <X className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         </button>
 
         <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-          <Wand2 className="h-4 w-4 text-blue-500" />
+          <Wand2 className="h-4 w-4 text-[var(--color-accent)]" />
           AI 改写提示词
         </h3>
 
         <div className="mb-3">
-          <label className="text-xs text-gray-500 mb-1 block">当前提示词</label>
-          <p className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-2 line-clamp-4">
+          <label className="text-xs text-[var(--color-text-secondary)] mb-1 block">当前提示词</label>
+          <p className="text-sm text-[var(--color-text-secondary)] bg-[var(--color-bg-secondary)] rounded-[var(--radius-md)] p-2 line-clamp-4">
             {currentPrompt || "暂无提示词"}
           </p>
         </div>
 
         <div className="mb-4">
-          <label className="text-xs text-gray-500 mb-1 block">修改指令</label>
+          <label className="text-xs text-[var(--color-text-secondary)] mb-1 block">修改指令</label>
           <textarea
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             placeholder="如：换成俯拍角度，增加暖色调灯光"
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
             rows={3}
             disabled={loading}
             onKeyDown={(e) => {
@@ -104,14 +104,14 @@ export function AiModifyPromptDialog({
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="cursor-pointer rounded-[var(--radius-md)] px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
           >
             取消
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || !instruction.trim()}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
             改写

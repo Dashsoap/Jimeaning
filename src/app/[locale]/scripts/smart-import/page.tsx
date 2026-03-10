@@ -591,7 +591,7 @@ export default function SmartImportPage() {
         <div className="flex items-center gap-3 mb-6">
           <button
             onClick={isBusy ? undefined : goBack}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 disabled:opacity-50"
+            className="rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-secondary)] disabled:opacity-50 cursor-pointer"
             disabled={isBusy}
           >
             <ArrowLeft size={20} />
@@ -608,23 +608,23 @@ export default function SmartImportPage() {
             return (
               <div key={i} className="flex items-center gap-2">
                 {i > 0 && (
-                  <div className={`w-8 h-px ${isDone ? "bg-green-400" : "bg-gray-200 dark:bg-gray-700"}`} />
+                  <div className={`w-8 h-px ${isDone ? "bg-[var(--color-success)]" : "bg-[var(--color-border)]"}`} />
                 )}
                 <div className="flex items-center gap-2">
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                       isActive
-                        ? "bg-blue-600 text-white"
+                        ? "bg-[var(--color-accent)] text-white"
                         : isDone
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-gray-100 text-gray-400 dark:bg-gray-800"
+                          ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
+                          : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)]"
                     }`}
                   >
                     {isDone ? <Check size={14} /> : stepNum}
                   </div>
                   <span
                     className={`text-sm hidden sm:inline ${
-                      isActive ? "font-medium text-gray-900 dark:text-gray-100" : "text-gray-400"
+                      isActive ? "font-medium text-[var(--color-text)]" : "text-[var(--color-text-tertiary)]"
                     }`}
                   >
                     {label}
@@ -642,12 +642,12 @@ export default function SmartImportPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">{ti("inputText")}</h2>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-400">{charCount.toLocaleString()} {ti("chars")}</span>
+                  <span className="text-sm text-[var(--color-text-tertiary)]">{charCount.toLocaleString()} {ti("chars")}</span>
                   {charCount > 0 && (
                     <button
                       type="button"
                       onClick={handleCleanText}
-                      className="px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+                      className="px-3 py-1.5 rounded-[var(--radius-md)] text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
                     >
                       {ti("cleanText")}
                     </button>
@@ -655,7 +655,7 @@ export default function SmartImportPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-sm text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors cursor-pointer"
                     disabled={importing}
                   >
                     {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
@@ -664,7 +664,7 @@ export default function SmartImportPage() {
                 </div>
               </div>
               <textarea
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100 min-h-[400px]"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-3 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent min-h-[400px]"
                 style={{ minHeight: "400px" }}
                 placeholder={ti("textPlaceholder")}
                 value={textContent}
@@ -681,7 +681,7 @@ export default function SmartImportPage() {
                 }}
               />
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400">{ti("fileFormats")}</p>
+                <p className="text-xs text-[var(--color-text-tertiary)]">{ti("fileFormats")}</p>
                 <Button onClick={() => setStep(2)} disabled={charCount < 100}>
                   {ti("next")}
                   <ChevronRight size={16} className="ml-1" />
@@ -699,12 +699,12 @@ export default function SmartImportPage() {
 
               {/* Direction */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                   {ti("direction")}
                 </label>
                 <input
                   type="text"
-                  className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                  className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   placeholder={ti("directionPlaceholder")}
                   value={direction}
                   onChange={(e) => setDirection(e.target.value)}
@@ -713,17 +713,17 @@ export default function SmartImportPage() {
 
               {/* Target Duration */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                   {ti("targetDuration")}
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {DURATION_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
-                      className={`px-4 py-2.5 rounded-lg text-sm border transition-colors ${
+                      className={`px-4 py-2.5 rounded-[var(--radius-md)] text-sm border transition-colors cursor-pointer ${
                         targetDuration === opt.value
-                          ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-600"
-                          : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                          : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                       }`}
                       onClick={() => setTargetDuration(opt.value)}
                     >
@@ -734,7 +734,7 @@ export default function SmartImportPage() {
                 {targetDuration === "custom" && (
                   <input
                     type="text"
-                    className="mt-2 flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                    className="mt-2 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                     placeholder={ti("customDurationPlaceholder")}
                     value={customDuration}
                     onChange={(e) => setCustomDuration(e.target.value)}
@@ -744,14 +744,14 @@ export default function SmartImportPage() {
 
               {/* Target Episodes */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                   {ti("targetEpisodes")}
                 </label>
                 <input
                   type="number"
                   min={1}
                   max={500}
-                  className="flex h-10 w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                  className="flex h-10 w-full max-w-xs rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   placeholder={ti("targetEpisodesPlaceholder")}
                   value={targetEpisodes}
                   onChange={(e) => setTargetEpisodes(e.target.value)}
@@ -762,11 +762,11 @@ export default function SmartImportPage() {
               {llmModels.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                       {ti("analysisModel")}
                     </label>
                     <select
-                      className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       value={analysisModelKey}
                       onChange={(e) => setAnalysisModelKey(e.target.value)}
                     >
@@ -779,11 +779,11 @@ export default function SmartImportPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                       {ti("rewriteModel")}
                     </label>
                     <select
-                      className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       value={rewriteModelKey}
                       onChange={(e) => setRewriteModelKey(e.target.value)}
                     >
@@ -817,22 +817,22 @@ export default function SmartImportPage() {
         {step === 3 && (
           <Card className="p-6">
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-blue-600">
+              <div className="flex items-center gap-2 text-[var(--color-accent)]">
                 <Loader2 size={20} className="animate-spin" />
                 <h2 className="text-lg font-semibold">
                   {ti("analyzing")}... {splitStream.progressPercent > 0 ? `${splitStream.progressPercent}%` : ""}
                 </h2>
               </div>
-              <div className="overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm whitespace-pre-wrap font-mono dark:bg-gray-800" style={{ maxHeight: "400px" }}>
+              <div className="overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap font-mono" style={{ maxHeight: "400px" }}>
                 {splitStream.streamedText || ti("waitingForAnalysis")}
                 {splitStream.isStreaming && (
-                  <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
+                  <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
                 )}
               </div>
               {splitStream.progressPercent > 0 && (
-                <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                <div className="h-2 rounded-full bg-[var(--color-bg-tertiary)]">
                   <div
-                    className="h-full rounded-full bg-blue-600 transition-all duration-300"
+                    className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
                     style={{ width: `${splitStream.progressPercent}%` }}
                   />
                 </div>
@@ -857,7 +857,7 @@ export default function SmartImportPage() {
           <div className="space-y-4">
             {/* Script type detection hint */}
             {contentType === "script" && (
-              <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-4 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+              <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-warning-light)] p-4 text-sm text-[var(--color-warning)]">
                 <BookOpen size={18} />
                 <span>{ti("detectedScript")}</span>
               </div>
@@ -865,22 +865,22 @@ export default function SmartImportPage() {
 
             <div className="flex gap-4" style={{ minHeight: "500px" }}>
               {/* Left: Chapter list */}
-              <div className="w-72 shrink-0 overflow-y-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
-                <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-                  <span className="text-sm font-medium text-gray-500">{ti("chapterCount", { count: chapters.length })}</span>
+              <div className="w-72 shrink-0 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+                <div className="px-3 py-2 border-b border-[var(--color-border-light)]">
+                  <span className="text-sm font-medium text-[var(--color-text-secondary)]">{ti("chapterCount", { count: chapters.length })}</span>
                 </div>
                 {chapters.map((ch, idx) => (
                   <div
                     key={idx}
-                    className={`px-3 py-2.5 cursor-pointer border-b border-gray-100 dark:border-gray-800 transition-colors ${
+                    className={`px-3 py-2.5 cursor-pointer border-b border-[var(--color-border-light)] transition-colors ${
                       selectedChapterIdx === idx
-                        ? "bg-blue-50 border-l-2 border-l-blue-500 dark:bg-blue-900/20"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                        ? "bg-[var(--color-accent-light)] border-l-2 border-l-[var(--color-accent)]"
+                        : "hover:bg-[var(--color-bg-secondary)]"
                     }`}
                     onClick={() => setSelectedChapterIdx(idx)}
                   >
                     <div className="text-sm font-medium truncate">{ch.index}. {ch.title}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
                       {ch.content.length.toLocaleString()} {ti("chars")}
                     </div>
                   </div>
@@ -888,14 +888,14 @@ export default function SmartImportPage() {
               </div>
 
               {/* Right: Content preview + actions */}
-              <div className="flex-1 flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+              <div className="flex-1 flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
                 {chapters[selectedChapterIdx] && (
                   <>
                     {/* Chapter title + action buttons */}
-                    <div className="px-5 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800">
+                    <div className="px-5 pt-4 pb-3 border-b border-[var(--color-border-light)]">
                       <input
                         type="text"
-                        className="w-full text-lg font-semibold bg-transparent focus:outline-none dark:text-gray-100"
+                        className="w-full text-lg font-semibold bg-transparent focus:outline-none"
                         value={chapters[selectedChapterIdx].title}
                         onChange={(e) => {
                           setChapters((prev) =>
@@ -909,30 +909,30 @@ export default function SmartImportPage() {
                         <button
                           onClick={() => handleMergeChapter(selectedChapterIdx)}
                           disabled={selectedChapterIdx >= chapters.length - 1}
-                          className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {ti("mergeWithNext")}
                         </button>
                         <button
                           onClick={() => handleSplitChapter(selectedChapterIdx)}
-                          className="px-2.5 py-1 text-xs rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                         >
                           {ti("splitInTwo")}
                         </button>
                         <button
                           onClick={() => handleDeleteChapter(selectedChapterIdx)}
                           disabled={chapters.length <= 1}
-                          className="px-2.5 py-1 text-xs rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20"
+                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-danger-light)] text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {ti("deleteChapter")}
                         </button>
                       </div>
                     </div>
                     {/* Chapter content */}
-                    <div className="flex-1 overflow-y-auto px-5 py-4 text-sm whitespace-pre-wrap text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <div className="flex-1 overflow-y-auto px-5 py-4 text-sm whitespace-pre-wrap text-[var(--color-text-secondary)] leading-relaxed">
                       {chapters[selectedChapterIdx].content.substring(0, 5000)}
                       {chapters[selectedChapterIdx].content.length > 5000 && (
-                        <span className="text-gray-400 italic">
+                        <span className="text-[var(--color-text-tertiary)] italic">
                           {"\n\n"}... ({(chapters[selectedChapterIdx].content.length - 5000).toLocaleString()} {ti("moreChars")})
                         </span>
                       )}
@@ -964,18 +964,18 @@ export default function SmartImportPage() {
                 <>
                   <h2 className="text-lg font-semibold">{ti("step5")}</h2>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                       {ti("rewriteRequirement")}
                     </label>
                     <textarea
-                      className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                      className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-3 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       rows={5}
                       placeholder={ti("rewriteRequirementPlaceholder")}
                       value={rewritePrompt}
                       onChange={(e) => setRewritePrompt(e.target.value)}
                     />
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-[var(--color-text-secondary)]">
                     {ti("rewriteHint", { count: chapters.length })}
                   </p>
                   <div className="flex justify-between pt-2">
@@ -990,7 +990,7 @@ export default function SmartImportPage() {
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 text-blue-600">
+                  <div className="flex items-center gap-2 text-[var(--color-accent)]">
                     {rewriteStream.isStreaming ? (
                       <>
                         <Loader2 size={20} className="animate-spin" />
@@ -999,7 +999,7 @@ export default function SmartImportPage() {
                         </h2>
                       </>
                     ) : rewriteStream.isComplete ? (
-                      <h2 className="text-lg font-semibold text-green-600">
+                      <h2 className="text-lg font-semibold text-[var(--color-success)]">
                         <Check size={20} className="inline mr-1" />
                         {ti("batchRewriteComplete")}
                       </h2>
@@ -1007,18 +1007,18 @@ export default function SmartImportPage() {
                   </div>
                   <div
                     ref={rewriteStreamRef}
-                    className="overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm whitespace-pre-wrap font-mono dark:bg-gray-800"
+                    className="overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap font-mono"
                     style={{ maxHeight: "400px" }}
                   >
                     {rewriteStream.streamedText}
                     {rewriteStream.isStreaming && (
-                      <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
+                      <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
                     )}
                   </div>
                   {rewriteStream.progressPercent > 0 && (
-                    <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div className="h-2 rounded-full bg-[var(--color-bg-tertiary)]">
                       <div
-                        className="h-full rounded-full bg-blue-600 transition-all duration-300"
+                        className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
                         style={{ width: `${rewriteStream.progressPercent}%` }}
                       />
                     </div>

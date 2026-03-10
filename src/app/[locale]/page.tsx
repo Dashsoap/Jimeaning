@@ -5,8 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { Film, FolderOpen, Settings } from "lucide-react";
-import { Card } from "@/components/ui/Card";
+import { FolderOpen, Film, Settings, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -25,55 +24,64 @@ export default function DashboardPage() {
   if (status === "loading") {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-accent)]" />
       </div>
     );
   }
 
   if (!session) return null;
 
+  const cards = [
+    {
+      href: `/${locale}/projects`,
+      icon: <FolderOpen size={22} />,
+      title: t("projects"),
+      desc: "管理视频项目",
+    },
+    {
+      href: `/${locale}/assets`,
+      icon: <Film size={22} />,
+      title: t("assets"),
+      desc: "全局资产库",
+    },
+    {
+      href: `/${locale}/settings`,
+      icon: <Settings size={22} />,
+      title: t("settings"),
+      desc: "API Key & 偏好",
+    },
+  ];
+
   return (
     <AppShell>
-      <div className="max-w-4xl">
-        <h1 className="text-2xl font-bold mb-1">{t("dashboard")}</h1>
-        <p className="text-gray-500 mb-8">{t("subtitle")}</p>
+      <div className="max-w-3xl">
+        <h1 className="text-2xl font-bold text-[var(--color-text)] mb-1">
+          {t("dashboard")}
+        </h1>
+        <p className="text-[var(--color-text-secondary)] mb-10">
+          {t("subtitle")}
+        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link href={`/${locale}/projects`}>
-            <Card className="flex items-center gap-4 hover:border-blue-300 transition-colors">
-              <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/30">
-                <FolderOpen className="text-blue-600" size={24} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {cards.map((card) => (
+            <Link key={card.href} href={card.href} className="group">
+              <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5 transition-all hover:shadow-sm hover:border-[var(--color-accent)]/30">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] transition-colors group-hover:bg-[var(--color-accent-light)] group-hover:text-[var(--color-accent)]">
+                  {card.icon}
+                </div>
+                <h3 className="font-semibold text-[var(--color-text)] mb-1">
+                  {card.title}
+                </h3>
+                <p className="text-sm text-[var(--color-text-tertiary)] mb-3">
+                  {card.desc}
+                </p>
+                <ArrowRight
+                  size={16}
+                  className="text-[var(--color-text-tertiary)] transition-all group-hover:text-[var(--color-accent)] group-hover:translate-x-1"
+                />
               </div>
-              <div>
-                <h3 className="font-semibold">{t("projects")}</h3>
-                <p className="text-sm text-gray-500">管理视频项目</p>
-              </div>
-            </Card>
-          </Link>
-
-          <Link href={`/${locale}/assets`}>
-            <Card className="flex items-center gap-4 hover:border-blue-300 transition-colors">
-              <div className="rounded-lg bg-green-50 p-3 dark:bg-green-900/30">
-                <Film className="text-green-600" size={24} />
-              </div>
-              <div>
-                <h3 className="font-semibold">{t("assets")}</h3>
-                <p className="text-sm text-gray-500">全局资产库</p>
-              </div>
-            </Card>
-          </Link>
-
-          <Link href={`/${locale}/settings`}>
-            <Card className="flex items-center gap-4 hover:border-blue-300 transition-colors">
-              <div className="rounded-lg bg-purple-50 p-3 dark:bg-purple-900/30">
-                <Settings className="text-purple-600" size={24} />
-              </div>
-              <div>
-                <h3 className="font-semibold">{t("settings")}</h3>
-                <p className="text-sm text-gray-500">API Key & 偏好</p>
-              </div>
-            </Card>
-          </Link>
+            </Link>
+          ))}
         </div>
       </div>
     </AppShell>

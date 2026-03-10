@@ -15,10 +15,10 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-end border-b border-gray-200 bg-white px-6 dark:border-gray-800 dark:bg-gray-950">
+    <header className="flex h-14 items-center justify-end border-b border-[var(--color-border-light)] bg-white px-8">
       <button
         onClick={toggleLocale}
-        className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+        className="flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text)] cursor-pointer"
       >
         <Globe size={16} />
         {currentLocale === "zh" ? "EN" : "中文"}

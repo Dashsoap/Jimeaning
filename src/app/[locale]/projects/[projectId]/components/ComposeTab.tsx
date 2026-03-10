@@ -34,15 +34,15 @@ export function ComposeTab({ project, onSwitchTab }: ComposeTabProps) {
   if (episodes.length === 0) {
     return (
       <div className="text-center py-16">
-        <Film className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
-        <p className="text-gray-500 font-medium">暂无可合成的集</p>
-        <p className="text-sm text-gray-400 mt-1 mb-4">
+        <Film className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <p className="text-[var(--color-text-secondary)] font-medium">暂无可合成的集</p>
+        <p className="text-sm text-[var(--color-text-tertiary)] mt-1 mb-4">
           {te("compose")}
         </p>
         {onSwitchTab && (
           <button
             onClick={() => onSwitchTab("storyboard")}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors"
           >
             {te("goToStoryboard")}
             <ArrowRight className="h-4 w-4" />
@@ -56,7 +56,7 @@ export function ComposeTab({ project, onSwitchTab }: ComposeTabProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-[var(--color-text-tertiary)]">
           {episodes.length} 集可合成
         </div>
       </div>
@@ -187,24 +187,24 @@ function EpisodeCompose({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-tertiary)] transition-colors"
       >
         {expanded ? (
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+          <ChevronDown className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-gray-400" />
+          <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         )}
-        <Film className="h-4 w-4 text-gray-400" />
+        <Film className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         <span className="font-semibold text-sm flex-1">{episode.title}</span>
         {composition && <ComposeStatusBadge status={composition.status} />}
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 p-4 space-y-4">
+        <div className="border-t border-[var(--color-border-light)] p-4 space-y-4">
           {/* Readiness Checklist */}
           <div className="grid grid-cols-3 gap-3">
             <ReadinessItem
@@ -231,8 +231,8 @@ function EpisodeCompose({
           </div>
 
           {/* Composition Settings */}
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 p-3 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-gray-500">
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-tertiary)] p-3 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
               <Settings2 className="h-3.5 w-3.5" />
               合成设置
             </div>
@@ -240,13 +240,13 @@ function EpisodeCompose({
             <div className="grid grid-cols-2 gap-3">
               {/* Transition */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">转场效果</label>
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">转场效果</label>
                 <select
                   value={settings.transition}
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, transition: e.target.value }))
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-xs"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-xs"
                 >
                   <option value="crossfade">淡入淡出 (Crossfade)</option>
                   <option value="cut">硬切 (Cut)</option>
@@ -256,13 +256,13 @@ function EpisodeCompose({
 
               {/* Subtitle Style */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">字幕样式</label>
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">字幕样式</label>
                 <select
                   value={settings.subtitleStyle}
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, subtitleStyle: e.target.value }))
                   }
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-xs"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-xs"
                 >
                   <option value="default">默认</option>
                   <option value="cinematic">电影风格</option>
@@ -272,7 +272,7 @@ function EpisodeCompose({
 
               {/* BGM Volume */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">
                   BGM 音量 ({Math.round((settings.bgmVolume || 0.3) * 100)}%)
                 </label>
                 <input
@@ -293,7 +293,7 @@ function EpisodeCompose({
 
               {/* Subtitle Toggle */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">字幕</label>
+                <label className="block text-xs text-[var(--color-text-secondary)] mb-1">字幕</label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -304,9 +304,9 @@ function EpisodeCompose({
                         subtitleEnabled: e.target.checked,
                       }))
                     }
-                    className="rounded border-gray-300"
+                    className="rounded border-[var(--color-border)]"
                   />
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="text-xs text-[var(--color-text-secondary)]">
                     烧入字幕
                   </span>
                 </label>
@@ -316,7 +316,7 @@ function EpisodeCompose({
 
           {/* Output Preview */}
           {composition?.outputUrl && (
-            <div className="rounded-lg overflow-hidden bg-black">
+            <div className="rounded-[var(--radius-md)] overflow-hidden bg-black">
               <video
                 src={composition.outputUrl}
                 controls
@@ -327,7 +327,7 @@ function EpisodeCompose({
 
           {/* Composition Error */}
           {composition?.error && (
-            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
+            <div className="rounded-[var(--radius-md)] bg-[var(--color-danger-light)] px-3 py-2 text-xs text-[var(--color-danger)] flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {composition.error}
             </div>
@@ -338,7 +338,7 @@ function EpisodeCompose({
             <button
               onClick={handleCompose}
               disabled={composing || videosReady === 0}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
             >
               {composing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -352,7 +352,7 @@ function EpisodeCompose({
               <a
                 href={composition.outputUrl}
                 download
-                className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+                className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-success)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-colors"
               >
                 <Download className="h-4 w-4" />
                 下载视频
@@ -361,7 +361,7 @@ function EpisodeCompose({
 
             <button
               onClick={handleDownloadSrt}
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:opacity-80 transition-colors"
             >
               <Subtitles className="h-4 w-4" />
               下载 SRT
@@ -369,13 +369,13 @@ function EpisodeCompose({
 
             <button
               onClick={refresh}
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:opacity-80 transition-colors"
             >
               刷新
             </button>
 
             {composing && (
-              <span className="ml-2 inline-flex items-center gap-1 text-xs text-amber-500">
+              <span className="ml-2 inline-flex items-center gap-1 text-xs text-[var(--color-warning)]">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 合成中 ({composeProgress}%)
               </span>
@@ -404,27 +404,27 @@ function ReadinessItem({
   const percentage = total > 0 ? Math.round((ready / total) * 100) : 0;
 
   return (
-    <div className="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+    <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-tertiary)] px-3 py-2">
       <div className="flex items-center gap-1.5 mb-1">
-        <Icon className="h-3.5 w-3.5 text-gray-400" />
-        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+        <Icon className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
+        <span className="text-xs font-medium text-[var(--color-text-secondary)]">
           {label}
         </span>
         {isComplete ? (
-          <CheckCircle className="h-3 w-3 text-green-500 ml-auto" />
+          <CheckCircle className="h-3 w-3 text-[var(--color-success)] ml-auto" />
         ) : total > 0 ? (
-          <Clock className="h-3 w-3 text-amber-400 ml-auto" />
+          <Clock className="h-3 w-3 text-[var(--color-warning)] ml-auto" />
         ) : null}
       </div>
-      <div className="text-lg font-bold text-gray-800 dark:text-gray-200">
+      <div className="text-lg font-bold text-[var(--color-text)]">
         {ready}
-        <span className="text-xs font-normal text-gray-400">/{total}</span>
+        <span className="text-xs font-normal text-[var(--color-text-tertiary)]">/{total}</span>
       </div>
       {total > 0 && (
-        <div className="mt-1 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+        <div className="mt-1 h-1 rounded-full bg-[var(--color-border)] overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
-              isComplete ? "bg-green-500" : "bg-blue-500"
+              isComplete ? "bg-[var(--color-success)]" : "bg-[var(--color-accent)]"
             }`}
             style={{ width: `${percentage}%` }}
           />
@@ -440,22 +440,22 @@ function ComposeStatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
     pending: {
       label: "待合成",
-      color: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+      color: "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]",
       icon: Clock,
     },
     composing: {
       label: "合成中",
-      color: "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+      color: "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
       icon: Loader2,
     },
     completed: {
       label: "已完成",
-      color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+      color: "bg-[var(--color-success-light)] text-[var(--color-success)]",
       icon: CheckCircle,
     },
     failed: {
       label: "失败",
-      color: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+      color: "bg-[var(--color-danger-light)] text-[var(--color-danger)]",
       icon: AlertCircle,
     },
   };

@@ -220,10 +220,10 @@ function StageSidebar({
 
   if (collapsed) {
     return (
-      <div className="w-10 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col items-center pt-3">
+      <div className="w-10 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-secondary)] flex flex-col items-center pt-3">
         <button
           onClick={() => setCollapsed(false)}
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="cursor-pointer p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
           title="展开工具面板"
         >
           <PanelLeftOpen size={16} />
@@ -233,15 +233,15 @@ function StageSidebar({
   }
 
   return (
-    <div className="w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
+    <div className="w-64 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-secondary)] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200 dark:border-gray-800">
-        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[var(--color-border)]">
+        <span className="text-xs font-semibold text-[var(--color-text)]">
           {config.icon} {config.title}
         </span>
         <button
           onClick={() => setCollapsed(true)}
-          className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="cursor-pointer p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
         >
           <PanelLeftClose size={14} />
         </button>
@@ -249,7 +249,7 @@ function StageSidebar({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* Greeting */}
-        <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed bg-white dark:bg-gray-800 rounded-lg p-2.5 border border-gray-100 dark:border-gray-700">
+        <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed bg-white rounded-[var(--radius-md)] p-2.5 border border-[var(--color-border-light)]">
           {config.greeting}
         </p>
 
@@ -258,10 +258,10 @@ function StageSidebar({
           <>
             {stats && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">概览</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">概览</div>
                 <div className="grid grid-cols-2 gap-2">
                   <StatCard value={stats.episodes} label="集数" color="text-indigo-600" />
-                  <StatCard value={stats.clips} label="片段" color="text-blue-600" />
+                  <StatCard value={stats.clips} label="片段" color="text-[var(--color-accent)]" />
                   <StatCard value={stats.characters} label="角色" color="text-pink-600" />
                   <StatCard value={stats.locations} label="场景" color="text-emerald-600" />
                 </div>
@@ -269,7 +269,7 @@ function StageSidebar({
             )}
 
             {data?.project.sourceText && (
-              <div className="text-[10px] text-gray-400">
+              <div className="text-[10px] text-[var(--color-text-tertiary)]">
                 剧本长度: {data.project.sourceText.length.toLocaleString()} 字
               </div>
             )}
@@ -277,7 +277,7 @@ function StageSidebar({
             <ActionButton
               icon={<Sparkles className="h-3.5 w-3.5" />}
               label="生成分镜文本"
-              color="bg-blue-600 hover:bg-blue-700"
+              color="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
               loading={loading === "storyboard"}
               disabled={!stats || stats.clips === 0}
               onClick={async () => {
@@ -297,7 +297,7 @@ function StageSidebar({
           <>
             {stats && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">资产统计</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">资产统计</div>
                 <div className="grid grid-cols-2 gap-2">
                   <StatCard value={stats.characters} label="角色" color="text-pink-600" icon={<Users className="h-3 w-3" />} />
                   <StatCard value={stats.charsWithImage} label="角色图" color="text-pink-500" />
@@ -335,9 +335,9 @@ function StageSidebar({
           <>
             {stats && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">分镜统计</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">分镜统计</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={stats.totalPanels} label="总镜头" color="text-gray-700 dark:text-gray-200" />
+                  <StatCard value={stats.totalPanels} label="总镜头" color="text-[var(--color-text)]" />
                   <StatCard value={stats.withImage} label="已生成图" color="text-emerald-600" />
                 </div>
 
@@ -353,12 +353,12 @@ function StageSidebar({
             )}
 
             <div className="space-y-2">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider">生成</div>
+              <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">生成</div>
 
               <ActionButton
                 icon={<Sparkles className="h-3.5 w-3.5" />}
                 label="生成分镜文本"
-                color="bg-blue-600 hover:bg-blue-700"
+                color="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
                 loading={loading === "storyboard"}
                 onClick={async () => {
                   const d = await apiCall("storyboard", `/api/projects/${projectId}/storyboard`, { method: "POST" });
@@ -385,7 +385,7 @@ function StageSidebar({
                 <select
                   value={candidateCount}
                   onChange={(e) => setCandidateCount(Number(e.target.value))}
-                  className="h-auto rounded-lg rounded-l-none border-l border-emerald-700 bg-emerald-600 px-1.5 text-xs text-white hover:bg-emerald-700 cursor-pointer"
+                  className="h-auto rounded-[var(--radius-md)] rounded-l-none border-l border-emerald-700 bg-emerald-600 px-1.5 text-xs text-white hover:bg-emerald-700 cursor-pointer"
                   title="候选数量"
                 >
                   <option value={1}>1</option>
@@ -402,11 +402,11 @@ function StageSidebar({
 
             {stats && stats.withImage > 0 && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">下载</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">下载</div>
                 <ActionButton
                   icon={<Download className="h-3.5 w-3.5" />}
                   label={`下载图片 (${stats.withImage})`}
-                  color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-gray-600 dark:!text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  color="bg-white border border-[var(--color-border)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                   onClick={() => handleDownload("images")}
                 />
               </div>
@@ -419,9 +419,9 @@ function StageSidebar({
           <>
             {stats && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">配音统计</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">配音统计</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={stats.totalVoiceLines} label="总台词" color="text-gray-700 dark:text-gray-200" />
+                  <StatCard value={stats.totalVoiceLines} label="总台词" color="text-[var(--color-text)]" />
                   <StatCard value={stats.voiceLinesWithAudio} label="已配音" color="text-orange-600" />
                 </div>
 
@@ -459,9 +459,9 @@ function StageSidebar({
           <>
             {stats && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">导演统计</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">导演统计</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={stats.totalPanels} label="总镜头" color="text-gray-700 dark:text-gray-200" />
+                  <StatCard value={stats.totalPanels} label="总镜头" color="text-[var(--color-text)]" />
                   <StatCard value={stats.withImage} label="关键帧" color="text-emerald-600" />
                   <StatCard value={stats.withVideo} label="已生成视频" color="text-violet-600" />
                   <StatCard value={stats.withVoice} label="已配音" color="text-orange-600" />
@@ -479,7 +479,7 @@ function StageSidebar({
             )}
 
             <div className="space-y-2">
-              <div className="text-[10px] text-gray-400 uppercase tracking-wider">生成</div>
+              <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">生成</div>
 
               <ActionButton
                 icon={<Film className="h-3.5 w-3.5" />}
@@ -505,12 +505,12 @@ function StageSidebar({
 
             {stats && (stats.withImage > 0 || stats.withVideo > 0) && (
               <div className="space-y-2">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">下载</div>
+                <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">下载</div>
                 {stats.withImage > 0 && (
                   <ActionButton
                     icon={<Download className="h-3.5 w-3.5" />}
                     label={`下载图片 (${stats.withImage})`}
-                    color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-gray-600 dark:!text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    color="bg-white border border-[var(--color-border)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                     onClick={() => handleDownload("images")}
                   />
                 )}
@@ -518,7 +518,7 @@ function StageSidebar({
                   <ActionButton
                     icon={<Download className="h-3.5 w-3.5" />}
                     label={`下载视频 (${stats.withVideo})`}
-                    color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-violet-600 dark:!text-violet-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    color="bg-white border border-[var(--color-border)] !text-violet-600 hover:bg-[var(--color-bg-secondary)]"
                     onClick={() => handleDownload("videos")}
                   />
                 )}
@@ -531,7 +531,7 @@ function StageSidebar({
         <ActionButton
           icon={<RefreshCw className="h-3.5 w-3.5" />}
           label="刷新数据"
-          color="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+          color="bg-white border border-[var(--color-border)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
           onClick={onRefresh}
         />
       </div>
@@ -553,12 +553,12 @@ function StatCard({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg p-2 text-center">
+    <div className="bg-white rounded-[var(--radius-md)] p-2 text-center">
       <div className={cn("text-lg font-bold", color)}>
         {icon && <span className="inline-block mr-0.5 align-middle">{icon}</span>}
         {value}
       </div>
-      <div className="text-[10px] text-gray-400">{label}</div>
+      <div className="text-[10px] text-[var(--color-text-tertiary)]">{label}</div>
     </div>
   );
 }
@@ -577,11 +577,11 @@ function ProgressBar({
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   return (
     <div>
-      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+      <div className="flex justify-between text-[10px] text-[var(--color-text-tertiary)] mb-1">
         <span>{label}</span>
         <span>{current}/{total} ({pct}%)</span>
       </div>
-      <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", color)}
           style={{ width: `${Math.max(pct, 2)}%` }}
@@ -613,7 +613,7 @@ function ActionButton({
       onClick={onClick}
       disabled={loading || disabled}
       className={cn(
-        "w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-white disabled:opacity-50 transition-colors",
+        "cursor-pointer w-full flex items-center gap-2 rounded-[var(--radius-md)] px-3 py-2 text-xs font-medium text-white disabled:opacity-50 transition-colors",
         color,
       )}
     >
@@ -626,7 +626,7 @@ function ActionButton({
 
 function Hint({ text }: { text: string }) {
   return (
-    <p className="text-[10px] text-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2">
+    <p className="text-[10px] text-[var(--color-warning)] bg-[var(--color-warning-light)] rounded-[var(--radius-md)] p-2">
       {text}
     </p>
   );
@@ -727,18 +727,18 @@ export default function CanvasPage() {
   }, [editorRef, isInitialized, projectData]);
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-white dark:bg-gray-950">
+    <div className="fixed inset-0 flex flex-col bg-white">
       {/* Top bar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 z-10">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--color-border)] bg-white z-10">
         <button
           onClick={() => router.push(`/${locale}/projects/${projectId}`)}
-          className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
+          className="cursor-pointer rounded-[var(--radius-md)] p-1.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] transition-colors"
           title={t("back")}
         >
           <ArrowLeft size={18} />
         </button>
 
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-4">
+        <span className="text-sm font-medium text-[var(--color-text)] mr-4">
           {projectData?.project.name || "..."}
         </span>
 
@@ -754,14 +754,14 @@ export default function CanvasPage() {
                 <button
                   onClick={() => setActiveStage(stage.id)}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all",
-                    isActive && "bg-blue-50 dark:bg-blue-900/30",
-                    completed && !isActive && "bg-green-50 dark:bg-green-900/20",
+                    "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-sm transition-all",
+                    isActive && "bg-[var(--color-accent-light)]",
+                    completed && !isActive && "bg-[var(--color-success-light)]",
                     !completed && !isActive && "opacity-60",
                   )}
                 >
                   {completed && (
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-500 text-white text-[10px] font-bold">
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--color-success)] text-white text-[10px] font-bold">
                       ✓
                     </span>
                   )}
@@ -769,9 +769,9 @@ export default function CanvasPage() {
                   <span
                     className={cn(
                       "text-xs",
-                      isActive && "text-blue-600 dark:text-blue-400 font-medium",
-                      completed && !isActive && "text-green-600 dark:text-green-400",
-                      !completed && !isActive && "text-gray-500",
+                      isActive && "text-[var(--color-accent)] font-medium",
+                      completed && !isActive && "text-[var(--color-success)]",
+                      !completed && !isActive && "text-[var(--color-text-secondary)]",
                     )}
                   >
                     {stage.label}
@@ -781,7 +781,7 @@ export default function CanvasPage() {
                   <span
                     className={cn(
                       "text-xs mx-0.5",
-                      completed ? "text-green-400" : "text-gray-300",
+                      completed ? "text-[var(--color-success)]" : "text-[var(--color-text-tertiary)]",
                     )}
                   >
                     →
@@ -796,7 +796,7 @@ export default function CanvasPage() {
 
         <button
           onClick={() => router.push(`/${locale}/projects/${projectId}`)}
-          className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="cursor-pointer text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2 py-1 rounded hover:bg-[var(--color-bg-secondary)] transition-colors"
         >
           Card View
         </button>

@@ -94,7 +94,7 @@ export default function ProjectWorkspacePage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
         </div>
       </AppShell>
     );
@@ -107,7 +107,7 @@ export default function ProjectWorkspacePage() {
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => router.push(`/${locale}/projects`)}
-            className="rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
+            className="cursor-pointer rounded-[var(--radius-md)] p-1.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
             title={t("back")}
           >
             <ArrowLeft size={20} />
@@ -117,7 +117,7 @@ export default function ProjectWorkspacePage() {
           <div className="flex-1" />
           <button
             onClick={() => router.push(`/${locale}/projects/${projectId}/canvas`)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+            className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] rounded-[var(--radius-md)] transition-colors"
             title="Canvas View"
           >
             <LayoutDashboard size={16} />
@@ -133,7 +133,7 @@ export default function ProjectWorkspacePage() {
         </div>
 
         {/* Tab Bar with Status Dots */}
-        <div className="flex border-b border-gray-200 dark:border-gray-800 mb-6">
+        <div className="flex border-b border-[var(--color-border)] mb-6">
           {TABS.map(({ key, icon: Icon }) => {
             const status = getTabStatus(project, key);
             return (
@@ -141,10 +141,10 @@ export default function ProjectWorkspacePage() {
                 key={key}
                 onClick={() => setActiveTab(key as TabKey)}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors relative",
+                  "cursor-pointer flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors relative",
                   activeTab === key
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300",
+                    ? "border-[var(--color-accent)] text-[var(--color-accent)]"
+                    : "border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]",
                 )}
               >
                 <Icon size={16} />
@@ -157,7 +157,7 @@ export default function ProjectWorkspacePage() {
                     | "tabs.compose",
                 )}
                 {status === "ready" && (
-                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="w-2 h-2 rounded-full bg-[var(--color-success)]" />
                 )}
               </button>
             );
@@ -259,17 +259,17 @@ function MoreActionsMenu({
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="rounded-lg p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
+        className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
       >
         <MoreHorizontal size={18} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg z-50 py-1">
+        <div className="absolute right-0 top-full mt-1 w-48 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white shadow-lg z-50 py-1">
           <button
             onClick={handleDuplicate}
             disabled={duplicating}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+            className="cursor-pointer w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-50"
           >
             <Copy size={14} />
             {duplicating ? t("duplicating") : t("duplicateProject")}
@@ -278,26 +278,26 @@ function MoreActionsMenu({
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="cursor-pointer w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger-light)]"
             >
               <Trash2 size={14} />
               {t("delete")}
             </button>
           ) : (
             <div className="px-3 py-2 space-y-2">
-              <p className="text-xs text-red-600 dark:text-red-400">
+              <p className="text-xs text-[var(--color-danger)]">
                 {t("deleteConfirm", { title: projectTitle })}
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={handleDelete}
-                  className="flex-1 rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+                  className="cursor-pointer flex-1 rounded bg-[var(--color-danger)] px-2 py-1 text-xs text-white hover:opacity-90"
                 >
                   {t("delete")}
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 rounded bg-gray-100 dark:bg-gray-800 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  className="cursor-pointer flex-1 rounded bg-[var(--color-bg-tertiary)] px-2 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                 >
                   {tc("cancel")}
                 </button>
@@ -316,27 +316,23 @@ function ProjectStatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; color: string }> = {
     draft: {
       label: "草稿",
-      color: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+      color: "bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]",
     },
     analyzing: {
       label: "分析中",
-      color:
-        "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+      color: "bg-amber-100 text-amber-600",
     },
     ready: {
       label: "就绪",
-      color:
-        "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+      color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
     },
     generating: {
       label: "生成中",
-      color:
-        "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
+      color: "bg-violet-100 text-violet-600",
     },
     completed: {
       label: "完成",
-      color:
-        "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+      color: "bg-green-100 text-green-600",
     },
   };
   const cfg = config[status] || config.draft;

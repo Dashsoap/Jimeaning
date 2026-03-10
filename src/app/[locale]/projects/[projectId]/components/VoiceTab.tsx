@@ -67,15 +67,15 @@ export function VoiceTab({ project, onSwitchTab }: VoiceTabProps) {
   if (allVoiceLines.length === 0) {
     return (
       <div className="text-center py-16">
-        <Mic className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
-        <p className="text-gray-500 font-medium">暂无配音台词</p>
-        <p className="text-sm text-gray-400 mt-1 mb-4">
+        <Mic className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <p className="text-[var(--color-text-secondary)] font-medium">暂无配音台词</p>
+        <p className="text-sm text-[var(--color-text-tertiary)] mt-1 mb-4">
           {te("voice")}
         </p>
         {onSwitchTab && (
           <button
             onClick={() => onSwitchTab("storyboard")}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors"
           >
             {te("goToStoryboard")}
             <ArrowRight className="h-4 w-4" />
@@ -124,7 +124,7 @@ export function VoiceTab({ project, onSwitchTab }: VoiceTabProps) {
         <button
           onClick={handleGenerateAll}
           disabled={generatingAll || isBatchRunning}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
         >
           {generatingAll || isBatchRunning ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -135,12 +135,12 @@ export function VoiceTab({ project, onSwitchTab }: VoiceTabProps) {
         </button>
         <button
           onClick={refresh}
-          className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:opacity-80 transition-colors"
         >
           刷新
         </button>
 
-        <div className="ml-auto text-xs text-gray-400">
+        <div className="ml-auto text-xs text-[var(--color-text-tertiary)]">
           {withAudio}/{allVoiceLines.length} 已生成
         </div>
       </div>
@@ -183,26 +183,26 @@ function EpisodeVoiceSection({
   const withAudio = voiceLines.filter((vl) => vl.audioUrl).length;
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-tertiary)] transition-colors"
       >
         {expanded ? (
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+          <ChevronDown className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-gray-400" />
+          <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         )}
-        <Mic className="h-4 w-4 text-gray-400" />
+        <Mic className="h-4 w-4 text-[var(--color-text-tertiary)]" />
         <span className="font-semibold text-sm flex-1">{episode.title}</span>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-[var(--color-text-tertiary)]">
           {withAudio}/{voiceLines.length} 配音
         </span>
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800">
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="border-t border-[var(--color-border-light)]">
+          <div className="divide-y divide-[var(--color-border-light)]">
             {voiceLines.map((vl) => (
               <VoiceLineRow
                 key={vl.id}
@@ -279,21 +279,21 @@ function VoiceLineRow({
   };
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+    <div className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--color-bg-tertiary)]">
       {/* Character Badge */}
       <div className="shrink-0 w-20">
         {character ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-light)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent)]">
             <User className="h-3 w-3" />
             {character.name}
           </span>
         ) : (
-          <span className="text-[10px] text-gray-400">旁白</span>
+          <span className="text-[10px] text-[var(--color-text-tertiary)]">旁白</span>
         )}
       </div>
 
       {/* Text */}
-      <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
+      <span className="flex-1 text-sm text-[var(--color-text)] truncate">
         {voiceLine.text}
       </span>
 
@@ -302,10 +302,10 @@ function VoiceLineRow({
         {voiceLine.audioUrl ? (
           <button
             onClick={handlePlay}
-            className={`rounded-lg p-1.5 transition-colors ${
+            className={`cursor-pointer rounded-[var(--radius-md)] p-1.5 transition-colors ${
               playing
-                ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                : "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:opacity-80"
             }`}
           >
             <Play className="h-3.5 w-3.5" />
@@ -314,7 +314,7 @@ function VoiceLineRow({
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-2 py-1 text-xs font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
           >
             {generating ? (
               <Loader2 className="h-3 w-3 animate-spin" />

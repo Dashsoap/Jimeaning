@@ -454,14 +454,14 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
         <div className="flex items-center gap-1 text-xs">
           {stepLabels.map((label, i) => (
             <div key={i} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight size={12} className="text-gray-300" />}
+              {i > 0 && <ChevronRight size={12} className="text-[var(--color-text-tertiary)]" />}
               <span
                 className={`px-2 py-1 rounded-full ${
                   step === i + 1
-                    ? "bg-blue-100 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-400"
+                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)] font-medium"
                     : step > i + 1
-                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "text-gray-400"
+                      ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
+                      : "text-[var(--color-text-tertiary)]"
                 }`}
               >
                 {label}
@@ -475,15 +475,15 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
           <>
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-medium text-[var(--color-text)]">
                   {ti("inputText")}
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400">{charCount.toLocaleString()} {ti("chars")}</span>
+                  <span className="text-xs text-[var(--color-text-tertiary)]">{charCount.toLocaleString()} {ti("chars")}</span>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                    className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] cursor-pointer"
                     disabled={importing}
                   >
                     <Upload size={12} />
@@ -492,7 +492,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
                 </div>
               </div>
               <textarea
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 rows={12}
                 placeholder={ti("textPlaceholder")}
                 value={textContent}
@@ -508,7 +508,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
                   if (f) handleFileImport(f);
                 }}
               />
-              <p className="text-xs text-gray-400 mt-1">{ti("fileFormats")}</p>
+              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">{ti("fileFormats")}</p>
             </div>
             <div className="flex justify-end">
               <Button onClick={() => setStep(2)} disabled={charCount < 100}>
@@ -523,12 +523,12 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
           <>
             {/* Direction */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                 {ti("direction")}
               </label>
               <input
                 type="text"
-                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 placeholder={ti("directionPlaceholder")}
                 value={direction}
                 onChange={(e) => setDirection(e.target.value)}
@@ -537,17 +537,17 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
 
             {/* Target Duration */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                 {ti("targetDuration")}
               </label>
               <div className="flex gap-2">
                 {DURATION_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
-                    className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                    className={`px-3 py-2 rounded-[var(--radius-md)] text-sm border transition-colors cursor-pointer ${
                       targetDuration === opt.value
-                        ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-600"
-                        : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                        : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                     }`}
                     onClick={() => setTargetDuration(opt.value)}
                   >
@@ -558,7 +558,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
               {targetDuration === "custom" && (
                 <input
                   type="text"
-                  className="mt-2 flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                  className="mt-2 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   placeholder={ti("customDurationPlaceholder")}
                   value={customDuration}
                   onChange={(e) => setCustomDuration(e.target.value)}
@@ -568,14 +568,14 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
 
             {/* Target Episodes */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                 {ti("targetEpisodes")}
               </label>
               <input
                 type="number"
                 min={1}
                 max={500}
-                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 placeholder={ti("targetEpisodesPlaceholder")}
                 value={targetEpisodes}
                 onChange={(e) => setTargetEpisodes(e.target.value)}
@@ -586,11 +586,11 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
             {llmModels.length > 0 && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                     {ti("analysisModel")}
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                    className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                     value={analysisModelKey}
                     onChange={(e) => setAnalysisModelKey(e.target.value)}
                   >
@@ -603,11 +603,11 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                     {ti("rewriteModel")}
                   </label>
                   <select
-                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                    className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                     value={rewriteModelKey}
                     onChange={(e) => setRewriteModelKey(e.target.value)}
                   >
@@ -637,20 +637,20 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
         {/* ─── Step 3: Smart Split (streaming) ─────────────────────── */}
         {step === 3 && (
           <>
-            <div className="flex items-center gap-2 text-sm text-blue-600">
+            <div className="flex items-center gap-2 text-sm text-[var(--color-accent)]">
               <Loader2 size={16} className="animate-spin" />
               <span>{ti("analyzing")}... {splitStream.progressPercent > 0 ? `${splitStream.progressPercent}%` : ""}</span>
             </div>
-            <div className="max-h-64 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm whitespace-pre-wrap font-mono dark:bg-gray-800">
+            <div className="max-h-64 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap font-mono">
               {splitStream.streamedText}
               {splitStream.isStreaming && (
-                <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
+                <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
               )}
             </div>
             {splitStream.progressPercent > 0 && (
-              <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
+              <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)]">
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-all"
+                  className="h-full rounded-full bg-[var(--color-accent)] transition-all"
                   style={{ width: `${splitStream.progressPercent}%` }}
                 />
               </div>
@@ -663,7 +663,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
           <>
             {/* Script type detection hint */}
             {contentType === "script" && (
-              <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+              <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-warning-light)] p-3 text-sm text-[var(--color-warning)]">
                 <BookOpen size={16} />
                 <span>{ti("detectedScript")}</span>
               </div>
@@ -671,31 +671,31 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
 
             <div className="flex gap-3" style={{ minHeight: "350px" }}>
               {/* Left: Chapter list */}
-              <div className="w-1/3 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="w-1/3 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-border)]">
                 {chapters.map((ch, idx) => (
                   <div
                     key={idx}
-                    className={`flex items-start gap-1 px-2 py-2 cursor-pointer border-b border-gray-100 dark:border-gray-800 ${
+                    className={`flex items-start gap-1 px-2 py-2 cursor-pointer border-b border-[var(--color-border-light)] ${
                       selectedChapterIdx === idx
-                        ? "bg-blue-50 dark:bg-blue-900/20"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                        ? "bg-[var(--color-accent-light)]"
+                        : "hover:bg-[var(--color-bg-secondary)]"
                     }`}
                     onClick={() => setSelectedChapterIdx(idx)}
                   >
-                    <GripVertical size={14} className="text-gray-300 mt-0.5 shrink-0" />
+                    <GripVertical size={14} className="text-[var(--color-text-tertiary)] mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{ch.title}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
+                      <div className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
                         {ch.content.length.toLocaleString()} {ti("chars")}
                       </div>
                       {ch.summary && (
-                        <div className="text-xs text-gray-500 line-clamp-2 mt-0.5">{ch.summary}</div>
+                        <div className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-0.5">{ch.summary}</div>
                       )}
                     </div>
                     <div className="flex flex-col gap-0.5 shrink-0">
                       <button
                         onClick={(e) => { e.stopPropagation(); handleMergeChapter(idx); }}
-                        className="p-0.5 text-gray-400 hover:text-blue-600 rounded"
+                        className="p-0.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] rounded cursor-pointer"
                         title={ti("mergeChapter")}
                         disabled={idx >= chapters.length - 1}
                       >
@@ -703,14 +703,14 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleSplitChapter(idx); }}
-                        className="p-0.5 text-gray-400 hover:text-blue-600 rounded"
+                        className="p-0.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] rounded cursor-pointer"
                         title={ti("splitChapter")}
                       >
                         <Scissors size={12} />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteChapter(idx); }}
-                        className="p-0.5 text-gray-400 hover:text-red-600 rounded"
+                        className="p-0.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] rounded cursor-pointer"
                         title={tc("delete")}
                         disabled={chapters.length <= 1}
                       >
@@ -722,12 +722,12 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
               </div>
 
               {/* Right: Content preview */}
-              <div className="flex-1 overflow-y-auto rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <div className="flex-1 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
                 {chapters[selectedChapterIdx] && (
                   <>
                     <input
                       type="text"
-                      className="w-full text-sm font-semibold mb-2 bg-transparent border-b border-gray-200 pb-1 focus:outline-none focus:border-blue-500 dark:border-gray-700"
+                      className="w-full text-sm font-semibold mb-2 bg-transparent border-b border-[var(--color-border)] pb-1 focus:outline-none focus:border-[var(--color-accent)]"
                       value={chapters[selectedChapterIdx].title}
                       onChange={(e) => {
                         setChapters((prev) =>
@@ -737,10 +737,10 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
                         );
                       }}
                     />
-                    <div className="text-sm whitespace-pre-wrap text-gray-600 dark:text-gray-400 max-h-72 overflow-y-auto">
+                    <div className="text-sm whitespace-pre-wrap text-[var(--color-text-secondary)] max-h-72 overflow-y-auto">
                       {chapters[selectedChapterIdx].content.substring(0, 3000)}
                       {chapters[selectedChapterIdx].content.length > 3000 && (
-                        <span className="text-gray-400">... ({(chapters[selectedChapterIdx].content.length - 3000).toLocaleString()} {ti("moreChars")})</span>
+                        <span className="text-[var(--color-text-tertiary)]">... ({(chapters[selectedChapterIdx].content.length - 3000).toLocaleString()} {ti("moreChars")})</span>
                       )}
                     </div>
                   </>
@@ -749,7 +749,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-[var(--color-text-secondary)]">
                 {ti("chapterCount", { count: chapters.length })}
               </span>
               <div className="flex gap-2">
@@ -771,18 +771,18 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
             {!rewriteTaskId ? (
               <>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                     {ti("rewriteRequirement")}
                   </label>
                   <textarea
-                    className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                    className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                     rows={4}
                     placeholder={ti("rewriteRequirementPlaceholder")}
                     value={rewritePrompt}
                     onChange={(e) => setRewritePrompt(e.target.value)}
                   />
                 </div>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-[var(--color-text-secondary)]">
                   {ti("rewriteHint", { count: chapters.length })}
                 </div>
                 <div className="flex justify-between">
@@ -796,29 +796,29 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
               </>
             ) : (
               <>
-                <div className="flex items-center gap-2 text-sm text-blue-600">
+                <div className="flex items-center gap-2 text-sm text-[var(--color-accent)]">
                   {rewriteStream.isStreaming ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
                       <span>{ti("rewriting")}... {rewriteStream.progressPercent > 0 ? `${rewriteStream.progressPercent}%` : ""}</span>
                     </>
                   ) : rewriteStream.isComplete ? (
-                    <span className="text-green-600">{ti("batchRewriteComplete")}</span>
+                    <span className="text-[var(--color-success)]">{ti("batchRewriteComplete")}</span>
                   ) : null}
                 </div>
                 <div
                   ref={rewriteStreamRef}
-                  className="max-h-80 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm whitespace-pre-wrap font-mono dark:bg-gray-800"
+                  className="max-h-80 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap font-mono"
                 >
                   {rewriteStream.streamedText}
                   {rewriteStream.isStreaming && (
-                    <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
+                    <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
                   )}
                 </div>
                 {rewriteStream.progressPercent > 0 && (
-                  <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)]">
                     <div
-                      className="h-full rounded-full bg-blue-600 transition-all"
+                      className="h-full rounded-full bg-[var(--color-accent)] transition-all"
                       style={{ width: `${rewriteStream.progressPercent}%` }}
                     />
                   </div>

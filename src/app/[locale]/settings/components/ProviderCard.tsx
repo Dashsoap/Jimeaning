@@ -29,10 +29,10 @@ import type { ModelMediaType } from "@/lib/preset-models";
 // ─── Type Badge ───────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<ModelType, { label: string; color: string }> = {
-  llm: { label: "LLM", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-  image: { label: "Image", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
-  video: { label: "Video", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
-  audio: { label: "Audio", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
+  llm: { label: "LLM", color: "bg-blue-100 text-blue-700" },
+  image: { label: "Image", color: "bg-emerald-100 text-emerald-700" },
+  video: { label: "Video", color: "bg-violet-100 text-violet-700" },
+  audio: { label: "Audio", color: "bg-amber-100 text-amber-700" },
 };
 
 function TypeBadge({ type }: { type: ModelType }) {
@@ -79,40 +79,40 @@ export function ProviderCard({
   const tutorial = PROVIDER_TUTORIALS[providerKey];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
       {/* Header */}
       <button
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
-        {expanded ? <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" /> : <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />}
+        {expanded ? <ChevronDown className="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0" /> : <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0" />}
         <span className="font-semibold text-sm flex-1">{provider.name}</span>
         {provider.hasApiKey && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-success-light)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-success)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-success)]" />
             Connected
           </span>
         )}
         {enabledCount > 0 && (
-          <span className="text-xs text-gray-400">{enabledCount} models</span>
+          <span className="text-xs text-[var(--color-text-tertiary)]">{enabledCount} models</span>
         )}
         {isCustom && (
           <button
             onClick={(e) => { e.stopPropagation(); onDeleteProvider(provider.id); }}
-            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30"
+            className="p-1 rounded hover:bg-[var(--color-danger-light)] cursor-pointer"
           >
-            <Trash2 className="h-3.5 w-3.5 text-red-400" />
+            <Trash2 className="h-3.5 w-3.5 text-[var(--color-danger)]" />
           </button>
         )}
       </button>
 
       {/* Expanded Content */}
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800">
+        <div className="border-t border-[var(--color-border-light)]">
           {/* Tutorial */}
           {tutorial && (
             <div className="px-4 pt-3">
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 px-3 py-2 text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <div className="rounded-[var(--radius-md)] bg-[var(--color-accent-light)] px-3 py-2 text-xs text-[var(--color-accent)] space-y-1">
                 {tutorial.map((step: TutorialStep, i: number) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <span>{locale.startsWith("zh") ? step.textZh : step.textEn}</span>
@@ -200,8 +200,8 @@ function ApiKeyField({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-      <span className="w-16 shrink-0 text-xs font-semibold text-gray-500">API Key</span>
+    <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-[var(--color-text-secondary)]">API Key</span>
       {editing ? (
         <div className="flex flex-1 items-center gap-1.5">
           <input
@@ -209,35 +209,35 @@ function ApiKeyField({
             value={tempKey}
             onChange={(e) => setTempKey(e.target.value)}
             placeholder="sk-..."
-            className="flex-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            className="flex-1 rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
           />
-          <button onClick={handleSave} className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900/30">
-            <Check className="h-3.5 w-3.5 text-green-600" />
+          <button onClick={handleSave} className="rounded p-1 hover:bg-[var(--color-success-light)] cursor-pointer">
+            <Check className="h-3.5 w-3.5 text-[var(--color-success)]" />
           </button>
-          <button onClick={() => { setEditing(false); setTempKey(""); }} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
-            <X className="h-3.5 w-3.5 text-gray-400" />
+          <button onClick={() => { setEditing(false); setTempKey(""); }} className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer">
+            <X className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
           </button>
         </div>
       ) : (
         <div className="flex flex-1 items-center gap-1.5">
           {provider.hasApiKey ? (
             <>
-              <span className="flex-1 truncate rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono text-gray-500">
+              <span className="flex-1 truncate rounded-md bg-[var(--color-bg-tertiary)] px-2.5 py-1 text-xs font-mono text-[var(--color-text-secondary)]">
                 {showKey ? provider.apiKey : maskedKey}
               </span>
-              <button onClick={() => setShowKey(!showKey)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
-                {showKey ? <EyeOff className="h-3.5 w-3.5 text-gray-400" /> : <Eye className="h-3.5 w-3.5 text-gray-400" />}
+              <button onClick={() => setShowKey(!showKey)} className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer">
+                {showKey ? <EyeOff className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" /> : <Eye className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />}
               </button>
-              <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
-                <Pencil className="h-3.5 w-3.5 text-gray-400" />
+              <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer">
+                <Pencil className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
               </button>
             </>
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-1 rounded-md bg-[var(--color-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer"
             >
               <Plus className="h-3 w-3" />
               Connect
@@ -267,8 +267,8 @@ function BaseUrlField({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-      <span className="w-16 shrink-0 text-xs font-semibold text-gray-500">Base URL</span>
+    <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-[var(--color-text-secondary)]">Base URL</span>
       {editing ? (
         <div className="flex flex-1 items-center gap-1.5">
           <input
@@ -276,32 +276,32 @@ function BaseUrlField({
             value={tempUrl}
             onChange={(e) => setTempUrl(e.target.value)}
             placeholder="https://api.openai.com/v1"
-            className="flex-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            className="flex-1 rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
           />
-          <button onClick={handleSave} className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900/30">
-            <Check className="h-3.5 w-3.5 text-green-600" />
+          <button onClick={handleSave} className="rounded p-1 hover:bg-[var(--color-success-light)] cursor-pointer">
+            <Check className="h-3.5 w-3.5 text-[var(--color-success)]" />
           </button>
-          <button onClick={() => { setEditing(false); setTempUrl(provider.baseUrl || ""); }} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
-            <X className="h-3.5 w-3.5 text-gray-400" />
+          <button onClick={() => { setEditing(false); setTempUrl(provider.baseUrl || ""); }} className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer">
+            <X className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
           </button>
         </div>
       ) : (
         <div className="flex flex-1 items-center gap-1.5">
           {provider.baseUrl ? (
             <>
-              <span className="flex-1 truncate rounded-md bg-gray-100 dark:bg-gray-700 px-2.5 py-1 text-xs font-mono text-gray-500">
+              <span className="flex-1 truncate rounded-md bg-[var(--color-bg-tertiary)] px-2.5 py-1 text-xs font-mono text-[var(--color-text-secondary)]">
                 {provider.baseUrl}
               </span>
-              <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
-                <Pencil className="h-3.5 w-3.5 text-gray-400" />
+              <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer">
+                <Pencil className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
               </button>
             </>
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-1 rounded-md border border-blue-300 px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors"
+              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-accent)] px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors cursor-pointer"
             >
               <Plus className="h-3 w-3" />
               Set Base URL
@@ -331,27 +331,27 @@ function NameField({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-      <span className="w-16 shrink-0 text-xs font-semibold text-gray-500">Name</span>
+    <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2">
+      <span className="w-16 shrink-0 text-xs font-semibold text-[var(--color-text-secondary)]">Name</span>
       {editing ? (
         <div className="flex flex-1 items-center gap-1.5">
           <input
             type="text"
             value={tempName}
             onChange={(e) => setTempName(e.target.value)}
-            className="flex-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            className="flex-1 rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             autoFocus
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
           />
-          <button onClick={handleSave} className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900/30">
-            <Check className="h-3.5 w-3.5 text-green-600" />
+          <button onClick={handleSave} className="rounded p-1 hover:bg-[var(--color-success-light)] cursor-pointer">
+            <Check className="h-3.5 w-3.5 text-[var(--color-success)]" />
           </button>
         </div>
       ) : (
         <div className="flex flex-1 items-center gap-1.5">
           <span className="flex-1 text-xs">{provider.name}</span>
-          <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700">
-            <Pencil className="h-3.5 w-3.5 text-gray-400" />
+          <button onClick={() => setEditing(true)} className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer">
+            <Pencil className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
           </button>
         </div>
       )}
@@ -493,13 +493,13 @@ function ModelList({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-gray-500">Models</span>
+        <span className="text-xs font-semibold text-[var(--color-text-secondary)]">Models</span>
         <div className="flex items-center gap-2">
           {canFetchModels && (
             <button
               onClick={handleFetchModels}
               disabled={fetchingModels}
-              className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
             >
               {fetchingModels ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -511,7 +511,7 @@ function ModelList({
           )}
           <button
             onClick={() => setShowAddCustom(!showAddCustom)}
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            className="inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] cursor-pointer"
           >
             <Plus className="h-3 w-3" />
             Custom
@@ -521,26 +521,26 @@ function ModelList({
 
       {/* Import Dialog */}
       {showImportDialog && (
-        <div className="mb-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10 p-3">
+        <div className="mb-3 rounded-[var(--radius-md)] border border-emerald-200 bg-emerald-50/50 p-3">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              <span className="text-xs font-semibold text-emerald-700">
                 {t("importModels")}
               </span>
-              <span className="text-xs text-gray-500 ml-2">
+              <span className="text-xs text-[var(--color-text-secondary)] ml-2">
                 {discoveredModels.length} {t("importModelsDesc").toLowerCase().includes("select") ? "found" : ""}
               </span>
             </div>
             <button
               onClick={() => setShowImportDialog(false)}
-              className="rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="rounded p-1 hover:bg-[var(--color-bg-tertiary)] cursor-pointer"
             >
-              <X className="h-3.5 w-3.5 text-gray-400" />
+              <X className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
             </button>
           </div>
 
           {discoveredModels.length === 0 ? (
-            <p className="text-xs text-gray-400 italic">{t("noModelsFound")}</p>
+            <p className="text-xs text-[var(--color-text-tertiary)] italic">{t("noModelsFound")}</p>
           ) : (
             <>
               <div className="max-h-60 overflow-y-auto space-y-2">
@@ -551,7 +551,7 @@ function ModelList({
                     <div key={type}>
                       <button
                         onClick={() => toggleAllOfType(type)}
-                        className="text-[10px] font-semibold text-gray-500 uppercase mb-1 hover:text-gray-700 dark:hover:text-gray-300"
+                        className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase mb-1 hover:text-[var(--color-text)] cursor-pointer"
                       >
                         {TYPE_CONFIG[type].label} ({typeModels.length})
                       </button>
@@ -564,22 +564,22 @@ function ModelList({
                               key={d.modelId}
                               onClick={() => !added && toggleImportSelection(d.modelId)}
                               disabled={added}
-                              className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-all ${
+                              className={`inline-flex items-center gap-1 rounded-[var(--radius-md)] border px-2 py-1 text-xs transition-all cursor-pointer ${
                                 added
-                                  ? "border-gray-200 bg-gray-100 text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500 cursor-not-allowed"
+                                  ? "border-[var(--color-border)] bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)] cursor-not-allowed"
                                   : selected
-                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300"
-                                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                    : "border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] hover:border-[var(--color-border)]"
                               }`}
                             >
                               {added ? (
-                                <Check className="h-3 w-3 text-gray-400" />
+                                <Check className="h-3 w-3 text-[var(--color-text-tertiary)]" />
                               ) : selected ? (
                                 <Check className="h-3 w-3 text-emerald-600" />
                               ) : null}
                               <span className="max-w-[200px] truncate">{d.modelId}</span>
                               {added && (
-                                <span className="text-[10px] text-gray-400">{t("alreadyAdded")}</span>
+                                <span className="text-[10px] text-[var(--color-text-tertiary)]">{t("alreadyAdded")}</span>
                               )}
                             </button>
                           );
@@ -589,11 +589,11 @@ function ModelList({
                   );
                 })}
               </div>
-              <div className="flex justify-end mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-800">
+              <div className="flex justify-end mt-2 pt-2 border-t border-emerald-200">
                 <button
                   onClick={handleImportSelected}
                   disabled={selectedImports.size === 0}
-                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   {t("importSelected")} ({selectedImports.size})
                 </button>
@@ -605,27 +605,27 @@ function ModelList({
 
       {/* Custom model form */}
       {showAddCustom && (
-        <div className="mb-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-2.5 space-y-2">
+        <div className="mb-2 rounded-[var(--radius-md)] border border-dashed border-[var(--color-border)] p-2.5 space-y-2">
           <div className="flex gap-2">
             <input
               placeholder="model-id"
               value={customId}
               onChange={(e) => setCustomId(e.target.value)}
-              className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+              className="flex-1 rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
               onKeyDown={(e) => e.key === "Enter" && handleAddCustom()}
             />
             <input
               placeholder="Display name"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
-              className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+              className="flex-1 rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
             />
           </div>
           <div className="flex items-center gap-2">
             <select
               value={customType}
               onChange={(e) => setCustomType(e.target.value as ModelType)}
-              className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+              className="rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs"
             >
               {(["llm", "image", "video", "audio"] as const).map((t) => (
                 <option key={t} value={t}>{TYPE_CONFIG[t].label}</option>
@@ -634,13 +634,13 @@ function ModelList({
             <button
               onClick={handleAddCustom}
               disabled={!customId.trim()}
-              className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors cursor-pointer"
             >
               Add
             </button>
             <button
               onClick={() => setShowAddCustom(false)}
-              className="rounded-md px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="rounded-md px-3 py-1 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] cursor-pointer"
             >
               Cancel
             </button>
@@ -658,10 +658,10 @@ function ModelList({
                 <button
                   key={m.modelKey}
                   onClick={() => onToggle(m.modelKey)}
-                  className={`group relative inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs transition-all ${
+                  className={`group relative inline-flex items-center gap-1 rounded-[var(--radius-md)] border px-2 py-1 text-xs transition-all cursor-pointer ${
                     m.enabled
-                      ? "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                      : "border-gray-200 bg-white text-gray-400 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-500 dark:hover:border-gray-600"
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                      : "border-[var(--color-border)] bg-white text-[var(--color-text-tertiary)] hover:border-[var(--color-border)]"
                   }`}
                 >
                   <TypeBadge type={m.type} />
@@ -669,9 +669,9 @@ function ModelList({
                   {!isPreset(m.modelKey) && (
                     <button
                       onClick={(e) => { e.stopPropagation(); onDelete(m.modelKey); }}
-                      className="ml-0.5 hidden rounded p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 group-hover:inline-block"
+                      className="ml-0.5 hidden rounded p-0.5 hover:bg-[var(--color-danger-light)] group-hover:inline-block cursor-pointer"
                     >
-                      <X className="h-3 w-3 text-red-400" />
+                      <X className="h-3 w-3 text-[var(--color-danger)]" />
                     </button>
                   )}
                 </button>
@@ -682,7 +682,7 @@ function ModelList({
       })}
 
       {models.length === 0 && (
-        <p className="text-xs text-gray-400 italic">No models available</p>
+        <p className="text-xs text-[var(--color-text-tertiary)] italic">No models available</p>
       )}
     </div>
   );

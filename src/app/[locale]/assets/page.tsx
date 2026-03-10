@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import {
   Plus,
   Trash2,
@@ -187,12 +188,12 @@ function CharacterDetailModal({
     >
       {/* Character info */}
       {character.description && (
-        <p className="text-sm text-gray-500 mb-4">{character.description}</p>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4">{character.description}</p>
       )}
 
       {/* Voice binding */}
       <div className="mb-6">
-        <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
           {t("bindVoice")}
         </label>
         <select
@@ -200,7 +201,7 @@ function CharacterDetailModal({
           onChange={(e) =>
             bindVoiceMutation.mutate(e.target.value || null)
           }
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+          className="w-full cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
         >
           <option value="">{t("noVoice")}</option>
           {voices.map((v) => (
@@ -213,10 +214,10 @@ function CharacterDetailModal({
 
       {/* Appearances */}
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{t("appearances")}</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-text)]">{t("appearances")}</h3>
         <button
           onClick={() => setShowAddAppearance(true)}
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+          className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] cursor-pointer"
         >
           <Plus size={14} />
           {t("addAppearance")}
@@ -225,7 +226,7 @@ function CharacterDetailModal({
 
       {/* Add appearance form */}
       {showAddAppearance && (
-        <div className="mb-4 p-3 border border-gray-200 dark:border-gray-700 rounded-lg space-y-2">
+        <div className="mb-4 p-3 border border-[var(--color-border)] rounded-[var(--radius-md)] space-y-2">
           <Input
             id="app-desc"
             label={t("appearanceDesc")}
@@ -265,7 +266,7 @@ function CharacterDetailModal({
       {/* Appearance list */}
       <div className="space-y-4">
         {character.appearances.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">
+          <p className="text-sm text-[var(--color-text-tertiary)] text-center py-4">
             {t("noAppearances")}
           </p>
         ) : (
@@ -327,10 +328,10 @@ function AppearanceCard({
     : [];
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+    <div className="border border-[var(--color-border)] rounded-[var(--radius-md)] p-3">
       <div className="flex items-start gap-3">
         {/* Main image */}
-        <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+        <div className="w-20 h-20 rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-bg-secondary)] flex-shrink-0">
           {appearance.imageUrl ? (
             <img
               src={appearance.imageUrl}
@@ -339,7 +340,7 @@ function AppearanceCard({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <ImageIcon size={20} className="text-gray-300" />
+              <ImageIcon size={20} className="text-[var(--color-text-tertiary)]" />
             </div>
           )}
         </div>
@@ -347,20 +348,20 @@ function AppearanceCard({
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium text-gray-500">
+            <span className="text-xs font-medium text-[var(--color-text-secondary)]">
               #{appearance.appearanceIndex}
               {appearance.appearanceIndex === 0
                 ? ` (${t("primaryAppearance")})`
                 : ""}
             </span>
             {appearance.changeReason && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-[var(--color-text-tertiary)]">
                 — {appearance.changeReason}
               </span>
             )}
           </div>
           {appearance.description && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+            <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2">
               {appearance.description}
             </p>
           )}
@@ -370,7 +371,7 @@ function AppearanceCard({
             <button
               onClick={() => onGenerateImage(appearance.appearanceIndex)}
               disabled={isGenerating}
-              className="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-900/20"
+              className="cursor-pointer rounded p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)]"
               title={t("generateImage")}
             >
               <Sparkles size={14} />
@@ -378,7 +379,7 @@ function AppearanceCard({
             {appearance.appearanceIndex > 0 && (
               <button
                 onClick={() => onDelete(appearance.appearanceIndex)}
-                className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                className="cursor-pointer rounded p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-danger-light)] hover:text-[var(--color-danger)]"
               >
                 <Trash2 size={14} />
               </button>
@@ -389,15 +390,15 @@ function AppearanceCard({
 
       {/* Candidate images */}
       {candidates.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+        <div className="mt-3 pt-3 border-t border-[var(--color-border-light)]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-500">
+            <span className="text-xs font-medium text-[var(--color-text-secondary)]">
               {t("candidateImages")} ({candidates.length})
             </span>
             {appearance.selectedIndex !== null && (
               <button
                 onClick={() => onConfirmImage(appearance.appearanceIndex)}
-                className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700"
+                className="flex items-center gap-1 text-xs text-[var(--color-success)] hover:text-[var(--color-success)] cursor-pointer"
               >
                 <Check size={12} />
                 {t("confirmSelection")}
@@ -411,10 +412,10 @@ function AppearanceCard({
                 onClick={() =>
                   onSelectImage(appearance.appearanceIndex, i)
                 }
-                className={`relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                className={`relative w-16 h-16 rounded-[var(--radius-md)] overflow-hidden flex-shrink-0 border-2 transition-colors cursor-pointer ${
                   appearance.selectedIndex === i
-                    ? "border-blue-500"
-                    : "border-transparent hover:border-gray-300"
+                    ? "border-[var(--color-accent)]"
+                    : "border-transparent hover:border-[var(--color-border)]"
                 }`}
               >
                 <img
@@ -423,7 +424,7 @@ function AppearanceCard({
                   className="w-full h-full object-cover"
                 />
                 {appearance.selectedIndex === i && (
-                  <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[var(--color-accent)]/20 flex items-center justify-center">
                     <Check size={14} className="text-white drop-shadow" />
                   </div>
                 )}
@@ -562,7 +563,7 @@ export default function AssetsPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-accent)]" />
         </div>
       </AppShell>
     );
@@ -575,7 +576,7 @@ export default function AssetsPage() {
       <div className="max-w-5xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("title")}</h1>
           <Button onClick={() => setShowCreate(true)}>
             <Plus size={18} className="mr-1" />
             {t("create")}
@@ -583,15 +584,15 @@ export default function AssetsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-1 mb-6 border-b border-[var(--color-border)]">
           {tabs.map((tb) => (
             <button
               key={tb.key}
               onClick={() => setTab(tb.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                 tab === tb.key
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  ? "border-[var(--color-accent)] text-[var(--color-accent)]"
+                  : "border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
               }`}
             >
               {tb.icon}
@@ -602,8 +603,8 @@ export default function AssetsPage() {
 
         {/* Content */}
         {items.length === 0 ? (
-          <Card className="py-12 text-center text-gray-500">
-            <ImageIcon size={48} className="mx-auto mb-4 text-gray-300" />
+          <Card className="py-12 text-center text-[var(--color-text-secondary)]">
+            <ImageIcon size={48} className="mx-auto mb-4 text-[var(--color-text-tertiary)]" />
             <p>{t("empty")}</p>
           </Card>
         ) : (
@@ -612,7 +613,7 @@ export default function AssetsPage() {
               <Card key={item.id} className="flex flex-col">
                 {/* Image preview */}
                 {"imageUrl" in item && item.imageUrl ? (
-                  <div className="relative w-full aspect-square mb-3 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                  <div className="relative w-full aspect-square mb-3 rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-bg-secondary)]">
                     <img
                       src={item.imageUrl}
                       alt={item.name}
@@ -620,35 +621,37 @@ export default function AssetsPage() {
                     />
                   </div>
                 ) : tab !== "voices" ? (
-                  <div className="w-full aspect-square mb-3 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                    <ImageIcon size={32} className="text-gray-300" />
+                  <div className="w-full aspect-square mb-3 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] flex items-center justify-center">
+                    <ImageIcon size={32} className="text-[var(--color-text-tertiary)]" />
                   </div>
                 ) : null}
 
                 {/* Info */}
-                <h3 className="font-semibold truncate">{item.name}</h3>
+                <h3 className="font-semibold text-[var(--color-text)] truncate">{item.name}</h3>
                 {item.description && (
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                  <p className="text-sm text-[var(--color-text-secondary)] mt-1 line-clamp-2">
                     {item.description}
                   </p>
                 )}
 
                 {/* Character appearance count */}
                 {"appearances" in item && (item as Character).appearances.length > 0 && (
-                  <div className="text-xs text-gray-400 mt-1">
-                    {t("appearanceCount", {
-                      count: (item as Character).appearances.length,
-                    })}
+                  <div className="mt-1">
+                    <Badge>
+                      {t("appearanceCount", {
+                        count: (item as Character).appearances.length,
+                      })}
+                    </Badge>
                   </div>
                 )}
 
                 {/* Voice-specific info */}
                 {"gender" in item && (
-                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                    {item.gender && <span>{item.gender}</span>}
-                    {item.language && <span>{item.language}</span>}
+                  <div className="flex items-center gap-2 mt-2">
+                    {item.gender && <Badge>{item.gender}</Badge>}
+                    {item.language && <Badge>{item.language}</Badge>}
                     {"provider" in item && item.provider && (
-                      <span>{item.provider}</span>
+                      <Badge variant="accent">{item.provider}</Badge>
                     )}
                   </div>
                 )}
@@ -656,20 +659,22 @@ export default function AssetsPage() {
                 {/* Voice binding indicator for characters */}
                 {"globalVoiceId" in item &&
                   (item as Character).globalVoiceId && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-purple-500">
-                      <Mic size={12} />
-                      <span>{t("voiceBound")}</span>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Badge variant="accent">
+                        <Mic size={12} className="mr-1" />
+                        {t("voiceBound")}
+                      </Badge>
                     </div>
                   )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-1 mt-3 pt-3 border-t border-[var(--color-border-light)]">
                   {tab === "characters" && (
                     <button
                       onClick={() =>
                         handleCharacterClick(item as Character)
                       }
-                      className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                      className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-secondary)]"
                       title={t("viewDetails")}
                     >
                       <ChevronRight size={16} />
@@ -684,7 +689,7 @@ export default function AssetsPage() {
                         })
                       }
                       disabled={generateImageMutation.isPending}
-                      className="rounded-lg p-2 text-gray-400 hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-900/20"
+                      className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)]"
                       title={t("generateImage")}
                     >
                       <Sparkles size={16} />
@@ -697,7 +702,7 @@ export default function AssetsPage() {
                         deleteMutation.mutate({ type: tab, id: item.id });
                       }
                     }}
-                    className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                    className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-danger-light)] hover:text-[var(--color-danger)]"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -730,7 +735,7 @@ export default function AssetsPage() {
             <div>
               <label
                 htmlFor="desc"
-                className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="mb-1.5 block text-sm font-medium text-[var(--color-text)]"
               >
                 {tc("description")}
               </label>
@@ -739,7 +744,7 @@ export default function AssetsPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               />
             </div>
             <div className="flex justify-end gap-2">

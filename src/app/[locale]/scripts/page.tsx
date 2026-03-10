@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import { CreateScriptDialog } from "./components/CreateScriptDialog";
 import { ReverseScriptDialog } from "./components/ReverseScriptDialog";
 import { RewriteScriptDialog } from "./components/RewriteScriptDialog";
-// SmartImportDialog removed — now a full page at /scripts/smart-import
 import {
   Plus,
   Trash2,
@@ -49,6 +49,16 @@ interface Script {
 
 type SourceFilter = "all" | "manual" | "reverse" | "rewrite" | "import";
 
+type BadgeVariant = "default" | "accent" | "success" | "danger" | "warning" | "info";
+
+const SOURCE_TYPE_BADGE: Record<string, { variant: BadgeVariant }> = {
+  manual: { variant: "default" },
+  reverse: { variant: "info" },
+  rewrite: { variant: "accent" },
+  import: { variant: "success" },
+  chapter: { variant: "warning" },
+};
+
 export default function ScriptsPage() {
   const t = useTranslations("scripts");
   const tc = useTranslations("common");
@@ -72,7 +82,6 @@ export default function ScriptsPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -89,14 +98,12 @@ export default function ScriptsPage() {
     enabled: status === "authenticated",
   });
 
-  // Build a set of chapter IDs so we can hide their child rewrites from top-level
   const chapterIds = useMemo(
     () => new Set(scripts.filter((s) => s.sourceType === "chapter").map((s) => s.id)),
     [scripts],
   );
 
   const filteredScripts = useMemo(() => {
-    // Hide chapter scripts and their child rewrites from top-level list
     let result = scripts.filter(
       (s) => s.sourceType !== "chapter" && !(s.parentId && chapterIds.has(s.parentId)),
     );
@@ -106,15 +113,12 @@ export default function ScriptsPage() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (s) =>
-          s.title.toLowerCase().includes(q) ||
-          s.content.toLowerCase().includes(q)
+        (s) => s.title.toLowerCase().includes(q) || s.content.toLowerCase().includes(q)
       );
     }
     return result;
   }, [scripts, sourceFilter, searchQuery, chapterIds]);
 
-  // Get chapter scripts for a given master, with their rewrites attached
   const getChapters = useCallback(
     (masterScriptId: string) =>
       scripts
@@ -123,7 +127,6 @@ export default function ScriptsPage() {
     [scripts],
   );
 
-  // Get rewrite scripts for a given chapter
   const getChapterRewrites = useCallback(
     (chapterId: string) =>
       scripts.filter((s) => s.parentId === chapterId && s.sourceType === "rewrite"),
@@ -168,8 +171,7 @@ export default function ScriptsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) =>
-      fetch(`/api/scripts/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => fetch(`/api/scripts/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scripts"] });
       toast.success(tc("success"));
@@ -180,9 +182,7 @@ export default function ScriptsPage() {
     mutationFn: async (scriptId: string) => {
       const r = await fetch(`/api/scripts/${scriptId}/create-project`, { method: "POST" });
       const data = await r.json();
-      if (!r.ok) {
-        throw { status: r.status, ...data };
-      }
+      if (!r.ok) throw { status: r.status, ...data };
       return data;
     },
     onSuccess: (data) => {
@@ -204,14 +204,18 @@ export default function ScriptsPage() {
   };
 
   const sourceTypeLabel = (type: string) => {
-    const labels: Record<string, { text: string; color: string }> = {
-      manual: { text: t("sourceManual"), color: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" },
-      reverse: { text: t("sourceReverse"), color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
-      rewrite: { text: t("sourceRewrite"), color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" },
-      import: { text: t("sourceImport"), color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" },
-      chapter: { text: t("sourceChapter"), color: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" },
+    const labels: Record<string, string> = {
+      manual: t("sourceManual"),
+      reverse: t("sourceReverse"),
+      rewrite: t("sourceRewrite"),
+      import: t("sourceImport"),
+      chapter: t("sourceChapter"),
     };
     return labels[type] || labels.manual;
+  };
+
+  const sourceTypeBadgeVariant = (type: string): BadgeVariant => {
+    return (SOURCE_TYPE_BADGE[type] || SOURCE_TYPE_BADGE.manual).variant;
   };
 
   const filterTabs: { key: SourceFilter; label: string }[] = [
@@ -226,7 +230,7 @@ export default function ScriptsPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-accent)]" />
         </div>
       </AppShell>
     );
@@ -236,8 +240,8 @@ export default function ScriptsPage() {
     <AppShell>
       <div className="max-w-4xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("title")}</h1>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => setShowReverse(true)} title={t("reverseScriptDesc")}>
               <Upload size={18} className="mr-1" />
@@ -260,25 +264,25 @@ export default function ScriptsPage() {
 
         {/* Search + Filter */}
         {scripts.length > 0 && (
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-6">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
               <input
                 type="text"
-                className="w-full rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white pl-9 pr-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+            <div className="flex rounded-[var(--radius-md)] border border-[var(--color-border)] overflow-hidden shrink-0">
               {filterTabs.map((tab) => (
                 <button
                   key={tab.key}
-                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                     sourceFilter === tab.key
-                      ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                      ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                      : "text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)]"
                   }`}
                   onClick={() => setSourceFilter(tab.key)}
                 >
@@ -291,11 +295,10 @@ export default function ScriptsPage() {
 
         {/* Content */}
         {!scripts.length ? (
-          /* Empty state with guidance */
-          <Card className="py-12 text-center">
-            <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500 mb-1">{t("noScripts")}</p>
-            <p className="text-sm text-gray-400 mb-6">{t("emptyStateHint")}</p>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] py-16 text-center">
+            <FileText size={48} className="mx-auto mb-4 text-[var(--color-text-tertiary)]" />
+            <p className="text-[var(--color-text-secondary)] mb-1">{t("noScripts")}</p>
+            <p className="text-sm text-[var(--color-text-tertiary)] mb-6">{t("emptyStateHint")}</p>
             <div className="flex justify-center gap-3">
               <Button variant="secondary" onClick={() => setShowReverse(true)} title={t("reverseScriptDesc")}>
                 <Upload size={16} className="mr-1" />
@@ -306,16 +309,15 @@ export default function ScriptsPage() {
                 {t("createScript")}
               </Button>
             </div>
-          </Card>
+          </div>
         ) : filteredScripts.length === 0 ? (
-          <Card className="py-12 text-center text-gray-500">
-            <Search size={36} className="mx-auto mb-3 text-gray-300" />
-            <p>{t("noScripts")}</p>
-          </Card>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] py-16 text-center">
+            <Search size={36} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
+            <p className="text-[var(--color-text-secondary)]">{t("noScripts")}</p>
+          </div>
         ) : (
           <div className="grid gap-4" ref={menuRef}>
             {filteredScripts.map((s) => {
-              const label = sourceTypeLabel(s.sourceType);
               const isImport = s.sourceType === "import";
               const chapterList = isImport ? getChapters(s.id) : [];
               const isExpanded = expandedMasterIds.has(s.id);
@@ -328,38 +330,35 @@ export default function ScriptsPage() {
                         {isImport && chapterList.length > 0 && (
                           <button
                             onClick={() => toggleExpand(s.id)}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
                           >
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
                         )}
-                        <h3 className="font-semibold truncate">{s.title}</h3>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${label.color}`}>
-                          {label.text}
-                        </span>
+                        <h3 className="font-semibold text-[var(--color-text)] truncate">{s.title}</h3>
+                        <Badge variant={sourceTypeBadgeVariant(s.sourceType)}>
+                          {sourceTypeLabel(s.sourceType)}
+                        </Badge>
                         {isImport && chapterList.length > 0 && (
-                          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                            {chapterList.length} {t("chaptersCount")}
-                          </span>
+                          <Badge>{chapterList.length} {t("chaptersCount")}</Badge>
                         )}
                       </div>
                       {isImport ? (
-                        <p className="text-xs text-gray-400 mt-2">
+                        <p className="text-xs text-[var(--color-text-tertiary)] mt-2">
                           {new Date(s.createdAt).toLocaleDateString()}
                         </p>
                       ) : (
                         <>
-                          <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                          <p className="text-sm text-[var(--color-text-secondary)] line-clamp-2 mt-1">
                             {s.content.slice(0, 200)}
                           </p>
-                          <p className="text-xs text-gray-400 mt-2">
+                          <p className="text-xs text-[var(--color-text-tertiary)] mt-2">
                             {new Date(s.createdAt).toLocaleDateString()}
                           </p>
                         </>
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      {/* Primary action: Create Project */}
                       <Button
                         variant="secondary"
                         onClick={() => createProjectMutation.mutate(s.id)}
@@ -371,26 +370,25 @@ export default function ScriptsPage() {
                         {t("createProject")}
                       </Button>
 
-                      {/* More actions dropdown */}
                       <div className="relative">
                         <button
                           onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
-                          className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                          className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
                           title={t("moreActions")}
                         >
                           <MoreHorizontal size={16} />
                         </button>
                         {openMenuId === s.id && (
-                          <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                          <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white py-1 shadow-lg">
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                               onClick={() => { setViewScript(s); setOpenMenuId(null); }}
                             >
                               <Eye size={14} />
                               {t("view")}
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                               onClick={() => {
                                 setEditScript(s);
                                 setTitle(s.title);
@@ -402,7 +400,7 @@ export default function ScriptsPage() {
                               {tc("edit")}
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                               onClick={() => {
                                 setRewritePreSelectedId(s.id);
                                 setShowRewrite(true);
@@ -412,9 +410,9 @@ export default function ScriptsPage() {
                               <RefreshCw size={14} />
                               {t("rewriteScript")}
                             </button>
-                            <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                            <hr className="my-1 border-[var(--color-border-light)]" />
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] cursor-pointer"
                               onClick={() => {
                                 setOpenMenuId(null);
                                 if (confirm(tc("confirm") + "?")) {
@@ -435,59 +433,54 @@ export default function ScriptsPage() {
                   {isExpanded && chapterList.length > 0 && (
                     <div className="ml-6 mt-1 space-y-1">
                       {chapterList.map((ch) => {
-                        const chLabel = sourceTypeLabel(ch.sourceType);
                         const rewrites = getChapterRewrites(ch.id);
                         return (
                           <div key={ch.id}>
                             <Card className="flex items-center justify-between gap-3 py-2 px-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-400 font-mono">#{ch.chapterIndex}</span>
-                                  <span className="text-sm font-medium truncate">{ch.title}</span>
-                                  <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${chLabel.color}`}>
-                                    {chLabel.text}
-                                  </span>
+                                  <span className="text-xs text-[var(--color-text-tertiary)] font-mono">#{ch.chapterIndex}</span>
+                                  <span className="text-sm font-medium truncate text-[var(--color-text)]">{ch.title}</span>
+                                  <Badge variant={sourceTypeBadgeVariant(ch.sourceType)}>
+                                    {sourceTypeLabel(ch.sourceType)}
+                                  </Badge>
                                 </div>
                                 {ch.chapterSummary && (
-                                  <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ch.chapterSummary}</p>
+                                  <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5">{ch.chapterSummary}</p>
                                 )}
                               </div>
                             </Card>
-                            {/* Rewrites for this chapter */}
-                            {rewrites.map((rw) => {
-                              const rwLabel = sourceTypeLabel(rw.sourceType);
-                              return (
-                                <Card key={rw.id} className="flex items-center justify-between gap-3 py-2 px-3 ml-6 mt-1 border-l-2 border-purple-200 dark:border-purple-800">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <RefreshCw size={12} className="text-purple-400 shrink-0" />
-                                      <span className="text-sm font-medium truncate">{rw.title}</span>
-                                      <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${rwLabel.color}`}>
-                                        {rwLabel.text}
-                                      </span>
-                                    </div>
-                                    <p className="text-xs text-gray-400 line-clamp-1 mt-0.5 ml-5">{rw.content.slice(0, 100)}</p>
+                            {rewrites.map((rw) => (
+                              <Card key={rw.id} className="flex items-center justify-between gap-3 py-2 px-3 ml-6 mt-1 border-l-2 border-[var(--color-accent-light)]">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <RefreshCw size={12} className="text-[var(--color-accent)] shrink-0" />
+                                    <span className="text-sm font-medium truncate text-[var(--color-text)]">{rw.title}</span>
+                                    <Badge variant={sourceTypeBadgeVariant(rw.sourceType)}>
+                                      {sourceTypeLabel(rw.sourceType)}
+                                    </Badge>
                                   </div>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() => setViewScript(rw)}
-                                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-                                    >
-                                      <Eye size={14} />
-                                    </button>
-                                    <Button
-                                      variant="secondary"
-                                      onClick={() => createProjectMutation.mutate(rw.id)}
-                                      disabled={createProjectMutation.isPending}
-                                      className="text-xs px-2 py-1 h-auto"
-                                    >
-                                      <FolderPlus size={12} className="mr-1" />
-                                      {t("createProject")}
-                                    </Button>
-                                  </div>
-                                </Card>
-                              );
-                            })}
+                                  <p className="text-xs text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5 ml-5">{rw.content.slice(0, 100)}</p>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={() => setViewScript(rw)}
+                                    className="rounded-[var(--radius-sm)] p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => createProjectMutation.mutate(rw.id)}
+                                    disabled={createProjectMutation.isPending}
+                                    className="text-xs px-2 py-1 h-auto"
+                                  >
+                                    <FolderPlus size={12} className="mr-1" />
+                                    {t("createProject")}
+                                  </Button>
+                                </div>
+                              </Card>
+                            ))}
                           </div>
                         );
                       })}
@@ -516,7 +509,7 @@ export default function ScriptsPage() {
                 updateMutation.mutate({ id: editScript.id, title, content });
               }
             }}
-            className="space-y-4"
+            className="space-y-5"
           >
             <Input
               id="edit-title"
@@ -526,19 +519,19 @@ export default function ScriptsPage() {
               required
             />
             <div>
-              <label htmlFor="edit-content" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="edit-content" className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                 {t("scriptContent")}
               </label>
               <textarea
                 id="edit-content"
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 rows={8}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 required
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="secondary" onClick={() => setEditScript(null)}>
                 {tc("cancel")}
               </Button>
@@ -550,23 +543,18 @@ export default function ScriptsPage() {
         </Modal>
 
         {/* View Script Modal */}
-        <Modal
-          open={!!viewScript}
-          onClose={() => setViewScript(null)}
-          title={viewScript?.title}
-          className="max-w-2xl"
-        >
+        <Modal open={!!viewScript} onClose={() => setViewScript(null)} title={viewScript?.title} className="max-w-2xl">
           {viewScript && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${sourceTypeLabel(viewScript.sourceType).color}`}>
-                  {sourceTypeLabel(viewScript.sourceType).text}
-                </span>
-                <span className="text-xs text-gray-400">
+                <Badge variant={sourceTypeBadgeVariant(viewScript.sourceType)}>
+                  {sourceTypeLabel(viewScript.sourceType)}
+                </Badge>
+                <span className="text-xs text-[var(--color-text-tertiary)]">
                   {new Date(viewScript.createdAt).toLocaleString()}
                 </span>
               </div>
-              <div className="max-h-96 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm whitespace-pre-wrap dark:bg-gray-800">
+              <div className="max-h-96 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap text-[var(--color-text)]">
                 {viewScript.content}
               </div>
               <div className="flex justify-end">
@@ -580,11 +568,7 @@ export default function ScriptsPage() {
         </Modal>
 
         {/* Reverse Script Dialog */}
-        <ReverseScriptDialog
-          open={showReverse}
-          onClose={() => setShowReverse(false)}
-          onSuccess={refreshScripts}
-        />
+        <ReverseScriptDialog open={showReverse} onClose={() => setShowReverse(false)} onSuccess={refreshScripts} />
 
         {/* Rewrite Script Dialog */}
         <RewriteScriptDialog
@@ -594,7 +578,6 @@ export default function ScriptsPage() {
           scripts={scripts}
           preSelectedId={rewritePreSelectedId}
         />
-
       </div>
     </AppShell>
   );

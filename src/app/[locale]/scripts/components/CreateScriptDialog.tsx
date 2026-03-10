@@ -143,12 +143,12 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor="content" className="block text-sm font-medium text-[var(--color-text)]">
               {t("scriptContent")}
             </label>
             <button
               type="button"
-              className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors dark:text-blue-400 dark:hover:bg-blue-900/20"
+              className="flex items-center gap-1 rounded-[var(--radius-md)] px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
               title={t("importFileHint")}
@@ -174,7 +174,7 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
           >
             <textarea
               id="content"
-              className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               rows={12}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -184,7 +184,7 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
           </div>
 
           {/* Stats bar */}
-          <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
+          <div className="flex items-center justify-between mt-1.5 text-xs text-[var(--color-text-tertiary)]">
             <span>{t("importFileHint")}</span>
             <div className="flex gap-3">
               <span>{t("charCount", { count: charCount })}</span>

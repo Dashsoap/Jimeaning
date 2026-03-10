@@ -28,15 +28,15 @@ export function AssetsTab({ project, onSwitchTab }: AssetsTabProps) {
   if (characters.length === 0 && locations.length === 0) {
     return (
       <div className="text-center py-16">
-        <Users className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
-        <p className="text-gray-500 font-medium">暂无角色和场景</p>
-        <p className="text-sm text-gray-400 mt-1 mb-4">
+        <Users className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <p className="text-[var(--color-text-secondary)] font-medium">暂无角色和场景</p>
+        <p className="text-sm text-[var(--color-text-tertiary)] mt-1 mb-4">
           {t("assets")}
         </p>
         {onSwitchTab && (
           <button
             onClick={() => onSwitchTab("script")}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors"
           >
             {t("goToScript")}
             <ArrowRight className="h-4 w-4" />
@@ -100,7 +100,7 @@ function CollapsibleSection({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+        className="cursor-pointer flex items-center gap-2 mb-3 text-sm font-semibold text-[var(--color-text)] hover:opacity-80"
       >
         {open ? (
           <ChevronDown className="h-4 w-4" />
@@ -109,7 +109,7 @@ function CollapsibleSection({
         )}
         <Icon className="h-4 w-4" />
         <span>{title}</span>
-        <span className="text-xs font-normal text-gray-400">({count})</span>
+        <span className="text-xs font-normal text-[var(--color-text-tertiary)]">({count})</span>
       </button>
       {open && children}
     </div>
@@ -147,10 +147,10 @@ function CharacterCard({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
       {/* Image */}
       {character.imageUrl ? (
-        <div className="aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden">
+        <div className="aspect-square bg-[var(--color-bg-secondary)] overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={character.imageUrl}
@@ -159,8 +159,8 @@ function CharacterCard({
           />
         </div>
       ) : (
-        <div className="aspect-square bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-          <ImageIcon className="h-8 w-8 text-gray-300 dark:text-gray-600" />
+        <div className="aspect-square bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+          <ImageIcon className="h-8 w-8 text-[var(--color-border)]" />
         </div>
       )}
 
@@ -168,19 +168,19 @@ function CharacterCard({
       <div className="p-3 space-y-2">
         <h3 className="font-semibold text-sm">{character.name}</h3>
         {character.description && (
-          <p className="text-xs text-gray-500 line-clamp-2">
+          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2">
             {character.description}
           </p>
         )}
 
         {/* Voice Config */}
-        <div className="pt-1 border-t border-gray-100 dark:border-gray-800">
+        <div className="pt-1 border-t border-[var(--color-border-light)]">
           {editingVoice ? (
             <div className="space-y-1.5">
               <select
                 value={voiceProvider}
                 onChange={(e) => setVoiceProvider(e.target.value)}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs"
+                className="w-full rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs"
               >
                 <option value="">选择语音供应商</option>
                 <option value="openai">OpenAI TTS</option>
@@ -191,18 +191,18 @@ function CharacterCard({
                 placeholder="Voice ID"
                 value={voiceId}
                 onChange={(e) => setVoiceId(e.target.value)}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-xs font-mono"
+                className="w-full rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs font-mono"
               />
               <div className="flex gap-1">
                 <button
                   onClick={handleSaveVoice}
-                  className="flex-1 rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
+                  className="cursor-pointer flex-1 rounded-md bg-[var(--color-accent)] px-2 py-1 text-xs text-white hover:bg-[var(--color-accent-hover)]"
                 >
                   保存
                 </button>
                 <button
                   onClick={() => setEditingVoice(false)}
-                  className="flex-1 rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1 text-xs hover:bg-gray-200 dark:hover:bg-gray-700"
+                  className="cursor-pointer flex-1 rounded-md bg-[var(--color-bg-secondary)] px-2 py-1 text-xs hover:opacity-80"
                 >
                   取消
                 </button>
@@ -211,7 +211,7 @@ function CharacterCard({
           ) : (
             <button
               onClick={() => setEditingVoice(true)}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="cursor-pointer flex items-center gap-1.5 text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
             >
               <Mic className="h-3 w-3" />
               {character.voiceProvider
@@ -229,9 +229,9 @@ function CharacterCard({
 
 function LocationCard({ location }: { location: LocationData }) {
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
       {location.imageUrl ? (
-        <div className="aspect-video bg-gray-100 dark:bg-gray-800 overflow-hidden">
+        <div className="aspect-video bg-[var(--color-bg-secondary)] overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={location.imageUrl}
@@ -240,14 +240,14 @@ function LocationCard({ location }: { location: LocationData }) {
           />
         </div>
       ) : (
-        <div className="aspect-video bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
-          <MapPin className="h-8 w-8 text-gray-300 dark:text-gray-600" />
+        <div className="aspect-video bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+          <MapPin className="h-8 w-8 text-[var(--color-border)]" />
         </div>
       )}
       <div className="p-3">
         <h3 className="font-semibold text-sm">{location.name}</h3>
         {location.description && (
-          <p className="text-xs text-gray-500 line-clamp-2 mt-1">
+          <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2 mt-1">
             {location.description}
           </p>
         )}

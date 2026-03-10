@@ -205,12 +205,12 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
         <div className="flex items-center gap-2 mb-6 text-sm">
           {(["source", "parsing", "preview"] as Stage[]).map((s, i) => (
             <div key={s} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight size={14} className="text-gray-300" />}
+              {i > 0 && <ChevronRight size={14} className="text-[var(--color-text-tertiary)]" />}
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   stage === s
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                    : "text-gray-400"
+                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    : "text-[var(--color-text-tertiary)]"
                 }`}
               >
                 {t(`step${i + 1}`)}
@@ -223,13 +223,13 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
         {stage === "source" && (
           <div className="space-y-4">
             <textarea
-              className="w-full h-64 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full h-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
               placeholder={t("pasteHint")}
               value={rawContent}
               onChange={(e) => setRawContent(e.target.value)}
             />
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-[var(--color-text-tertiary)]">
                 {rawContent.length} {t("characters")}
               </span>
               <Button onClick={handleAnalyze} disabled={!rawContent.trim()}>
@@ -243,17 +243,17 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
         {/* Step 2: Parsing */}
         {stage === "parsing" && (
           <div className="py-12 text-center">
-            <Loader2 className="h-10 w-10 text-blue-600 animate-spin mx-auto mb-4" />
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <Loader2 className="h-10 w-10 text-[var(--color-accent)] animate-spin mx-auto mb-4" />
+            <p className="text-sm text-[var(--color-text-secondary)] mb-4">
               {t("analyzing")}
             </p>
-            <div className="w-64 mx-auto h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div className="w-64 mx-auto h-2 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
               <div
-                className="h-full rounded-full bg-blue-600 transition-all duration-700"
+                className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700"
                 style={{ width: `${Math.max(progressPercent, 5)}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-2">{progressPercent}%</p>
+            <p className="text-xs text-[var(--color-text-tertiary)] mt-2">{progressPercent}%</p>
           </div>
         )}
 
@@ -261,7 +261,7 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
         {stage === "preview" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-[var(--color-text-secondary)]">
                 {t("episodesFound", { count: episodes.length })}
               </p>
               <Button
@@ -277,13 +277,13 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
             {episodes.map((ep, idx) => (
               <div
                 key={idx}
-                className="rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs font-bold text-gray-400">#{ep.number}</span>
+                  <span className="text-xs font-bold text-[var(--color-text-tertiary)]">#{ep.number}</span>
                   {editingIdx === idx ? (
                     <input
-                      className="flex-1 text-sm font-medium border-b border-blue-400 bg-transparent outline-none"
+                      className="flex-1 text-sm font-medium border-b border-[var(--color-accent)] bg-transparent outline-none"
                       value={ep.title}
                       onChange={(e) => updateEpisode(idx, "title", e.target.value)}
                       onBlur={() => setEditingIdx(null)}
@@ -296,27 +296,27 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
                   )}
                   <button
                     onClick={() => setEditingIdx(editingIdx === idx ? null : idx)}
-                    className="p-1 text-gray-400 hover:text-blue-500"
+                    className="cursor-pointer p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)]"
                   >
                     <Edit3 size={14} />
                   </button>
                   <button
                     onClick={() => removeEpisode(idx)}
-                    className="p-1 text-gray-400 hover:text-red-500"
+                    className="cursor-pointer p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)]"
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
                 {ep.summary && (
-                  <p className="text-xs text-gray-500 line-clamp-2">{ep.summary}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)] line-clamp-2">{ep.summary}</p>
                 )}
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                   {ep.content.length} {t("characters")}
                 </p>
               </div>
             ))}
 
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-[var(--color-border-light)]">
               <Button variant="secondary" onClick={() => { onClose(); resetState(); }}>
                 {tc("cancel")}
               </Button>

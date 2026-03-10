@@ -41,21 +41,21 @@ export function PanelActionMenu({
           e.stopPropagation();
           setOpen(!open);
         }}
-        className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
+        className="cursor-pointer rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
         title="更多操作"
       >
         <MoreVertical className="h-4 w-4 text-white" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-8 z-10 w-44 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg py-1 animate-in fade-in slide-in-from-top-1">
+        <div className="absolute right-0 top-8 z-10 w-44 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white shadow-lg py-1 animate-in fade-in slide-in-from-top-1">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setOpen(false);
               onModifyPrompt();
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)]"
           >
             <Wand2 className="h-3.5 w-3.5" />
             AI 改写提示词
@@ -67,7 +67,7 @@ export function PanelActionMenu({
               onAnalyzeShots();
             }}
             disabled={!hasImage}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Camera className="h-3.5 w-3.5" />
             分析镜头方案
@@ -79,14 +79,14 @@ export function PanelActionMenu({
               onGenerateVariant();
             }}
             disabled={!hasImage}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Copy className="h-3.5 w-3.5" />
             生成变体
           </button>
 
           {(onDuplicate || onDelete) && (
-            <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+            <div className="my-1 border-t border-[var(--color-border)]" />
           )}
 
           {onDuplicate && (
@@ -96,7 +96,7 @@ export function PanelActionMenu({
                 setOpen(false);
                 onDuplicate();
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)]"
             >
               <CopyPlus className="h-3.5 w-3.5" />
               复制面板
@@ -110,7 +110,7 @@ export function PanelActionMenu({
                 setOpen(false);
                 onDelete();
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="cursor-pointer flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger-light)]"
             >
               <Trash2 className="h-3.5 w-3.5" />
               删除面板

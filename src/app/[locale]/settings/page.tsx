@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { AppShell } from "@/components/layout/AppShell";
 import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import { useState } from "react";
 import { Plus, Check, Loader2, AlertCircle } from "lucide-react";
 import { useProviders, getProviderKey, type ModelType } from "./components/hooks";
@@ -33,7 +34,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center h-64 text-gray-400">
+        <div className="flex items-center justify-center h-64 text-[var(--color-text-tertiary)]">
           <Loader2 className="h-6 w-6 animate-spin mr-2" />
           Loading...
         </div>
@@ -52,46 +53,41 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="max-w-3xl space-y-4">
+      <div className="max-w-3xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">{t("title")}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{t("subtitle")}</p>
+            <h1 className="text-xl font-bold text-[var(--color-text)]">{t("title")}</h1>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{t("subtitle")}</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Save Status */}
             <SaveIndicator status={saveStatus} />
-            {/* Add Provider */}
-            <button
-              onClick={() => setShowAddProvider(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
+            <Button onClick={() => setShowAddProvider(true)}>
+              <Plus className="h-4 w-4 mr-1" />
               {t("addInstance")}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Default Models */}
         {enabledModels.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 px-4 py-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white px-5 py-4">
             <div className="mb-3">
-              <h2 className="text-sm font-semibold">{t("defaultModels")}</h2>
-              <p className="text-xs text-gray-500 mt-0.5">{t("defaultModelsDesc")}</p>
+              <h2 className="text-sm font-semibold text-[var(--color-text)]">{t("defaultModels")}</h2>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{t("defaultModelsDesc")}</p>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {defaultTypes.map(({ type, label, field }) => {
                 const typeModels = enabledModels.filter((m) => m.type === type);
                 const currentValue = defaults[field] || "";
                 return (
                   <div key={type}>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                    <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">{label}</label>
                     <select
                       value={currentValue}
                       onChange={(e) => updateDefault(type, e.target.value || null)}
                       disabled={typeModels.length === 0}
-                      className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 disabled:opacity-50"
+                      className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-2.5 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:opacity-50"
                     >
                       <option value="">{t("autoFirstEnabled")}</option>
                       {typeModels.map((m) => (
@@ -106,7 +102,7 @@ export default function SettingsPage() {
         )}
 
         {/* Provider Cards */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {providers.map((provider) => (
             <ProviderCard
               key={provider.id}
@@ -127,12 +123,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Add Provider Modal */}
-        <Modal
-          open={showAddProvider}
-          onClose={() => setShowAddProvider(false)}
-          title={t("addInstance")}
-        >
-          <p className="text-sm text-gray-500 mb-3">{t("addInstanceDesc")}</p>
+        <Modal open={showAddProvider} onClose={() => setShowAddProvider(false)} title={t("addInstance")}>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">{t("addInstanceDesc")}</p>
           <div className="space-y-1">
             <button
               onClick={() => {
@@ -140,10 +132,10 @@ export default function SettingsPage() {
                 addProvider({ id, name: "My API (OpenAI Compatible)", baseUrl: "" });
                 setShowAddProvider(false);
               }}
-              className="w-full text-left rounded-lg px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="w-full text-left rounded-[var(--radius-md)] px-4 py-3 hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
             >
-              <div className="font-medium text-sm">OpenAI Compatible</div>
-              <div className="text-xs text-gray-500 mt-0.5">
+              <div className="font-medium text-sm text-[var(--color-text)]">OpenAI Compatible</div>
+              <div className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                 {locale.startsWith("zh")
                   ? "添加自定义 OpenAI 兼容端点（NewAPI / OneAPI / 自建转发等）"
                   : "Add custom OpenAI-compatible endpoint (NewAPI / OneAPI / self-hosted)"}
@@ -156,12 +148,10 @@ export default function SettingsPage() {
   );
 }
 
-// ─── Save Status Indicator ────────────────────────────────────────────────
-
 function SaveIndicator({ status }: { status: string }) {
   if (status === "saved") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+      <span className="inline-flex items-center gap-1 text-xs text-[var(--color-success)]">
         <Check className="h-3.5 w-3.5" />
         Saved
       </span>
@@ -169,7 +159,7 @@ function SaveIndicator({ status }: { status: string }) {
   }
   if (status === "saving") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+      <span className="inline-flex items-center gap-1 text-xs text-[var(--color-text-tertiary)]">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
         Saving...
       </span>
@@ -177,7 +167,7 @@ function SaveIndicator({ status }: { status: string }) {
   }
   if (status === "error") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-red-500">
+      <span className="inline-flex items-center gap-1 text-xs text-[var(--color-danger)]">
         <AlertCircle className="h-3.5 w-3.5" />
         Error
       </span>

@@ -254,13 +254,13 @@ export function RewriteScriptDialog({
         {phase === "input" && (
           <>
             {/* Source tabs */}
-            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="flex rounded-[var(--radius-md)] border border-[var(--color-border)] overflow-hidden">
               <button
                 type="button"
-                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                   sourceTab === "library"
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                 }`}
                 onClick={() => setSourceTab("library")}
               >
@@ -268,10 +268,10 @@ export function RewriteScriptDialog({
               </button>
               <button
                 type="button"
-                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-gray-200 dark:border-gray-700 ${
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-[var(--color-border)] cursor-pointer ${
                   sourceTab === "upload"
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800"
+                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                 }`}
                 onClick={() => setSourceTab("upload")}
               >
@@ -282,11 +282,11 @@ export function RewriteScriptDialog({
             {/* Source content */}
             {sourceTab === "library" ? (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                   {t("selectScript")}
                 </label>
                 <select
-                  className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                  className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   value={selectedId}
                   onChange={(e) => setSelectedId(e.target.value)}
                 >
@@ -302,14 +302,14 @@ export function RewriteScriptDialog({
               <div>
                 {!file ? (
                   <div
-                    className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-8 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors dark:border-gray-700 dark:hover:border-blue-600 dark:hover:bg-blue-900/10"
+                    className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-[var(--color-border)] p-8 cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
                   >
-                    <Upload size={36} className="text-gray-400 mb-3" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{t("uploadTextHint")}</p>
-                    <p className="text-xs text-gray-400 mt-1">{t("supportedTextFormats")}</p>
+                    <Upload size={36} className="text-[var(--color-text-tertiary)] mb-3" />
+                    <p className="text-sm text-[var(--color-text-secondary)]">{t("uploadTextHint")}</p>
+                    <p className="text-xs text-[var(--color-text-tertiary)] mt-1">{t("supportedTextFormats")}</p>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -322,17 +322,17 @@ export function RewriteScriptDialog({
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                    <FileText size={40} className="text-blue-500" />
+                  <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                    <FileText size={40} className="text-[var(--color-accent)]" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{file.name}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-[var(--color-text-tertiary)]">
                         {(file.size / 1024).toFixed(1)} KB
                       </p>
                     </div>
                     <button
                       onClick={() => setFile(null)}
-                      className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                      className="rounded-[var(--radius-md)] p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
                     >
                       <X size={18} />
                     </button>
@@ -343,11 +343,11 @@ export function RewriteScriptDialog({
 
             {/* Rewrite prompt */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                 {t("rewritePrompt")}
               </label>
               <textarea
-                className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 rows={4}
                 placeholder={t("rewritePromptPlaceholder")}
                 value={prompt}
@@ -360,7 +360,7 @@ export function RewriteScriptDialog({
               <div>
                 <button
                   type="button"
-                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  className="flex items-center gap-1 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)] cursor-pointer"
                   onClick={() => setShowAdvanced(!showAdvanced)}
                 >
                   <ChevronDown
@@ -371,11 +371,11 @@ export function RewriteScriptDialog({
                 </button>
                 {showAdvanced && (
                   <div className="mt-2">
-                    <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
                       {t("selectModel")}
                     </label>
                     <select
-                      className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       value={modelKey}
                       onChange={(e) => setModelKey(e.target.value)}
                     >
@@ -406,21 +406,21 @@ export function RewriteScriptDialog({
         {/* Phase: Streaming */}
         {phase === "streaming" && (
           <>
-            <div className="flex items-center gap-2 text-sm text-blue-600">
+            <div className="flex items-center gap-2 text-sm text-[var(--color-accent)]">
               <Loader2 size={16} className="animate-spin" />
               <span>{t("rewriting")}... {progressPercent > 0 ? `${progressPercent}%` : ""}</span>
             </div>
             <div
               ref={streamRef}
-              className="max-h-96 overflow-y-auto rounded-lg bg-gray-50 p-4 text-sm whitespace-pre-wrap font-mono dark:bg-gray-800"
+              className="max-h-96 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap font-mono"
             >
               {streamedText}
-              <span className="inline-block w-0.5 h-4 bg-blue-500 animate-pulse ml-0.5 align-text-bottom" />
+              <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
             </div>
             {progressPercent > 0 && (
-              <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700">
+              <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)]">
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-all"
+                  className="h-full rounded-full bg-[var(--color-accent)] transition-all"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -432,7 +432,7 @@ export function RewriteScriptDialog({
         {phase === "result" && (
           <>
             <textarea
-              className="flex w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-900 dark:border-gray-700 dark:text-gray-100"
+              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               rows={16}
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}

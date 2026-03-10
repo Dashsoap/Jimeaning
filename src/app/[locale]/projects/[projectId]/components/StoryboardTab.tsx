@@ -34,11 +34,11 @@ interface StoryboardTabProps {
 }
 
 const SCENE_TYPE_COLORS: Record<string, string> = {
-  daily: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-  emotion: "bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400",
-  action: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
-  epic: "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-  suspense: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  daily: "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]",
+  emotion: "bg-pink-100 text-pink-600",
+  action: "bg-orange-100 text-orange-600",
+  epic: "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
+  suspense: "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
 };
 
 export function StoryboardTab({ project }: StoryboardTabProps) {
@@ -128,9 +128,9 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
   if (episodes.length === 0) {
     return (
       <div className="text-center py-16">
-        <LayoutPanelTop className="h-12 w-12 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
-        <p className="text-gray-500 font-medium">暂无分镜</p>
-        <p className="text-sm text-gray-400 mt-1">
+        <LayoutPanelTop className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <p className="text-[var(--color-text-secondary)] font-medium">暂无分镜</p>
+        <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
           请先在「剧本」标签页分析文本
         </p>
       </div>
@@ -221,7 +221,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         <button
           onClick={handleGenerateStoryboard}
           disabled={isGeneratingStoryboard}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
         >
           {isGeneratingStoryboard ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -236,7 +236,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           <button
             onClick={handleGenerateImages}
             disabled={isGeneratingImages || totalPanels === 0}
-            className="inline-flex items-center gap-2 rounded-lg rounded-r-none bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] rounded-r-none bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
           >
             {isGeneratingImages ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +248,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           <select
             value={candidateCount}
             onChange={(e) => setCandidateCount(Number(e.target.value))}
-            className="h-[38px] rounded-lg rounded-l-none border-l border-emerald-700 bg-emerald-600 px-2 text-sm text-white hover:bg-emerald-700 cursor-pointer"
+            className="h-[38px] rounded-[var(--radius-md)] rounded-l-none border-l border-emerald-700 bg-emerald-600 px-2 text-sm text-white hover:bg-emerald-700 cursor-pointer"
             title="候选数量"
           >
             <option value={1}>1</option>
@@ -261,7 +261,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         <button
           onClick={handleGenerateVideos}
           disabled={isGeneratingVideos || panelsWithImages === 0}
-          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
         >
           {isGeneratingVideos ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -272,7 +272,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         </button>
         <button
           onClick={refreshProject}
-          className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:opacity-80 transition-colors"
         >
           刷新
         </button>
@@ -302,7 +302,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
                 toast.error("下载失败");
               }
             }}
-            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:opacity-80 transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
             下载图片
@@ -338,7 +338,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
                 toast.error("下载失败");
               }
             }}
-            className="inline-flex items-center gap-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 px-3 py-2 text-sm text-violet-600 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-[var(--color-accent-light)] px-3 py-2 text-sm text-[var(--color-accent)] hover:opacity-80 transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
             下载视频
@@ -346,10 +346,10 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         )}
 
         {/* Stats */}
-        <div className="ml-auto flex items-center gap-3 text-xs text-gray-400">
+        <div className="ml-auto flex items-center gap-3 text-xs text-[var(--color-text-tertiary)]">
           <span>{totalPanels} 面板</span>
           <span className="text-emerald-500">{panelsWithImages} 图片</span>
-          <span className="text-violet-500">{panelsWithVideos} 视频</span>
+          <span className="text-[var(--color-accent)]">{panelsWithVideos} 视频</span>
         </div>
       </div>
 
@@ -381,24 +381,24 @@ function ProgressBanner({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-light)] p-3">
       <div className="flex items-center gap-3">
-        <Loader2 className="h-4 w-4 text-blue-600 animate-spin shrink-0" />
-        <Icon className="h-4 w-4 text-blue-500 shrink-0" />
+        <Loader2 className="h-4 w-4 text-[var(--color-accent)] animate-spin shrink-0" />
+        <Icon className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
         <div className="flex-1">
-          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+          <p className="text-sm font-medium text-[var(--color-accent)]">
             {title}
           </p>
-          {subtitle && <p className="text-xs text-blue-500">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[var(--color-accent)]">{subtitle}</p>}
         </div>
         {progress !== undefined && (
-          <span className="text-xs text-blue-500">{progress}%</span>
+          <span className="text-xs text-[var(--color-accent)]">{progress}%</span>
         )}
       </div>
       {progress !== undefined && (
-        <div className="mt-2 h-1.5 rounded-full bg-blue-200 dark:bg-blue-800 overflow-hidden">
+        <div className="mt-2 h-1.5 rounded-full bg-[var(--color-accent)]/20 overflow-hidden">
           <div
-            className="h-full rounded-full bg-blue-600 transition-all duration-700"
+            className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700"
             style={{ width: `${Math.max(progress, 3)}%` }}
           />
         </div>
@@ -429,27 +429,27 @@ function EpisodeSection({
   );
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-tertiary)] transition-colors"
       >
         {expanded ? (
-          <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+          <ChevronDown className="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0" />
         ) : (
-          <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+          <ChevronRight className="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0" />
         )}
         <span className="font-semibold text-sm flex-1">{episode.title}</span>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-[var(--color-text-tertiary)]">
           {clipCount} 片段 · {panelCount} 面板
         </span>
         <StatusBadge status={episode.status} />
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 dark:border-gray-800 p-4">
+        <div className="border-t border-[var(--color-border-light)] p-4">
           {episode.clips.length === 0 ? (
-            <p className="text-xs text-gray-400 italic text-center py-4">
+            <p className="text-xs text-[var(--color-text-tertiary)] italic text-center py-4">
               暂无片段，请先生成分镜文本
             </p>
           ) : (
@@ -457,12 +457,12 @@ function EpisodeSection({
               {/* Dialogue sidebar */}
               {hasDialogue && (
                 <div className={cn(
-                  "shrink-0 border-r border-gray-100 dark:border-gray-800 pr-3 transition-all overflow-hidden",
+                  "shrink-0 border-r border-[var(--color-border-light)] pr-3 transition-all overflow-hidden",
                   sidebarOpen ? "w-60" : "w-8",
                 )}>
                   <button
                     onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="mb-2 text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="cursor-pointer mb-2 text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] transition-colors"
                     title={sidebarOpen ? "收起剧本" : "展开剧本"}
                   >
                     {sidebarOpen ? "◀ 剧本" : "▶"}
@@ -471,20 +471,20 @@ function EpisodeSection({
                     <div className="space-y-3 overflow-y-auto max-h-[60vh]">
                       {episode.clips.map((clip) => (
                         <div key={clip.id} className="space-y-1">
-                          <p className="text-[10px] font-semibold text-gray-500 truncate">
+                          <p className="text-[10px] font-semibold text-[var(--color-text-secondary)] truncate">
                             {clip.title || `片段 ${clip.sortOrder + 1}`}
                           </p>
                           {clip.dialogue && (
-                            <p className="text-[10px] text-gray-400 line-clamp-3 leading-relaxed">
+                            <p className="text-[10px] text-[var(--color-text-tertiary)] line-clamp-3 leading-relaxed">
                               {clip.dialogue}
                             </p>
                           )}
                           {clip.panels.flatMap((p) => p.voiceLines).map((vl) => (
-                            <div key={vl.id} className="text-[10px] leading-relaxed pl-1 border-l-2 border-blue-200 dark:border-blue-800">
+                            <div key={vl.id} className="text-[10px] leading-relaxed pl-1 border-l-2 border-[var(--color-accent)]">
                               {vl.character && (
-                                <span className="font-medium text-blue-500">{vl.character.name}: </span>
+                                <span className="font-medium text-[var(--color-accent)]">{vl.character.name}: </span>
                               )}
-                              <span className="text-gray-500">{vl.text}</span>
+                              <span className="text-[var(--color-text-secondary)]">{vl.text}</span>
                             </div>
                           ))}
                         </div>
@@ -499,11 +499,11 @@ function EpisodeSection({
                 {episode.clips.map((clip) => (
                   <div key={clip.id}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-semibold text-gray-500">
+                      <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
                         {clip.title || `片段 ${clip.sortOrder + 1}`}
                       </span>
                       {clip.dialogue && (
-                        <span className="text-xs text-gray-400 truncate max-w-xs">
+                        <span className="text-xs text-[var(--color-text-tertiary)] truncate max-w-xs">
                           — {clip.dialogue}
                         </span>
                       )}
@@ -683,10 +683,10 @@ function PanelCard({
       <div className="space-y-1">
         <div
           className={cn(
-            "group relative rounded-lg border overflow-hidden cursor-pointer transition-all hover:shadow-md",
+            "group relative rounded-[var(--radius-md)] border overflow-hidden cursor-pointer transition-all hover:shadow-md",
             panel.imageUrl
-              ? "border-gray-200 dark:border-gray-700"
-              : "border-dashed border-gray-300 dark:border-gray-600",
+              ? "border-[var(--color-border)]"
+              : "border-dashed border-[var(--color-border)]",
           )}
           onClick={() => {
             if (isPlaying) {
@@ -697,7 +697,7 @@ function PanelCard({
           }}
         >
           {panel.imageUrl ? (
-            <div className="aspect-[9/16] bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
+            <div className="aspect-[9/16] bg-[var(--color-bg-secondary)] overflow-hidden relative">
               {/* Inline video playback */}
               {isPlaying && panel.videoUrl ? (
                 <video
@@ -756,11 +756,11 @@ function PanelCard({
               )}
             </div>
           ) : (
-            <div className="aspect-[9/16] bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center">
+            <div className="aspect-[9/16] bg-[var(--color-bg-tertiary)] flex items-center justify-center">
               {regenerating === "image" ? (
-                <Loader2 className="h-6 w-6 text-blue-400 animate-spin" />
+                <Loader2 className="h-6 w-6 text-[var(--color-accent)] animate-spin" />
               ) : (
-                <ImageIcon className="h-6 w-6 text-gray-300 dark:text-gray-600" />
+                <ImageIcon className="h-6 w-6 text-[var(--color-border)]" />
               )}
             </div>
           )}
@@ -810,7 +810,7 @@ function PanelCard({
           )}>
             {(panel.imageUrl || panel.videoUrl) && (
               <button
-                className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
+                className="cursor-pointer rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowPreview(true);
@@ -821,7 +821,7 @@ function PanelCard({
               </button>
             )}
             <button
-              className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors disabled:opacity-50"
+              className="cursor-pointer rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors disabled:opacity-50"
               onClick={(e) => handleRegenerate("image", e)}
               disabled={regenerating !== null}
               title={panel.imageUrl ? "重新生成图片" : "生成图片"}
@@ -834,7 +834,7 @@ function PanelCard({
             </button>
             {panel.imageUrl && (
               <button
-                className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors disabled:opacity-50"
+                className="cursor-pointer rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors disabled:opacity-50"
                 onClick={(e) => handleRegenerate("video", e)}
                 disabled={regenerating !== null}
                 title={panel.videoUrl ? "重新生成视频" : "生成视频"}
@@ -849,7 +849,7 @@ function PanelCard({
             {/* Download video button */}
             {panel.videoUrl && !videoError && (
               <button
-                className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
+                className="cursor-pointer rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   const a = document.createElement("a");
@@ -866,7 +866,7 @@ function PanelCard({
             {/* Info button for details panel */}
             {(panel.videoPrompt || panel.photographyRules || panel.actingNotes) && (
               <button
-                className="rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
+                className="cursor-pointer rounded-full bg-white/20 p-1.5 hover:bg-white/40 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowDetails(!showDetails);
@@ -880,7 +880,7 @@ function PanelCard({
             {nextPanel && nextPanel.imageUrl && panel.imageUrl && (
               <button
                 className={cn(
-                  "rounded-full p-1.5 transition-colors",
+                  "cursor-pointer rounded-full p-1.5 transition-colors",
                   panel.videoGenerationMode === "firstlastframe"
                     ? "bg-cyan-500/80 hover:bg-cyan-500"
                     : "bg-white/20 hover:bg-white/40",
@@ -940,7 +940,7 @@ function PanelCard({
           <div className="p-1.5 space-y-0.5">
             {/* Metadata row: characters, location, shot info */}
             {(boundCharacters.length > 0 || boundLocation || panel.shotType || panel.cameraAngle || panel.cameraMove) && (
-              <div className="text-[9px] text-gray-400 leading-tight space-y-0.5">
+              <div className="text-[9px] text-[var(--color-text-tertiary)] leading-tight space-y-0.5">
                 {(boundCharacters.length > 0 || boundLocation) && (
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {boundCharacters.length > 0 && (
@@ -956,17 +956,17 @@ function PanelCard({
                   </div>
                 )}
                 {(panel.shotType || panel.cameraAngle || panel.cameraMove) && (
-                  <div className="text-gray-400/80">
+                  <div className="text-[var(--color-text-tertiary)]/80">
                     {[panel.shotType, panel.cameraAngle, panel.cameraMove].filter(Boolean).join(" | ")}
                   </div>
                 )}
               </div>
             )}
-            <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">
+            <p className="text-[10px] text-[var(--color-text-secondary)] line-clamp-2 leading-tight">
               {panel.sceneDescription || "等待生成..."}
             </p>
             {panel.voiceLines.length > 0 && (
-              <p className="text-[10px] text-blue-500 truncate">
+              <p className="text-[10px] text-[var(--color-accent)] truncate">
                 {panel.voiceLines[0].text}
               </p>
             )}
@@ -975,7 +975,7 @@ function PanelCard({
           {/* Asset thumbnails row */}
           {(boundCharacters.length > 0 || boundLocation) && (
             <div
-              className="flex gap-1 px-1.5 py-1 border-t border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              className="flex gap-1 px-1.5 py-1 border-t border-[var(--color-border-light)] cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowAssetPicker(true);
@@ -994,7 +994,7 @@ function PanelCard({
                 ) : (
                   <div
                     key={c.id}
-                    className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[8px] text-gray-400"
+                    className="w-6 h-6 rounded-full bg-[var(--color-border)] flex items-center justify-center text-[8px] text-[var(--color-text-tertiary)]"
                   >
                     {c.name[0]}
                   </div>
@@ -1020,10 +1020,10 @@ function PanelCard({
                 key={idx}
                 onClick={(e) => handleSelectCandidate(idx, e)}
                 className={cn(
-                  "relative flex-1 aspect-square rounded overflow-hidden border-2 transition-all",
+                  "cursor-pointer relative flex-1 aspect-square rounded overflow-hidden border-2 transition-all",
                   idx === (panel.selectedImageIndex ?? 0)
-                    ? "border-blue-500 ring-1 ring-blue-500"
-                    : "border-transparent hover:border-gray-300 dark:hover:border-gray-600",
+                    ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]"
+                    : "border-transparent hover:border-[var(--color-border)]",
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1033,7 +1033,7 @@ function PanelCard({
                   className="w-full h-full object-cover"
                 />
                 {idx === (panel.selectedImageIndex ?? 0) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-blue-500/30">
+                  <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-accent)]/30">
                     <Check className="h-3 w-3 text-white" />
                   </div>
                 )}
@@ -1058,7 +1058,7 @@ function PanelCard({
           onClick={() => setShowPreview(false)}
         >
           <button
-            className="absolute top-4 right-4 rounded-full bg-white/20 p-2 hover:bg-white/30"
+            className="cursor-pointer absolute top-4 right-4 rounded-full bg-white/20 p-2 hover:bg-white/30"
             onClick={() => setShowPreview(false)}
           >
             <X className="h-5 w-5 text-white" />
@@ -1072,7 +1072,7 @@ function PanelCard({
                 src={panel.videoUrl}
                 controls
                 autoPlay
-                className="max-h-[80vh] rounded-lg"
+                className="max-h-[80vh] rounded-[var(--radius-md)]"
                 onError={() => setVideoError(true)}
               />
             ) : panel.imageUrl ? (
@@ -1080,11 +1080,11 @@ function PanelCard({
               <img
                 src={panel.imageUrl}
                 alt=""
-                className="max-h-[80vh] rounded-lg"
+                className="max-h-[80vh] rounded-[var(--radius-md)]"
               />
             ) : null}
             {videoError && (
-              <p className="text-xs text-amber-400 mt-2 text-center">
+              <p className="text-xs text-[var(--color-warning)] mt-2 text-center">
                 视频链接已过期，请重新生成视频
               </p>
             )}
@@ -1199,19 +1199,19 @@ function PanelDetailsPopup({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-3"
+        className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-3"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">面板详情</h3>
-          <button onClick={onClose}>
-            <X className="h-4 w-4 text-gray-400" />
+          <button onClick={onClose} className="cursor-pointer">
+            <X className="h-4 w-4 text-[var(--color-text-tertiary)]" />
           </button>
         </div>
 
         {panel.sceneType && (
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">场景类型</span>
+            <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">场景类型</span>
             <p
               className={cn(
                 "inline-block ml-2 rounded px-1.5 py-0.5 text-xs font-medium",
@@ -1225,8 +1225,8 @@ function PanelDetailsPopup({
 
         {panel.sourceText && (
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">原文片段</span>
-            <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 bg-gray-50 dark:bg-gray-800 rounded p-2">
+            <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">原文片段</span>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 bg-[var(--color-bg-tertiary)] rounded p-2">
               {panel.sourceText}
             </p>
           </div>
@@ -1234,10 +1234,10 @@ function PanelDetailsPopup({
 
         {panel.videoPrompt && (
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">
+            <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">
               视频提示词
             </span>
-            <p className="text-xs text-cyan-600 dark:text-cyan-400 mt-0.5">
+            <p className="text-xs text-cyan-600 mt-0.5">
               {panel.videoPrompt}
             </p>
           </div>
@@ -1245,8 +1245,8 @@ function PanelDetailsPopup({
 
         {photographyData && (
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">摄影规则</span>
-            <div className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 space-y-1">
+            <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">摄影规则</span>
+            <div className="text-xs text-[var(--color-text-secondary)] mt-0.5 space-y-1">
               {photographyData.lighting && (
                 <p>
                   灯光:{" "}
@@ -1267,8 +1267,8 @@ function PanelDetailsPopup({
 
         {actingData && Array.isArray(actingData) && actingData.length > 0 && (
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">表演指导</span>
-            <div className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 space-y-1">
+            <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">表演指导</span>
+            <div className="text-xs text-[var(--color-text-secondary)] mt-0.5 space-y-1">
               {actingData.map(
                 (a: { name: string; acting: string }, i: number) => (
                   <p key={i}>
@@ -1282,10 +1282,10 @@ function PanelDetailsPopup({
 
         {panel.imagePrompt && (
           <div>
-            <span className="text-[10px] text-gray-400 uppercase">
+            <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">
               图片提示词
             </span>
-            <p className="text-xs text-gray-500 mt-0.5">{panel.imagePrompt}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{panel.imagePrompt}</p>
           </div>
         )}
       </div>
@@ -1326,21 +1326,19 @@ function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; color: string }> = {
     draft: {
       label: "草稿",
-      color: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+      color: "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]",
     },
     storyboarded: {
       label: "已分镜",
-      color: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
+      color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
     },
     generating: {
       label: "生成中",
-      color:
-        "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400",
+      color: "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
     },
     completed: {
       label: "完成",
-      color:
-        "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+      color: "bg-[var(--color-success-light)] text-[var(--color-success)]",
     },
   };
   const cfg = config[status] || config.draft;

@@ -130,11 +130,11 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
     <div className="space-y-4">
       {/* Re-analyze Confirmation Dialog */}
       {showReanalyzeConfirm && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
-          <p className="text-sm font-medium text-amber-700 dark:text-amber-300 mb-1">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-warning)] bg-[var(--color-warning-light)] p-4">
+          <p className="text-sm font-medium text-[var(--color-warning)] mb-1">
             {t("analyzeConfirmTitle")}
           </p>
-          <p className="text-xs text-amber-600 dark:text-amber-400 mb-3">
+          <p className="text-xs text-[var(--color-warning)] mb-3">
             {t("analyzeConfirm", {
               episodes: episodeCount,
               panels: panelCount,
@@ -146,13 +146,13 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
                 setShowReanalyzeConfirm(false);
                 doAnalyze();
               }}
-              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+              className="cursor-pointer rounded-[var(--radius-md)] bg-[var(--color-warning)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
             >
               {t("startReverse").replace("倒推", "分析")}
             </button>
             <button
               onClick={() => setShowReanalyzeConfirm(false)}
-              className="rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+              className="cursor-pointer rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:opacity-80"
             >
               取消
             </button>
@@ -162,14 +162,14 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
       {/* Analyzing Overlay */}
       {isAnalyzing && (
-        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-light)] p-4">
           <div className="flex items-center gap-3 mb-3">
-            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+            <Loader2 className="h-5 w-5 text-[var(--color-accent)] animate-spin" />
             <div>
-              <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              <p className="text-sm font-medium text-[var(--color-accent)]">
                 AI 正在分析剧本...
               </p>
-              <p className="text-xs text-blue-500 dark:text-blue-400">
+              <p className="text-xs text-[var(--color-accent)]">
                 {analyzeTask?.status === "pending" && "排队中..."}
                 {analyzeTask?.status === "running" &&
                   progressPercent < 30 &&
@@ -188,13 +188,13 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
               </p>
             </div>
           </div>
-          <div className="h-2 rounded-full bg-blue-200 dark:bg-blue-800 overflow-hidden">
+          <div className="h-2 rounded-full bg-[var(--color-accent)]/20 overflow-hidden">
             <div
-              className="h-full rounded-full bg-blue-600 transition-all duration-700 ease-out"
+              className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700 ease-out"
               style={{ width: `${Math.max(progressPercent, 5)}%` }}
             />
           </div>
-          <p className="text-xs text-blue-400 mt-1 text-right">
+          <p className="text-xs text-[var(--color-accent)] mt-1 text-right">
             {progressPercent}%
           </p>
         </div>
@@ -202,19 +202,19 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
       {/* Analysis Failed */}
       {analyzeFailed && (
-        <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-danger)] bg-[var(--color-danger-light)] p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-[var(--color-danger)] shrink-0" />
           <div>
-            <p className="text-sm font-medium text-red-700 dark:text-red-300">
+            <p className="text-sm font-medium text-[var(--color-danger)]">
               分析失败
             </p>
-            <p className="text-xs text-red-500">
+            <p className="text-xs text-[var(--color-danger)]">
               {analyzeTask?.error || "未知错误，请检查 API 配置后重试"}
             </p>
           </div>
           <button
             onClick={() => setAnalyzeTaskId(null)}
-            className="ml-auto text-xs text-red-500 hover:text-red-700 underline"
+            className="cursor-pointer ml-auto text-xs text-[var(--color-danger)] hover:opacity-80 underline"
           >
             关闭
           </button>
@@ -224,10 +224,10 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       {/* Stats Bar */}
       {hasContent && (
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-xs text-gray-400">
+          <div className="flex items-center gap-4 text-xs text-[var(--color-text-tertiary)]">
             <span>{charCount} 字符</span>
             {isAnalyzed && (
-              <span className="inline-flex items-center gap-1 text-green-500">
+              <span className="inline-flex items-center gap-1 text-[var(--color-success)]">
                 <CheckCircle className="h-3 w-3" />
                 已分析
               </span>
@@ -244,7 +244,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
             )}
           </div>
           {hasChanges && (
-            <span className="text-xs text-amber-500">未保存更改</span>
+            <span className="text-xs text-[var(--color-warning)]">未保存更改</span>
           )}
         </div>
       )}
@@ -252,22 +252,22 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       {/* Empty State — show guided entry when no content */}
       {!hasContent && !isAnalyzing ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6">
-          <FileText className="h-16 w-16 text-gray-200 dark:text-gray-700" />
-          <p className="text-lg font-medium text-gray-400 dark:text-gray-500">
+          <FileText className="h-16 w-16 text-[var(--color-border)]" />
+          <p className="text-lg font-medium text-[var(--color-text-tertiary)]">
             {t("startCreating")}
           </p>
           <div className="grid grid-cols-2 gap-4 max-w-md w-full">
             {/* Direct Input Card */}
             <button
               onClick={() => textareaRef.current?.focus()}
-              className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all group"
+              className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border)] p-6 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-all group"
             >
-              <PenLine className="h-8 w-8 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors" />
+              <PenLine className="h-8 w-8 text-[var(--color-border)] group-hover:text-[var(--color-accent)] transition-colors" />
               <div className="text-center">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-blue-600">
+                <p className="text-sm font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)]">
                   {t("directInput")}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                   {t("directInputDesc")}
                 </p>
               </div>
@@ -275,14 +275,14 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
             {/* Smart Import Card */}
             <button
               onClick={() => setShowImport(true)}
-              className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-6 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-all group"
+              className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border)] p-6 hover:border-[var(--color-success)] hover:bg-[var(--color-success-light)] transition-all group"
             >
-              <BookOpen className="h-8 w-8 text-gray-300 dark:text-gray-600 group-hover:text-emerald-500 transition-colors" />
+              <BookOpen className="h-8 w-8 text-[var(--color-border)] group-hover:text-[var(--color-success)] transition-colors" />
               <div className="text-center">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-emerald-600">
+                <p className="text-sm font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-success)]">
                   {t("smartImport")}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                   {t("smartImportHint")}
                 </p>
               </div>
@@ -297,7 +297,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
           <div className="relative">
             <textarea
               ref={textareaRef}
-              className="w-full h-[500px] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono disabled:opacity-60"
+              className="w-full h-[500px] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none font-mono disabled:opacity-60"
               placeholder="粘贴小说/剧本文本内容..."
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -310,7 +310,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
             {/* Save — only show when there are unsaved changes */}
             {hasChanges && (
               <button
-                className="inline-flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:opacity-80 transition-colors disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving || isAnalyzing}
               >
@@ -325,13 +325,13 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
             {/* Smart Import — secondary style with hint */}
             <button
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors disabled:opacity-50"
               onClick={() => setShowImport(true)}
               disabled={isAnalyzing}
             >
               <BookOpen className="h-4 w-4" />
               {t("smartImport")}
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-[var(--color-text-tertiary)]">
                 ({t("smartImportHint")})
               </span>
             </button>
@@ -340,7 +340,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
             {/* AI Analyze — primary action, visually dominant */}
             <button
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50 shadow-sm"
               onClick={handleAnalyze}
               disabled={isAnalyzing || !text.trim()}
             >

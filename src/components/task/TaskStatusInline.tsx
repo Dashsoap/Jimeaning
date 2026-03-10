@@ -17,11 +17,11 @@ interface TaskStatusInlineProps {
 
 const stateIcons: Record<PresentationState, React.ReactNode> = {
   idle: null,
-  pending: <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />,
-  running: <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />,
-  completed: <CheckCircle className="h-4 w-4 text-green-500" />,
-  failed: <AlertCircle className="h-4 w-4 text-red-500" />,
-  cancelled: <Ban className="h-4 w-4 text-gray-400" />,
+  pending: <Loader2 className="h-4 w-4 text-[var(--color-text-tertiary)] animate-spin" />,
+  running: <Loader2 className="h-4 w-4 text-[var(--color-accent)] animate-spin" />,
+  completed: <CheckCircle className="h-4 w-4 text-[var(--color-success)]" />,
+  failed: <AlertCircle className="h-4 w-4 text-[var(--color-danger)]" />,
+  cancelled: <Ban className="h-4 w-4 text-[var(--color-text-tertiary)]" />,
 };
 
 export function TaskStatusInline({ task, className = "" }: TaskStatusInlineProps) {
@@ -38,22 +38,22 @@ export function TaskStatusInline({ task, className = "" }: TaskStatusInlineProps
   return (
     <div className={`flex items-center gap-2 text-sm ${className}`}>
       {stateIcons[presentation.state]}
-      <span className="text-gray-600 dark:text-gray-400">
+      <span className="text-[var(--color-text-secondary)]">
         {t(presentation.labelKey)}
       </span>
       {presentation.state === "running" && (
         <>
-          <div className="w-20 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+          <div className="w-20 h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-blue-500 transition-all duration-500"
+              className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
               style={{ width: `${percent}%` }}
             />
           </div>
-          <span className="text-xs text-gray-400">{percent}%</span>
+          <span className="text-xs text-[var(--color-text-tertiary)]">{percent}%</span>
         </>
       )}
       {presentation.state === "failed" && presentation.errorMessage && (
-        <span className="text-xs text-red-500 truncate max-w-[200px]">
+        <span className="text-xs text-[var(--color-danger)] truncate max-w-[200px]">
           {presentation.errorMessage}
         </span>
       )}

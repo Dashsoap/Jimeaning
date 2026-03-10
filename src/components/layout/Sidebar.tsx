@@ -26,7 +26,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
-  // Extract locale from pathname
   const locale = pathname.split("/")[1] || "zh";
 
   const navItems: NavItem[] = [
@@ -58,15 +57,17 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+    <aside className="flex h-screen w-16 flex-col items-center border-r border-[var(--color-border)] bg-white py-4">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-4 border-b border-gray-200 dark:border-gray-800">
-        <Film size={28} className="text-blue-600" />
-        <span className="text-xl font-bold">{t("title")}</span>
-      </div>
+      <Link
+        href={`/${locale}`}
+        className="mb-6 flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white"
+      >
+        <Film size={20} />
+      </Link>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex flex-1 flex-col items-center gap-1">
         {navItems.map((item) => {
           const isActive =
             item.href === `/${locale}`
@@ -78,14 +79,17 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "group relative flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] transition-colors",
                 isActive
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                  ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                  : "text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)]"
               )}
             >
               {item.icon}
-              {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets" | "settings")}
+              {/* Tooltip */}
+              <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets" | "settings")}
+              </span>
             </Link>
           );
         })}
@@ -93,24 +97,20 @@ export function Sidebar() {
 
       {/* User section */}
       {session?.user && (
-        <div className="border-t border-gray-200 p-3 dark:border-gray-800">
-          <div className="flex items-center justify-between">
-            <div className="truncate">
-              <p className="text-sm font-medium truncate">
-                {session.user.name || session.user.email}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {session.user.email}
-              </p>
-            </div>
-            <button
-              onClick={() => signOut()}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-              title={t("signOut")}
-            >
-              <LogOut size={18} />
-            </button>
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg-tertiary)] text-xs font-medium text-[var(--color-text-secondary)]">
+            {(session.user.name || session.user.email || "U")[0].toUpperCase()}
           </div>
+          <button
+            onClick={() => signOut()}
+            className="group relative flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
+            title={t("signOut")}
+          >
+            <LogOut size={16} />
+            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+              {t("signOut")}
+            </span>
+          </button>
         </div>
       )}
     </aside>

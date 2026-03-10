@@ -49,11 +49,15 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
-      <div className="w-full max-w-sm space-y-6 p-6">
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="w-full max-w-sm space-y-8 p-6">
         <div className="text-center">
-          <Film size={40} className="mx-auto text-blue-600 mb-3" />
-          <h1 className="text-2xl font-bold">{t("signUpTitle")}</h1>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white">
+            <Film size={24} />
+          </div>
+          <h1 className="text-2xl font-bold text-[var(--color-text)]">
+            {t("signUpTitle")}
+          </h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,18 +92,20 @@ export default function SignUpPage() {
             required
           />
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && (
+            <p className="text-sm text-[var(--color-danger)]">{error}</p>
+          )}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "..." : t("signUpTitle")}
           </Button>
         </form>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-[var(--color-text-secondary)]">
           {t("hasAccount")}{" "}
           <Link
             href={`/${locale}/auth/signin`}
-            className="text-blue-600 hover:underline"
+            className="text-[var(--color-accent)] hover:underline"
           >
             {t("goSignIn")}
           </Link>

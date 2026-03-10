@@ -68,19 +68,19 @@ export function PanelAssetPicker({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-4"
+        className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">绑定资产</h3>
-          <button onClick={onClose}>
-            <X className="h-4 w-4 text-gray-400" />
+          <button onClick={onClose} className="cursor-pointer">
+            <X className="h-4 w-4 text-[var(--color-text-tertiary)]" />
           </button>
         </div>
 
         {/* Characters (multi-select) */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-2">角色（多选）</p>
+          <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">角色（多选）</p>
           <div className="grid grid-cols-4 gap-2">
             {characters.map((c) => {
               const selected = selectedCharIds.includes(c.id);
@@ -89,10 +89,10 @@ export function PanelAssetPicker({
                   key={c.id}
                   onClick={() => toggleChar(c.id)}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all",
+                    "cursor-pointer flex flex-col items-center gap-1 p-2 rounded-[var(--radius-md)] border-2 transition-all",
                     selected
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300",
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]"
+                      : "border-[var(--color-border)] hover:border-[var(--color-border)]",
                   )}
                 >
                   {c.imageUrl ? (
@@ -103,11 +103,11 @@ export function PanelAssetPicker({
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400">
+                    <div className="w-12 h-12 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
                       {c.name[0]}
                     </div>
                   )}
-                  <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-full">
+                  <span className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-full">
                     {c.name}
                   </span>
                 </button>
@@ -115,13 +115,13 @@ export function PanelAssetPicker({
             })}
           </div>
           {characters.length === 0 && (
-            <p className="text-xs text-gray-400 italic">暂无角色</p>
+            <p className="text-xs text-[var(--color-text-tertiary)] italic">暂无角色</p>
           )}
         </div>
 
         {/* Locations (single-select) */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-2">场景（单选）</p>
+          <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-2">场景（单选）</p>
           <div className="grid grid-cols-3 gap-2">
             {locations.map((l) => {
               const selected = selectedLocId === l.id;
@@ -130,10 +130,10 @@ export function PanelAssetPicker({
                   key={l.id}
                   onClick={() => setSelectedLocId(selected ? null : l.id)}
                   className={cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all",
+                    "cursor-pointer flex flex-col items-center gap-1 p-2 rounded-[var(--radius-md)] border-2 transition-all",
                     selected
-                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-300",
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-[var(--color-border)] hover:border-[var(--color-border)]",
                   )}
                 >
                   {l.imageUrl ? (
@@ -144,11 +144,11 @@ export function PanelAssetPicker({
                       className="w-12 h-12 rounded object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-400">
+                    <div className="w-12 h-12 rounded bg-[var(--color-bg-tertiary)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
                       {l.name[0]}
                     </div>
                   )}
-                  <span className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-full">
+                  <span className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-full">
                     {l.name}
                   </span>
                 </button>
@@ -156,22 +156,22 @@ export function PanelAssetPicker({
             })}
           </div>
           {locations.length === 0 && (
-            <p className="text-xs text-gray-400 italic">暂无场景</p>
+            <p className="text-xs text-[var(--color-text-tertiary)] italic">暂无场景</p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex justify-end gap-2 pt-2 border-t border-[var(--color-border-light)]">
           <button
             onClick={onClose}
-            className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="cursor-pointer px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded-[var(--radius-md)] hover:bg-[var(--color-bg-secondary)] transition-colors"
           >
             取消
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50 transition-colors"
+            className="cursor-pointer px-3 py-1.5 text-xs text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-[var(--radius-md)] disabled:opacity-50 transition-colors"
           >
             {saving ? "保存中..." : "保存"}
           </button>
