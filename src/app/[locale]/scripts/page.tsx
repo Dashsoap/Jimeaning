@@ -241,7 +241,7 @@ export default function ScriptsPage() {
       <div className="max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("title")}</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">{t("title")}</h1>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => setShowReverse(true)} title={t("reverseScriptDesc")}>
               <Upload size={18} className="mr-1" />
@@ -269,19 +269,19 @@ export default function ScriptsPage() {
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]" />
               <input
                 type="text"
-                className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white pl-9 pr-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                className="w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white pl-9 pr-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 placeholder={t("searchPlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex rounded-[var(--radius-md)] border border-[var(--color-border)] overflow-hidden shrink-0">
+            <div className="flex rounded-[var(--radius-md)] border border-[var(--color-border-default)] overflow-hidden shrink-0">
               {filterTabs.map((tab) => (
                 <button
                   key={tab.key}
                   className={`px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
                     sourceFilter === tab.key
-                      ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                      ? "bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
                       : "text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)]"
                   }`}
                   onClick={() => setSourceFilter(tab.key)}
@@ -295,7 +295,7 @@ export default function ScriptsPage() {
 
         {/* Content */}
         {!scripts.length ? (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] py-16 text-center">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] py-16 text-center">
             <FileText size={48} className="mx-auto mb-4 text-[var(--color-text-tertiary)]" />
             <p className="text-[var(--color-text-secondary)] mb-1">{t("noScripts")}</p>
             <p className="text-sm text-[var(--color-text-tertiary)] mb-6">{t("emptyStateHint")}</p>
@@ -311,7 +311,7 @@ export default function ScriptsPage() {
             </div>
           </div>
         ) : filteredScripts.length === 0 ? (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] py-16 text-center">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] py-16 text-center">
             <Search size={36} className="mx-auto mb-3 text-[var(--color-text-tertiary)]" />
             <p className="text-[var(--color-text-secondary)]">{t("noScripts")}</p>
           </div>
@@ -335,7 +335,7 @@ export default function ScriptsPage() {
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </button>
                         )}
-                        <h3 className="font-semibold text-[var(--color-text)] truncate">{s.title}</h3>
+                        <h3 className="font-semibold text-[var(--color-text-primary)] truncate">{s.title}</h3>
                         <Badge variant={sourceTypeBadgeVariant(s.sourceType)}>
                           {sourceTypeLabel(s.sourceType)}
                         </Badge>
@@ -373,22 +373,22 @@ export default function ScriptsPage() {
                       <div className="relative">
                         <button
                           onClick={() => setOpenMenuId(openMenuId === s.id ? null : s.id)}
-                          className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
+                          className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-secondary)] cursor-pointer"
                           title={t("moreActions")}
                         >
                           <MoreHorizontal size={16} />
                         </button>
                         {openMenuId === s.id && (
-                          <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white py-1 shadow-lg">
+                          <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white py-1 shadow-lg">
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                               onClick={() => { setViewScript(s); setOpenMenuId(null); }}
                             >
                               <Eye size={14} />
                               {t("view")}
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                               onClick={() => {
                                 setEditScript(s);
                                 setTitle(s.title);
@@ -400,7 +400,7 @@ export default function ScriptsPage() {
                               {tc("edit")}
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                               onClick={() => {
                                 setRewritePreSelectedId(s.id);
                                 setShowRewrite(true);
@@ -412,7 +412,7 @@ export default function ScriptsPage() {
                             </button>
                             <hr className="my-1 border-[var(--color-border-light)]" />
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] cursor-pointer"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[var(--color-error)] hover:bg-[var(--color-error-bg)] cursor-pointer"
                               onClick={() => {
                                 setOpenMenuId(null);
                                 if (confirm(tc("confirm") + "?")) {
@@ -440,7 +440,7 @@ export default function ScriptsPage() {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs text-[var(--color-text-tertiary)] font-mono">#{ch.chapterIndex}</span>
-                                  <span className="text-sm font-medium truncate text-[var(--color-text)]">{ch.title}</span>
+                                  <span className="text-sm font-medium truncate text-[var(--color-text-primary)]">{ch.title}</span>
                                   <Badge variant={sourceTypeBadgeVariant(ch.sourceType)}>
                                     {sourceTypeLabel(ch.sourceType)}
                                   </Badge>
@@ -451,11 +451,11 @@ export default function ScriptsPage() {
                               </div>
                             </Card>
                             {rewrites.map((rw) => (
-                              <Card key={rw.id} className="flex items-center justify-between gap-3 py-2 px-3 ml-6 mt-1 border-l-2 border-[var(--color-accent-light)]">
+                              <Card key={rw.id} className="flex items-center justify-between gap-3 py-2 px-3 ml-6 mt-1 border-l-2 border-[var(--color-accent-bg)]">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2">
                                     <RefreshCw size={12} className="text-[var(--color-accent)] shrink-0" />
-                                    <span className="text-sm font-medium truncate text-[var(--color-text)]">{rw.title}</span>
+                                    <span className="text-sm font-medium truncate text-[var(--color-text-primary)]">{rw.title}</span>
                                     <Badge variant={sourceTypeBadgeVariant(rw.sourceType)}>
                                       {sourceTypeLabel(rw.sourceType)}
                                     </Badge>
@@ -465,7 +465,7 @@ export default function ScriptsPage() {
                                 <div className="flex items-center gap-1 shrink-0">
                                   <button
                                     onClick={() => setViewScript(rw)}
-                                    className="rounded-[var(--radius-sm)] p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
+                                    className="rounded-[var(--radius-sm)] p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-secondary)] cursor-pointer"
                                   >
                                     <Eye size={14} />
                                   </button>
@@ -519,12 +519,12 @@ export default function ScriptsPage() {
               required
             />
             <div>
-              <label htmlFor="edit-content" className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+              <label htmlFor="edit-content" className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                 {t("scriptContent")}
               </label>
               <textarea
                 id="edit-content"
-                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-4 py-2.5 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 rows={8}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -554,7 +554,7 @@ export default function ScriptsPage() {
                   {new Date(viewScript.createdAt).toLocaleString()}
                 </span>
               </div>
-              <div className="max-h-96 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap text-[var(--color-text)]">
+              <div className="max-h-96 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap text-[var(--color-text-primary)]">
                 {viewScript.content}
               </div>
               <div className="flex justify-end">

@@ -238,7 +238,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
             {/* File upload area */}
             {!file ? (
               <div
-                className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-[var(--color-border)] p-8 cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors"
+                className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-[var(--color-border-default)] p-8 cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
@@ -258,7 +258,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+              <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-3">
                 {getFileIcon()}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{file.name}</p>
@@ -277,11 +277,11 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
 
             {/* Custom prompt */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                 {t("customPrompt")}
               </label>
               <textarea
-                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 rows={2}
                 placeholder={t("customPromptPlaceholder")}
                 value={customPrompt}
@@ -316,7 +316,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
               <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
             </div>
             {progressPercent > 0 && (
-              <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)]">
+              <div className="h-1.5 rounded-full bg-[var(--color-bg-surface)]">
                 <div
                   className="h-full rounded-full bg-[var(--color-accent)] transition-all"
                   style={{ width: `${progressPercent}%` }}
@@ -383,7 +383,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                               <td className="py-1 pr-3">{scene.description}</td>
                               <td className="py-1 pr-3 text-xs text-[var(--color-text-secondary)]">{scene.timestamp}</td>
                               <td className="py-1 text-xs">
-                                <span className="rounded-full bg-[var(--color-accent-light)] px-2 py-0.5 text-[var(--color-accent)]">
+                                <span className="rounded-full bg-[var(--color-accent-bg)] px-2 py-0.5 text-[var(--color-accent)]">
                                   {scene.emotion}
                                 </span>
                               </td>
@@ -405,7 +405,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                   >
                     <div className="grid gap-2 sm:grid-cols-2">
                       {analysisData.characters.map((char, i) => (
-                        <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-2">
+                        <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-2">
                           <p className="text-sm font-medium">{char.name}</p>
                           <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{char.description}</p>
                           {char.relationship && (
@@ -430,7 +430,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                     <div className="space-y-1.5">
                       {analysisData.plotElements.map((elem, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm">
-                          <span className="shrink-0 rounded-[var(--radius-md)] bg-[var(--color-bg-tertiary)] px-1.5 py-0.5 text-xs text-[var(--color-text-secondary)]">
+                          <span className="shrink-0 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-1.5 py-0.5 text-xs text-[var(--color-text-secondary)]">
                             {elem.category}
                           </span>
                           <div>
@@ -454,7 +454,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
 
             {/* Editable script text */}
             <textarea
-              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               rows={12}
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}
@@ -488,7 +488,7 @@ function AnalysisSection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--color-border)]">
+    <div className="rounded-[var(--radius-md)] border border-[var(--color-border-default)]">
       <button
         onClick={onToggle}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-[var(--color-bg-secondary)] cursor-pointer"

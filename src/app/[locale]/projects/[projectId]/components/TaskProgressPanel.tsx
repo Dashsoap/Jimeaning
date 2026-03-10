@@ -73,7 +73,7 @@ export function TaskProgressPanel({ projectId }: TaskProgressPanelProps) {
         return (
           <div
             key={event.taskId}
-            className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white shadow-lg p-3 animate-in slide-in-from-right"
+            className="rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white shadow-lg p-3 animate-in slide-in-from-right"
           >
             <div className="flex items-center gap-2">
               {isRunning && (
@@ -83,14 +83,14 @@ export function TaskProgressPanel({ projectId }: TaskProgressPanelProps) {
                 <CheckCircle className="h-4 w-4 text-[var(--color-success)] shrink-0" />
               )}
               {isFailed && (
-                <AlertCircle className="h-4 w-4 text-[var(--color-danger)] shrink-0" />
+                <AlertCircle className="h-4 w-4 text-[var(--color-error)] shrink-0" />
               )}
               {isCancelled && (
                 <Ban className="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0" />
               )}
 
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[var(--color-text)] truncate">
+                <p className="text-xs font-medium text-[var(--color-text-primary)] truncate">
                   {isCancelled
                     ? t("taskStatus.cancelled")
                     : isRunning
@@ -103,7 +103,7 @@ export function TaskProgressPanel({ projectId }: TaskProgressPanelProps) {
                 </p>
                 {isRunning && (
                   <div className="mt-1 flex items-center gap-2">
-                    <div className="flex-1 h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
+                    <div className="flex-1 h-1.5 rounded-full bg-[var(--color-bg-surface)] overflow-hidden">
                       <div
                         className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
                         style={{
@@ -128,7 +128,7 @@ export function TaskProgressPanel({ projectId }: TaskProgressPanelProps) {
                 {isRunning && (
                   <button
                     onClick={() => handleCancel(event.taskId)}
-                    className="cursor-pointer rounded p-0.5 hover:bg-[var(--color-danger-light)] text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)] transition-colors"
+                    className="cursor-pointer rounded p-0.5 hover:bg-[var(--color-error-bg)] text-[var(--color-text-tertiary)] hover:text-[var(--color-error)] transition-colors"
                     title={t("common.cancelTask")}
                   >
                     <Square className="h-3 w-3" />

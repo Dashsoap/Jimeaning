@@ -161,7 +161,7 @@ export default function ProjectsPage() {
     <AppShell>
       <div className="max-w-4xl">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
             {t("create").replace("创建", "").replace("Create ", "") || t("title")}
           </h1>
           <Button onClick={() => setShowCreate(true)}>
@@ -171,7 +171,7 @@ export default function ProjectsPage() {
         </div>
 
         {!projects?.length ? (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] py-16 text-center">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] py-16 text-center">
             <Film size={48} className="mx-auto mb-4 text-[var(--color-text-tertiary)]" />
             <p className="text-[var(--color-text-secondary)]">{t("noProjects")}</p>
           </div>
@@ -201,7 +201,7 @@ export default function ProjectsPage() {
                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                           </span>
                         )}
-                        <h3 className="font-semibold text-[var(--color-text)]">{p.title}</h3>
+                        <h3 className="font-semibold text-[var(--color-text-primary)]">{p.title}</h3>
                         <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
                         {childCount > 0 && (
                           <Badge variant="info">
@@ -243,7 +243,7 @@ export default function ProjectsPage() {
                           setEditTitle(p.title);
                           setEditDescription(p.description || "");
                         }}
-                        className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
+                        className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-secondary)] cursor-pointer"
                         title={t("editProject")}
                       >
                         <Pencil size={16} />
@@ -253,7 +253,7 @@ export default function ProjectsPage() {
                           e.stopPropagation();
                           setDeletingProject(p);
                         }}
-                        className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-danger-light)] hover:text-[var(--color-danger)] cursor-pointer"
+                        className="rounded-[var(--radius-sm)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error)] cursor-pointer"
                         title={t("delete")}
                       >
                         <Trash2 size={16} />
@@ -288,7 +288,7 @@ export default function ProjectsPage() {
             <Input id="description" label={t("description")} value={description} onChange={(e) => setDescription(e.target.value)} />
 
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
                 {t("aspectRatio")}
               </label>
               <div className="flex gap-2">
@@ -300,8 +300,8 @@ export default function ProjectsPage() {
                     className={cn(
                       "flex-1 rounded-[var(--radius-md)] border-2 px-3 py-2 text-sm font-medium transition-all cursor-pointer",
                       aspectRatio === r.value
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                        : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-tertiary)]"
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
+                        : "border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-tertiary)]"
                     )}
                   >
                     {t(`aspectRatio${r.value.replace(":", "")}` as "aspectRatio169" | "aspectRatio916" | "aspectRatio11")}
@@ -311,7 +311,7 @@ export default function ProjectsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-2">
                 {t("style")}
               </label>
               <div className="flex gap-2">
@@ -323,8 +323,8 @@ export default function ProjectsPage() {
                     className={cn(
                       "flex-1 rounded-[var(--radius-md)] border-2 px-3 py-2 text-sm font-medium transition-all cursor-pointer",
                       style === s.value
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                        : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-tertiary)]"
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
+                        : "border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-tertiary)]"
                     )}
                   >
                     {t(`style${s.value.charAt(0).toUpperCase() + s.value.slice(1)}` as "styleRealistic" | "styleAnime" | "styleCinematic")}
@@ -425,10 +425,10 @@ function ChildProjectList({
         <Card
           key={child.id}
           onClick={() => router.push(`/${locale}/projects/${child.id}`)}
-          className="group flex items-center justify-between py-2 px-3 border-l-2 border-[var(--color-accent-light)]"
+          className="group flex items-center justify-between py-2 px-3 border-l-2 border-[var(--color-accent-bg)]"
         >
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium truncate text-[var(--color-text)]">{child.title}</h4>
+            <h4 className="text-sm font-medium truncate text-[var(--color-text-primary)]">{child.title}</h4>
             <div className="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-tertiary)]">
               <Badge variant={(STATUS_CONFIG[child.status] || STATUS_CONFIG.draft).variant}>
                 {(STATUS_CONFIG[child.status] || STATUS_CONFIG.draft).label}
@@ -442,7 +442,7 @@ function ChildProjectList({
               e.stopPropagation();
               onDelete(child);
             }}
-            className="rounded-[var(--radius-sm)] p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-danger-light)] hover:text-[var(--color-danger)] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="rounded-[var(--radius-sm)] p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error)] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           >
             <Trash2 size={14} />
           </button>

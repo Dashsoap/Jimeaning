@@ -28,7 +28,7 @@ export function AssetsTab({ project, onSwitchTab }: AssetsTabProps) {
   if (characters.length === 0 && locations.length === 0) {
     return (
       <div className="text-center py-16">
-        <Users className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <Users className="h-12 w-12 text-[var(--color-border-default)] mx-auto mb-4" />
         <p className="text-[var(--color-text-secondary)] font-medium">暂无角色和场景</p>
         <p className="text-sm text-[var(--color-text-tertiary)] mt-1 mb-4">
           {t("assets")}
@@ -36,7 +36,7 @@ export function AssetsTab({ project, onSwitchTab }: AssetsTabProps) {
         {onSwitchTab && (
           <button
             onClick={() => onSwitchTab("script")}
-            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] transition-colors"
           >
             {t("goToScript")}
             <ArrowRight className="h-4 w-4" />
@@ -100,7 +100,7 @@ function CollapsibleSection({
     <div>
       <button
         onClick={() => setOpen(!open)}
-        className="cursor-pointer flex items-center gap-2 mb-3 text-sm font-semibold text-[var(--color-text)] hover:opacity-80"
+        className="cursor-pointer flex items-center gap-2 mb-3 text-sm font-semibold text-[var(--color-text-primary)] hover:opacity-80"
       >
         {open ? (
           <ChevronDown className="h-4 w-4" />
@@ -147,7 +147,7 @@ function CharacterCard({
   };
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white overflow-hidden">
       {/* Image */}
       {character.imageUrl ? (
         <div className="aspect-square bg-[var(--color-bg-secondary)] overflow-hidden">
@@ -159,8 +159,8 @@ function CharacterCard({
           />
         </div>
       ) : (
-        <div className="aspect-square bg-[var(--color-bg-tertiary)] flex items-center justify-center">
-          <ImageIcon className="h-8 w-8 text-[var(--color-border)]" />
+        <div className="aspect-square bg-[var(--color-bg-surface)] flex items-center justify-center">
+          <ImageIcon className="h-8 w-8 text-[var(--color-border-default)]" />
         </div>
       )}
 
@@ -180,7 +180,7 @@ function CharacterCard({
               <select
                 value={voiceProvider}
                 onChange={(e) => setVoiceProvider(e.target.value)}
-                className="w-full rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs"
+                className="w-full rounded-md border border-[var(--color-border-default)] bg-white px-2 py-1 text-xs"
               >
                 <option value="">选择语音供应商</option>
                 <option value="openai">OpenAI TTS</option>
@@ -191,12 +191,12 @@ function CharacterCard({
                 placeholder="Voice ID"
                 value={voiceId}
                 onChange={(e) => setVoiceId(e.target.value)}
-                className="w-full rounded-md border border-[var(--color-border)] bg-white px-2 py-1 text-xs font-mono"
+                className="w-full rounded-md border border-[var(--color-border-default)] bg-white px-2 py-1 text-xs font-mono"
               />
               <div className="flex gap-1">
                 <button
                   onClick={handleSaveVoice}
-                  className="cursor-pointer flex-1 rounded-md bg-[var(--color-accent)] px-2 py-1 text-xs text-white hover:bg-[var(--color-accent-hover)]"
+                  className="cursor-pointer flex-1 rounded-md bg-[var(--color-btn-primary)] px-2 py-1 text-xs text-white hover:bg-[var(--color-btn-primary-hover)]"
                 >
                   保存
                 </button>
@@ -229,7 +229,7 @@ function CharacterCard({
 
 function LocationCard({ location }: { location: LocationData }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white overflow-hidden">
       {location.imageUrl ? (
         <div className="aspect-video bg-[var(--color-bg-secondary)] overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -240,8 +240,8 @@ function LocationCard({ location }: { location: LocationData }) {
           />
         </div>
       ) : (
-        <div className="aspect-video bg-[var(--color-bg-tertiary)] flex items-center justify-center">
-          <MapPin className="h-8 w-8 text-[var(--color-border)]" />
+        <div className="aspect-video bg-[var(--color-bg-surface)] flex items-center justify-center">
+          <MapPin className="h-8 w-8 text-[var(--color-border-default)]" />
         </div>
       )}
       <div className="p-3">

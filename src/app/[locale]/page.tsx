@@ -38,7 +38,7 @@ export default function DashboardPage() {
   if (status === "loading") {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-text-tertiary)]" />
+        <div className="skeleton h-8 w-8 rounded-full" />
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default function DashboardPage() {
     <AppShell>
       <div className="max-w-5xl">
         {/* Page title */}
-        <h1 className="text-3xl font-semibold tracking-tight text-[var(--color-text)] mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-[var(--color-text-primary)] mb-8">
           {t("projects")}
         </h1>
 
@@ -59,7 +59,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
           {/* New Project card */}
           <Link href={`/${locale}/projects`} className="group cursor-pointer">
-            <div className="aspect-[4/3] rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex flex-col items-center justify-center gap-2 transition-all group-hover:border-[var(--color-text-tertiary)] group-hover:shadow-sm">
+            <div className="aspect-[4/3] rounded-[var(--radius-xl)] bg-[var(--color-bg-surface)] flex flex-col items-center justify-center gap-2 transition-all group-hover:shadow-[var(--shadow-xs)]">
               <Plus size={28} strokeWidth={1.5} className="text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)]" />
               <span className="text-sm text-[var(--color-text-secondary)]">New Project</span>
             </div>
@@ -72,14 +72,14 @@ export default function DashboardPage() {
               href={`/${locale}/projects/${project.id}`}
               className="group cursor-pointer"
             >
-              <div className="aspect-[4/3] rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden transition-all group-hover:shadow-sm group-hover:border-[var(--color-text-tertiary)]">
+              <div className="aspect-[4/3] rounded-[var(--radius-xl)] bg-[var(--color-bg-surface)] overflow-hidden transition-all group-hover:shadow-[var(--shadow-xs)]">
                 {/* Placeholder thumbnail */}
                 <div className="h-full w-full flex items-center justify-center">
                   <FolderOpen size={24} className="text-[var(--color-text-tertiary)]" />
                 </div>
               </div>
               <div className="mt-2.5">
-                <p className="text-sm font-medium text-[var(--color-text)] truncate">
+                <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
                   {project.title}
                 </p>
                 <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
@@ -97,26 +97,26 @@ export default function DashboardPage() {
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
           <Link
             href={`/${locale}/scripts`}
-            className="group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 transition-all hover:shadow-sm hover:border-[var(--color-text-tertiary)]"
+            className="group flex items-center gap-4 rounded-[var(--radius-xl)] bg-[var(--color-bg-surface)] p-4 transition-all hover:shadow-[var(--shadow-xs)]"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-white text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)]">
               <FileText size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-[var(--color-text)]">{t("scripts")}</p>
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">{t("scripts")}</p>
               <p className="text-xs text-[var(--color-text-tertiary)]">剧本管理</p>
             </div>
           </Link>
 
           <Link
             href={`/${locale}/assets`}
-            className="group flex items-center gap-4 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-4 transition-all hover:shadow-sm hover:border-[var(--color-text-tertiary)]"
+            className="group flex items-center gap-4 rounded-[var(--radius-xl)] bg-[var(--color-bg-surface)] p-4 transition-all hover:shadow-[var(--shadow-xs)]"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-white text-[var(--color-text-tertiary)] group-hover:text-[var(--color-text-secondary)]">
               <ImageIcon size={20} />
             </div>
             <div>
-              <p className="text-sm font-medium text-[var(--color-text)]">{t("assets")}</p>
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">{t("assets")}</p>
               <p className="text-xs text-[var(--color-text-tertiary)]">角色 / 场景 / 配音</p>
             </div>
           </Link>

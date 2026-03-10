@@ -57,7 +57,7 @@ export default function SettingsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-[var(--color-text)]">{t("title")}</h1>
+            <h1 className="text-xl font-bold text-[var(--color-text-primary)]">{t("title")}</h1>
             <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{t("subtitle")}</p>
           </div>
           <div className="flex items-center gap-3">
@@ -71,9 +71,9 @@ export default function SettingsPage() {
 
         {/* Default Models */}
         {enabledModels.length > 0 && (
-          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white px-5 py-4">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white px-5 py-4">
             <div className="mb-3">
-              <h2 className="text-sm font-semibold text-[var(--color-text)]">{t("defaultModels")}</h2>
+              <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">{t("defaultModels")}</h2>
               <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{t("defaultModelsDesc")}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -87,7 +87,7 @@ export default function SettingsPage() {
                       value={currentValue}
                       onChange={(e) => updateDefault(type, e.target.value || null)}
                       disabled={typeModels.length === 0}
-                      className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-2.5 py-1.5 text-xs text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:opacity-50"
+                      className="w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] px-2.5 py-1.5 text-xs text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] disabled:opacity-50"
                     >
                       <option value="">{t("autoFirstEnabled")}</option>
                       {typeModels.map((m) => (
@@ -134,7 +134,7 @@ export default function SettingsPage() {
               }}
               className="w-full text-left rounded-[var(--radius-md)] px-4 py-3 hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
             >
-              <div className="font-medium text-sm text-[var(--color-text)]">OpenAI Compatible</div>
+              <div className="font-medium text-sm text-[var(--color-text-primary)]">OpenAI Compatible</div>
               <div className="text-xs text-[var(--color-text-secondary)] mt-0.5">
                 {locale.startsWith("zh")
                   ? "添加自定义 OpenAI 兼容端点（NewAPI / OneAPI / 自建转发等）"
@@ -167,7 +167,7 @@ function SaveIndicator({ status }: { status: string }) {
   }
   if (status === "error") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-[var(--color-danger)]">
+      <span className="inline-flex items-center gap-1 text-xs text-[var(--color-error)]">
         <AlertCircle className="h-3.5 w-3.5" />
         Error
       </span>

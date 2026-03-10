@@ -608,23 +608,23 @@ export default function SmartImportPage() {
             return (
               <div key={i} className="flex items-center gap-2">
                 {i > 0 && (
-                  <div className={`w-8 h-px ${isDone ? "bg-[var(--color-success)]" : "bg-[var(--color-border)]"}`} />
+                  <div className={`w-8 h-px ${isDone ? "bg-[var(--color-success)]" : "bg-[var(--color-border-default)]"}`} />
                 )}
                 <div className="flex items-center gap-2">
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
                       isActive
-                        ? "bg-[var(--color-accent)] text-white"
+                        ? "bg-[var(--color-btn-primary)] text-white"
                         : isDone
-                          ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
-                          : "bg-[var(--color-bg-tertiary)] text-[var(--color-text-tertiary)]"
+                          ? "bg-[var(--color-success-bg)] text-[var(--color-success)]"
+                          : "bg-[var(--color-bg-surface)] text-[var(--color-text-tertiary)]"
                     }`}
                   >
                     {isDone ? <Check size={14} /> : stepNum}
                   </div>
                   <span
                     className={`text-sm hidden sm:inline ${
-                      isActive ? "font-medium text-[var(--color-text)]" : "text-[var(--color-text-tertiary)]"
+                      isActive ? "font-medium text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
                     }`}
                   >
                     {label}
@@ -655,7 +655,7 @@ export default function SmartImportPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-sm text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-sm text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
                     disabled={importing}
                   >
                     {importing ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
@@ -664,7 +664,7 @@ export default function SmartImportPage() {
                 </div>
               </div>
               <textarea
-                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-3 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent min-h-[400px]"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-4 py-3 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent min-h-[400px]"
                 style={{ minHeight: "400px" }}
                 placeholder={ti("textPlaceholder")}
                 value={textContent}
@@ -699,12 +699,12 @@ export default function SmartImportPage() {
 
               {/* Direction */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                   {ti("direction")}
                 </label>
                 <input
                   type="text"
-                  className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                  className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   placeholder={ti("directionPlaceholder")}
                   value={direction}
                   onChange={(e) => setDirection(e.target.value)}
@@ -713,7 +713,7 @@ export default function SmartImportPage() {
 
               {/* Target Duration */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                   {ti("targetDuration")}
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -722,8 +722,8 @@ export default function SmartImportPage() {
                       key={opt.value}
                       className={`px-4 py-2.5 rounded-[var(--radius-md)] text-sm border transition-colors cursor-pointer ${
                         targetDuration === opt.value
-                          ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                          : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
+                          : "border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                       }`}
                       onClick={() => setTargetDuration(opt.value)}
                     >
@@ -734,7 +734,7 @@ export default function SmartImportPage() {
                 {targetDuration === "custom" && (
                   <input
                     type="text"
-                    className="mt-2 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                    className="mt-2 flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                     placeholder={ti("customDurationPlaceholder")}
                     value={customDuration}
                     onChange={(e) => setCustomDuration(e.target.value)}
@@ -744,14 +744,14 @@ export default function SmartImportPage() {
 
               {/* Target Episodes */}
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                   {ti("targetEpisodes")}
                 </label>
                 <input
                   type="number"
                   min={1}
                   max={500}
-                  className="flex h-10 w-full max-w-xs rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                  className="flex h-10 w-full max-w-xs rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   placeholder={ti("targetEpisodesPlaceholder")}
                   value={targetEpisodes}
                   onChange={(e) => setTargetEpisodes(e.target.value)}
@@ -762,11 +762,11 @@ export default function SmartImportPage() {
               {llmModels.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                       {ti("analysisModel")}
                     </label>
                     <select
-                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       value={analysisModelKey}
                       onChange={(e) => setAnalysisModelKey(e.target.value)}
                     >
@@ -779,11 +779,11 @@ export default function SmartImportPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                       {ti("rewriteModel")}
                     </label>
                     <select
-                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       value={rewriteModelKey}
                       onChange={(e) => setRewriteModelKey(e.target.value)}
                     >
@@ -830,7 +830,7 @@ export default function SmartImportPage() {
                 )}
               </div>
               {splitStream.progressPercent > 0 && (
-                <div className="h-2 rounded-full bg-[var(--color-bg-tertiary)]">
+                <div className="h-2 rounded-full bg-[var(--color-bg-surface)]">
                   <div
                     className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
                     style={{ width: `${splitStream.progressPercent}%` }}
@@ -857,7 +857,7 @@ export default function SmartImportPage() {
           <div className="space-y-4">
             {/* Script type detection hint */}
             {contentType === "script" && (
-              <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-warning-light)] p-4 text-sm text-[var(--color-warning)]">
+              <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-warning-bg)] p-4 text-sm text-[var(--color-warning)]">
                 <BookOpen size={18} />
                 <span>{ti("detectedScript")}</span>
               </div>
@@ -865,7 +865,7 @@ export default function SmartImportPage() {
 
             <div className="flex gap-4" style={{ minHeight: "500px" }}>
               {/* Left: Chapter list */}
-              <div className="w-72 shrink-0 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+              <div className="w-72 shrink-0 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white">
                 <div className="px-3 py-2 border-b border-[var(--color-border-light)]">
                   <span className="text-sm font-medium text-[var(--color-text-secondary)]">{ti("chapterCount", { count: chapters.length })}</span>
                 </div>
@@ -874,7 +874,7 @@ export default function SmartImportPage() {
                     key={idx}
                     className={`px-3 py-2.5 cursor-pointer border-b border-[var(--color-border-light)] transition-colors ${
                       selectedChapterIdx === idx
-                        ? "bg-[var(--color-accent-light)] border-l-2 border-l-[var(--color-accent)]"
+                        ? "bg-[var(--color-accent-bg)] border-l-2 border-l-[var(--color-accent)]"
                         : "hover:bg-[var(--color-bg-secondary)]"
                     }`}
                     onClick={() => setSelectedChapterIdx(idx)}
@@ -888,7 +888,7 @@ export default function SmartImportPage() {
               </div>
 
               {/* Right: Content preview + actions */}
-              <div className="flex-1 flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white">
+              <div className="flex-1 flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white">
                 {chapters[selectedChapterIdx] && (
                   <>
                     {/* Chapter title + action buttons */}
@@ -909,20 +909,20 @@ export default function SmartImportPage() {
                         <button
                           onClick={() => handleMergeChapter(selectedChapterIdx)}
                           disabled={selectedChapterIdx >= chapters.length - 1}
-                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {ti("mergeWithNext")}
                         </button>
                         <button
                           onClick={() => handleSplitChapter(selectedChapterIdx)}
-                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
+                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] cursor-pointer"
                         >
                           {ti("splitInTwo")}
                         </button>
                         <button
                           onClick={() => handleDeleteChapter(selectedChapterIdx)}
                           disabled={chapters.length <= 1}
-                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-danger-light)] text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          className="px-2.5 py-1 text-xs rounded-md border border-[var(--color-error-bg)] text-[var(--color-error)] hover:bg-[var(--color-error-bg)] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                         >
                           {ti("deleteChapter")}
                         </button>
@@ -964,11 +964,11 @@ export default function SmartImportPage() {
                 <>
                   <h2 className="text-lg font-semibold">{ti("step5")}</h2>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                       {ti("rewriteRequirement")}
                     </label>
                     <textarea
-                      className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-4 py-3 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-4 py-3 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       rows={5}
                       placeholder={ti("rewriteRequirementPlaceholder")}
                       value={rewritePrompt}
@@ -1016,7 +1016,7 @@ export default function SmartImportPage() {
                     )}
                   </div>
                   {rewriteStream.progressPercent > 0 && (
-                    <div className="h-2 rounded-full bg-[var(--color-bg-tertiary)]">
+                    <div className="h-2 rounded-full bg-[var(--color-bg-surface)]">
                       <div
                         className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-300"
                         style={{ width: `${rewriteStream.progressPercent}%` }}

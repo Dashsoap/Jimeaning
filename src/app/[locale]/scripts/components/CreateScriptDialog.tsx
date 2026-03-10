@@ -143,12 +143,12 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="content" className="block text-sm font-medium text-[var(--color-text)]">
+            <label htmlFor="content" className="block text-sm font-medium text-[var(--color-text-primary)]">
               {t("scriptContent")}
             </label>
             <button
               type="button"
-              className="flex items-center gap-1 rounded-[var(--radius-md)] px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors cursor-pointer"
+              className="flex items-center gap-1 rounded-[var(--radius-md)] px-2.5 py-1 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
               title={t("importFileHint")}
@@ -174,7 +174,7 @@ export function CreateScriptDialog({ open, onClose, onSubmit, isPending }: Creat
           >
             <textarea
               id="content"
-              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               rows={12}
               value={content}
               onChange={(e) => setContent(e.target.value)}

@@ -61,7 +61,7 @@ export function AiModifyPromptDialog({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-white border border-[var(--color-border)] shadow-2xl p-6"
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-white border border-[var(--color-border-default)] shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -89,7 +89,7 @@ export function AiModifyPromptDialog({
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             placeholder="如：换成俯拍角度，增加暖色调灯光"
-            className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
+            className="w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
             rows={3}
             disabled={loading}
             onKeyDown={(e) => {
@@ -111,7 +111,7 @@ export function AiModifyPromptDialog({
           <button
             onClick={handleSubmit}
             disabled={loading || !instruction.trim()}
-            className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
             改写

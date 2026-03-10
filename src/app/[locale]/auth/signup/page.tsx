@@ -52,10 +52,10 @@ export default function SignUpPage() {
     <div className="flex min-h-screen items-center justify-center bg-white">
       <div className="w-full max-w-sm space-y-8 p-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent)] text-white">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] text-white">
             <Film size={24} />
           </div>
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">
             {t("signUpTitle")}
           </h1>
         </div>
@@ -93,7 +93,7 @@ export default function SignUpPage() {
           />
 
           {error && (
-            <p className="text-sm text-[var(--color-danger)]">{error}</p>
+            <p className="text-sm text-[var(--color-error)]">{error}</p>
           )}
 
           <Button type="submit" className="w-full" disabled={loading}>

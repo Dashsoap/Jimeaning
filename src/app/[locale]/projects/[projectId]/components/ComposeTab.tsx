@@ -34,7 +34,7 @@ export function ComposeTab({ project, onSwitchTab }: ComposeTabProps) {
   if (episodes.length === 0) {
     return (
       <div className="text-center py-16">
-        <Film className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <Film className="h-12 w-12 text-[var(--color-border-default)] mx-auto mb-4" />
         <p className="text-[var(--color-text-secondary)] font-medium">暂无可合成的集</p>
         <p className="text-sm text-[var(--color-text-tertiary)] mt-1 mb-4">
           {te("compose")}
@@ -42,7 +42,7 @@ export function ComposeTab({ project, onSwitchTab }: ComposeTabProps) {
         {onSwitchTab && (
           <button
             onClick={() => onSwitchTab("storyboard")}
-            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] transition-colors"
           >
             {te("goToStoryboard")}
             <ArrowRight className="h-4 w-4" />
@@ -187,11 +187,11 @@ function EpisodeCompose({
   };
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-tertiary)] transition-colors"
+        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-surface)] transition-colors"
       >
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-[var(--color-text-tertiary)]" />
@@ -231,7 +231,7 @@ function EpisodeCompose({
           </div>
 
           {/* Composition Settings */}
-          <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-tertiary)] p-3 space-y-3">
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3 space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-text-secondary)]">
               <Settings2 className="h-3.5 w-3.5" />
               合成设置
@@ -246,7 +246,7 @@ function EpisodeCompose({
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, transition: e.target.value }))
                   }
-                  className="w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-xs"
+                  className="w-full rounded-md border border-[var(--color-border-default)] bg-white px-2.5 py-1.5 text-xs"
                 >
                   <option value="crossfade">淡入淡出 (Crossfade)</option>
                   <option value="cut">硬切 (Cut)</option>
@@ -262,7 +262,7 @@ function EpisodeCompose({
                   onChange={(e) =>
                     setSettings((s) => ({ ...s, subtitleStyle: e.target.value }))
                   }
-                  className="w-full rounded-md border border-[var(--color-border)] bg-white px-2.5 py-1.5 text-xs"
+                  className="w-full rounded-md border border-[var(--color-border-default)] bg-white px-2.5 py-1.5 text-xs"
                 >
                   <option value="default">默认</option>
                   <option value="cinematic">电影风格</option>
@@ -304,7 +304,7 @@ function EpisodeCompose({
                         subtitleEnabled: e.target.checked,
                       }))
                     }
-                    className="rounded border-[var(--color-border)]"
+                    className="rounded border-[var(--color-border-default)]"
                   />
                   <span className="text-xs text-[var(--color-text-secondary)]">
                     烧入字幕
@@ -327,7 +327,7 @@ function EpisodeCompose({
 
           {/* Composition Error */}
           {composition?.error && (
-            <div className="rounded-[var(--radius-md)] bg-[var(--color-danger-light)] px-3 py-2 text-xs text-[var(--color-danger)] flex items-center gap-2">
+            <div className="rounded-[var(--radius-md)] bg-[var(--color-error-bg)] px-3 py-2 text-xs text-[var(--color-error)] flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {composition.error}
             </div>
@@ -338,7 +338,7 @@ function EpisodeCompose({
             <button
               onClick={handleCompose}
               disabled={composing || videosReady === 0}
-              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] disabled:opacity-50 transition-colors"
             >
               {composing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -404,7 +404,7 @@ function ReadinessItem({
   const percentage = total > 0 ? Math.round((ready / total) * 100) : 0;
 
   return (
-    <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-tertiary)] px-3 py-2">
+    <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2">
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className="h-3.5 w-3.5 text-[var(--color-text-tertiary)]" />
         <span className="text-xs font-medium text-[var(--color-text-secondary)]">
@@ -416,12 +416,12 @@ function ReadinessItem({
           <Clock className="h-3 w-3 text-[var(--color-warning)] ml-auto" />
         ) : null}
       </div>
-      <div className="text-lg font-bold text-[var(--color-text)]">
+      <div className="text-lg font-bold text-[var(--color-text-primary)]">
         {ready}
         <span className="text-xs font-normal text-[var(--color-text-tertiary)]">/{total}</span>
       </div>
       {total > 0 && (
-        <div className="mt-1 h-1 rounded-full bg-[var(--color-border)] overflow-hidden">
+        <div className="mt-1 h-1 rounded-full bg-[var(--color-border-default)] overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${
               isComplete ? "bg-[var(--color-success)]" : "bg-[var(--color-accent)]"
@@ -445,17 +445,17 @@ function ComposeStatusBadge({ status }: { status: string }) {
     },
     composing: {
       label: "合成中",
-      color: "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
+      color: "bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
       icon: Loader2,
     },
     completed: {
       label: "已完成",
-      color: "bg-[var(--color-success-light)] text-[var(--color-success)]",
+      color: "bg-[var(--color-success-bg)] text-[var(--color-success)]",
       icon: CheckCircle,
     },
     failed: {
       label: "失败",
-      color: "bg-[var(--color-danger-light)] text-[var(--color-danger)]",
+      color: "bg-[var(--color-error-bg)] text-[var(--color-error)]",
       icon: AlertCircle,
     },
   };

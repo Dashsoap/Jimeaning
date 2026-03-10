@@ -209,7 +209,7 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
               <span
                 className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                   stage === s
-                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    ? "bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
                     : "text-[var(--color-text-tertiary)]"
                 }`}
               >
@@ -223,7 +223,7 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
         {stage === "source" && (
           <div className="space-y-4">
             <textarea
-              className="w-full h-64 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
+              className="w-full h-64 rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none"
               placeholder={t("pasteHint")}
               value={rawContent}
               onChange={(e) => setRawContent(e.target.value)}
@@ -247,7 +247,7 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
             <p className="text-sm text-[var(--color-text-secondary)] mb-4">
               {t("analyzing")}
             </p>
-            <div className="w-64 mx-auto h-2 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
+            <div className="w-64 mx-auto h-2 rounded-full bg-[var(--color-bg-surface)] overflow-hidden">
               <div
                 className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-700"
                 style={{ width: `${Math.max(progressPercent, 5)}%` }}
@@ -277,7 +277,7 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
             {episodes.map((ep, idx) => (
               <div
                 key={idx}
-                className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3"
+                className="rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-3"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-bold text-[var(--color-text-tertiary)]">#{ep.number}</span>
@@ -302,7 +302,7 @@ export function SmartImportWizard({ open, onClose, projectId }: SmartImportWizar
                   </button>
                   <button
                     onClick={() => removeEpisode(idx)}
-                    className="cursor-pointer p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-danger)]"
+                    className="cursor-pointer p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-error)]"
                   >
                     <Trash2 size={14} />
                   </button>

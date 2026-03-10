@@ -220,10 +220,10 @@ function StageSidebar({
 
   if (collapsed) {
     return (
-      <div className="w-10 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-secondary)] flex flex-col items-center pt-3">
+      <div className="w-10 shrink-0 border-r border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] flex flex-col items-center pt-3">
         <button
           onClick={() => setCollapsed(false)}
-          className="cursor-pointer p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
+          className="cursor-pointer p-1.5 rounded-[var(--radius-md)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] transition-colors"
           title="展开工具面板"
         >
           <PanelLeftOpen size={16} />
@@ -233,15 +233,15 @@ function StageSidebar({
   }
 
   return (
-    <div className="w-64 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-bg-secondary)] flex flex-col overflow-hidden">
+    <div className="w-64 shrink-0 border-r border-[var(--color-border-default)] bg-[var(--color-bg-secondary)] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[var(--color-border)]">
-        <span className="text-xs font-semibold text-[var(--color-text)]">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[var(--color-border-default)]">
+        <span className="text-xs font-semibold text-[var(--color-text-primary)]">
           {config.icon} {config.title}
         </span>
         <button
           onClick={() => setCollapsed(true)}
-          className="cursor-pointer p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
+          className="cursor-pointer p-1 rounded text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] transition-colors"
         >
           <PanelLeftClose size={14} />
         </button>
@@ -277,7 +277,7 @@ function StageSidebar({
             <ActionButton
               icon={<Sparkles className="h-3.5 w-3.5" />}
               label="生成分镜文本"
-              color="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
+              color="bg-[var(--color-accent)] hover:bg-[var(--color-btn-primary-hover)]"
               loading={loading === "storyboard"}
               disabled={!stats || stats.clips === 0}
               onClick={async () => {
@@ -337,7 +337,7 @@ function StageSidebar({
               <div className="space-y-2">
                 <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">分镜统计</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={stats.totalPanels} label="总镜头" color="text-[var(--color-text)]" />
+                  <StatCard value={stats.totalPanels} label="总镜头" color="text-[var(--color-text-primary)]" />
                   <StatCard value={stats.withImage} label="已生成图" color="text-emerald-600" />
                 </div>
 
@@ -358,7 +358,7 @@ function StageSidebar({
               <ActionButton
                 icon={<Sparkles className="h-3.5 w-3.5" />}
                 label="生成分镜文本"
-                color="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
+                color="bg-[var(--color-accent)] hover:bg-[var(--color-btn-primary-hover)]"
                 loading={loading === "storyboard"}
                 onClick={async () => {
                   const d = await apiCall("storyboard", `/api/projects/${projectId}/storyboard`, { method: "POST" });
@@ -406,7 +406,7 @@ function StageSidebar({
                 <ActionButton
                   icon={<Download className="h-3.5 w-3.5" />}
                   label={`下载图片 (${stats.withImage})`}
-                  color="bg-white border border-[var(--color-border)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                  color="bg-white border border-[var(--color-border-default)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                   onClick={() => handleDownload("images")}
                 />
               </div>
@@ -421,7 +421,7 @@ function StageSidebar({
               <div className="space-y-2">
                 <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">配音统计</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={stats.totalVoiceLines} label="总台词" color="text-[var(--color-text)]" />
+                  <StatCard value={stats.totalVoiceLines} label="总台词" color="text-[var(--color-text-primary)]" />
                   <StatCard value={stats.voiceLinesWithAudio} label="已配音" color="text-orange-600" />
                 </div>
 
@@ -461,7 +461,7 @@ function StageSidebar({
               <div className="space-y-2">
                 <div className="text-[10px] text-[var(--color-text-tertiary)] uppercase tracking-wider">导演统计</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <StatCard value={stats.totalPanels} label="总镜头" color="text-[var(--color-text)]" />
+                  <StatCard value={stats.totalPanels} label="总镜头" color="text-[var(--color-text-primary)]" />
                   <StatCard value={stats.withImage} label="关键帧" color="text-emerald-600" />
                   <StatCard value={stats.withVideo} label="已生成视频" color="text-violet-600" />
                   <StatCard value={stats.withVoice} label="已配音" color="text-orange-600" />
@@ -510,7 +510,7 @@ function StageSidebar({
                   <ActionButton
                     icon={<Download className="h-3.5 w-3.5" />}
                     label={`下载图片 (${stats.withImage})`}
-                    color="bg-white border border-[var(--color-border)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+                    color="bg-white border border-[var(--color-border-default)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                     onClick={() => handleDownload("images")}
                   />
                 )}
@@ -518,7 +518,7 @@ function StageSidebar({
                   <ActionButton
                     icon={<Download className="h-3.5 w-3.5" />}
                     label={`下载视频 (${stats.withVideo})`}
-                    color="bg-white border border-[var(--color-border)] !text-violet-600 hover:bg-[var(--color-bg-secondary)]"
+                    color="bg-white border border-[var(--color-border-default)] !text-violet-600 hover:bg-[var(--color-bg-secondary)]"
                     onClick={() => handleDownload("videos")}
                   />
                 )}
@@ -531,7 +531,7 @@ function StageSidebar({
         <ActionButton
           icon={<RefreshCw className="h-3.5 w-3.5" />}
           label="刷新数据"
-          color="bg-white border border-[var(--color-border)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
+          color="bg-white border border-[var(--color-border-default)] !text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
           onClick={onRefresh}
         />
       </div>
@@ -581,7 +581,7 @@ function ProgressBar({
         <span>{label}</span>
         <span>{current}/{total} ({pct}%)</span>
       </div>
-      <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[var(--color-bg-surface)] overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", color)}
           style={{ width: `${Math.max(pct, 2)}%` }}
@@ -626,7 +626,7 @@ function ActionButton({
 
 function Hint({ text }: { text: string }) {
   return (
-    <p className="text-[10px] text-[var(--color-warning)] bg-[var(--color-warning-light)] rounded-[var(--radius-md)] p-2">
+    <p className="text-[10px] text-[var(--color-warning)] bg-[var(--color-warning-bg)] rounded-[var(--radius-md)] p-2">
       {text}
     </p>
   );
@@ -729,7 +729,7 @@ export default function CanvasPage() {
   return (
     <div className="fixed inset-0 flex flex-col bg-white">
       {/* Top bar */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--color-border)] bg-white z-10">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--color-border-default)] bg-white z-10">
         <button
           onClick={() => router.push(`/${locale}/projects/${projectId}`)}
           className="cursor-pointer rounded-[var(--radius-md)] p-1.5 text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] transition-colors"
@@ -738,7 +738,7 @@ export default function CanvasPage() {
           <ArrowLeft size={18} />
         </button>
 
-        <span className="text-sm font-medium text-[var(--color-text)] mr-4">
+        <span className="text-sm font-medium text-[var(--color-text-primary)] mr-4">
           {projectData?.project.name || "..."}
         </span>
 
@@ -755,8 +755,8 @@ export default function CanvasPage() {
                   onClick={() => setActiveStage(stage.id)}
                   className={cn(
                     "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-sm transition-all",
-                    isActive && "bg-[var(--color-accent-light)]",
-                    completed && !isActive && "bg-[var(--color-success-light)]",
+                    isActive && "bg-[var(--color-accent-bg)]",
+                    completed && !isActive && "bg-[var(--color-success-bg)]",
                     !completed && !isActive && "opacity-60",
                   )}
                 >
@@ -796,7 +796,7 @@ export default function CanvasPage() {
 
         <button
           onClick={() => router.push(`/${locale}/projects/${projectId}`)}
-          className="cursor-pointer text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text)] px-2 py-1 rounded hover:bg-[var(--color-bg-secondary)] transition-colors"
+          className="cursor-pointer text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] px-2 py-1 rounded hover:bg-[var(--color-bg-secondary)] transition-colors"
         >
           Card View
         </button>

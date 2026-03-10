@@ -20,7 +20,7 @@ const stateIcons: Record<PresentationState, React.ReactNode> = {
   pending: <Loader2 className="h-4 w-4 text-[var(--color-text-tertiary)] animate-spin" />,
   running: <Loader2 className="h-4 w-4 text-[var(--color-accent)] animate-spin" />,
   completed: <CheckCircle className="h-4 w-4 text-[var(--color-success)]" />,
-  failed: <AlertCircle className="h-4 w-4 text-[var(--color-danger)]" />,
+  failed: <AlertCircle className="h-4 w-4 text-[var(--color-error)]" />,
   cancelled: <Ban className="h-4 w-4 text-[var(--color-text-tertiary)]" />,
 };
 
@@ -43,7 +43,7 @@ export function TaskStatusInline({ task, className = "" }: TaskStatusInlineProps
       </span>
       {presentation.state === "running" && (
         <>
-          <div className="w-20 h-1.5 rounded-full bg-[var(--color-bg-tertiary)] overflow-hidden">
+          <div className="w-20 h-1.5 rounded-full bg-[var(--color-bg-surface)] overflow-hidden">
             <div
               className="h-full rounded-full bg-[var(--color-accent)] transition-all duration-500"
               style={{ width: `${percent}%` }}
@@ -53,7 +53,7 @@ export function TaskStatusInline({ task, className = "" }: TaskStatusInlineProps
         </>
       )}
       {presentation.state === "failed" && presentation.errorMessage && (
-        <span className="text-xs text-[var(--color-danger)] truncate max-w-[200px]">
+        <span className="text-xs text-[var(--color-error)] truncate max-w-[200px]">
           {presentation.errorMessage}
         </span>
       )}

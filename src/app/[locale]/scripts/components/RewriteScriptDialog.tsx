@@ -254,12 +254,12 @@ export function RewriteScriptDialog({
         {phase === "input" && (
           <>
             {/* Source tabs */}
-            <div className="flex rounded-[var(--radius-md)] border border-[var(--color-border)] overflow-hidden">
+            <div className="flex rounded-[var(--radius-md)] border border-[var(--color-border-default)] overflow-hidden">
               <button
                 type="button"
                 className={`flex-1 px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                   sourceTab === "library"
-                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    ? "bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                 }`}
                 onClick={() => setSourceTab("library")}
@@ -268,9 +268,9 @@ export function RewriteScriptDialog({
               </button>
               <button
                 type="button"
-                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-[var(--color-border)] cursor-pointer ${
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-[var(--color-border-default)] cursor-pointer ${
                   sourceTab === "upload"
-                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    ? "bg-[var(--color-accent-bg)] text-[var(--color-accent)]"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
                 }`}
                 onClick={() => setSourceTab("upload")}
@@ -282,11 +282,11 @@ export function RewriteScriptDialog({
             {/* Source content */}
             {sourceTab === "library" ? (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                   {t("selectScript")}
                 </label>
                 <select
-                  className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                  className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                   value={selectedId}
                   onChange={(e) => setSelectedId(e.target.value)}
                 >
@@ -302,7 +302,7 @@ export function RewriteScriptDialog({
               <div>
                 {!file ? (
                   <div
-                    className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-[var(--color-border)] p-8 cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-colors"
+                    className="flex flex-col items-center justify-center rounded-[var(--radius-md)] border-2 border-dashed border-[var(--color-border-default)] p-8 cursor-pointer hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
@@ -322,7 +322,7 @@ export function RewriteScriptDialog({
                     />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border)] p-3">
+                  <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-3">
                     <FileText size={40} className="text-[var(--color-accent)]" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{file.name}</p>
@@ -343,11 +343,11 @@ export function RewriteScriptDialog({
 
             {/* Rewrite prompt */}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                 {t("rewritePrompt")}
               </label>
               <textarea
-                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                 rows={4}
                 placeholder={t("rewritePromptPlaceholder")}
                 value={prompt}
@@ -360,7 +360,7 @@ export function RewriteScriptDialog({
               <div>
                 <button
                   type="button"
-                  className="flex items-center gap-1 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)] cursor-pointer"
+                  className="flex items-center gap-1 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] cursor-pointer"
                   onClick={() => setShowAdvanced(!showAdvanced)}
                 >
                   <ChevronDown
@@ -371,11 +371,11 @@ export function RewriteScriptDialog({
                 </button>
                 {showAdvanced && (
                   <div className="mt-2">
-                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
                       {t("selectModel")}
                     </label>
                     <select
-                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                      className="flex h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
                       value={modelKey}
                       onChange={(e) => setModelKey(e.target.value)}
                     >
@@ -418,7 +418,7 @@ export function RewriteScriptDialog({
               <span className="inline-block w-0.5 h-4 bg-[var(--color-accent)] animate-pulse ml-0.5 align-text-bottom" />
             </div>
             {progressPercent > 0 && (
-              <div className="h-1.5 rounded-full bg-[var(--color-bg-tertiary)]">
+              <div className="h-1.5 rounded-full bg-[var(--color-bg-surface)]">
                 <div
                   className="h-full rounded-full bg-[var(--color-accent)] transition-all"
                   style={{ width: `${progressPercent}%` }}
@@ -432,7 +432,7 @@ export function RewriteScriptDialog({
         {phase === "result" && (
           <>
             <textarea
-              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+              className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               rows={16}
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}

@@ -130,7 +130,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
     <div className="space-y-4">
       {/* Re-analyze Confirmation Dialog */}
       {showReanalyzeConfirm && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-warning)] bg-[var(--color-warning-light)] p-4">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-warning)] bg-[var(--color-warning-bg)] p-4">
           <p className="text-sm font-medium text-[var(--color-warning)] mb-1">
             {t("analyzeConfirmTitle")}
           </p>
@@ -162,7 +162,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
       {/* Analyzing Overlay */}
       {isAnalyzing && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-light)] p-4">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-bg)] p-4">
           <div className="flex items-center gap-3 mb-3">
             <Loader2 className="h-5 w-5 text-[var(--color-accent)] animate-spin" />
             <div>
@@ -202,19 +202,19 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
       {/* Analysis Failed */}
       {analyzeFailed && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-danger)] bg-[var(--color-danger-light)] p-4 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-[var(--color-danger)] shrink-0" />
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-error)] bg-[var(--color-error-bg)] p-4 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-[var(--color-error)] shrink-0" />
           <div>
-            <p className="text-sm font-medium text-[var(--color-danger)]">
+            <p className="text-sm font-medium text-[var(--color-error)]">
               分析失败
             </p>
-            <p className="text-xs text-[var(--color-danger)]">
+            <p className="text-xs text-[var(--color-error)]">
               {analyzeTask?.error || "未知错误，请检查 API 配置后重试"}
             </p>
           </div>
           <button
             onClick={() => setAnalyzeTaskId(null)}
-            className="cursor-pointer ml-auto text-xs text-[var(--color-danger)] hover:opacity-80 underline"
+            className="cursor-pointer ml-auto text-xs text-[var(--color-error)] hover:opacity-80 underline"
           >
             关闭
           </button>
@@ -252,7 +252,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
       {/* Empty State — show guided entry when no content */}
       {!hasContent && !isAnalyzing ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6">
-          <FileText className="h-16 w-16 text-[var(--color-border)]" />
+          <FileText className="h-16 w-16 text-[var(--color-border-default)]" />
           <p className="text-lg font-medium text-[var(--color-text-tertiary)]">
             {t("startCreating")}
           </p>
@@ -260,9 +260,9 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
             {/* Direct Input Card */}
             <button
               onClick={() => textareaRef.current?.focus()}
-              className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border)] p-6 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] transition-all group"
+              className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border-default)] p-6 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-all group"
             >
-              <PenLine className="h-8 w-8 text-[var(--color-border)] group-hover:text-[var(--color-accent)] transition-colors" />
+              <PenLine className="h-8 w-8 text-[var(--color-border-default)] group-hover:text-[var(--color-accent)] transition-colors" />
               <div className="text-center">
                 <p className="text-sm font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-accent)]">
                   {t("directInput")}
@@ -275,9 +275,9 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
             {/* Smart Import Card */}
             <button
               onClick={() => setShowImport(true)}
-              className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border)] p-6 hover:border-[var(--color-success)] hover:bg-[var(--color-success-light)] transition-all group"
+              className="cursor-pointer flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--color-border-default)] p-6 hover:border-[var(--color-success)] hover:bg-[var(--color-success-bg)] transition-all group"
             >
-              <BookOpen className="h-8 w-8 text-[var(--color-border)] group-hover:text-[var(--color-success)] transition-colors" />
+              <BookOpen className="h-8 w-8 text-[var(--color-border-default)] group-hover:text-[var(--color-success)] transition-colors" />
               <div className="text-center">
                 <p className="text-sm font-medium text-[var(--color-text-secondary)] group-hover:text-[var(--color-success)]">
                   {t("smartImport")}
@@ -297,7 +297,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
           <div className="relative">
             <textarea
               ref={textareaRef}
-              className="w-full h-[500px] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white p-5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none font-mono disabled:opacity-60"
+              className="w-full h-[500px] rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white p-5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] resize-none font-mono disabled:opacity-60"
               placeholder="粘贴小说/剧本文本内容..."
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -310,7 +310,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
             {/* Save — only show when there are unsaved changes */}
             {hasChanges && (
               <button
-                className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm font-medium text-[var(--color-text)] hover:opacity-80 transition-colors disabled:opacity-50"
+                className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] px-4 py-2.5 text-sm font-medium text-[var(--color-text-primary)] hover:opacity-80 transition-colors disabled:opacity-50"
                 onClick={handleSave}
                 disabled={saving || isAnalyzing}
               >
@@ -325,7 +325,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
             {/* Smart Import — secondary style with hint */}
             <button
-              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-tertiary)] transition-colors disabled:opacity-50"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border-default)] px-4 py-2.5 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] transition-colors disabled:opacity-50"
               onClick={() => setShowImport(true)}
               disabled={isAnalyzing}
             >
@@ -340,7 +340,7 @@ export function ScriptTab({ project, onSwitchTab }: ScriptTabProps) {
 
             {/* AI Analyze — primary action, visually dominant */}
             <button
-              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50 shadow-sm"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-5 py-2.5 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] transition-colors disabled:opacity-50 shadow-sm"
               onClick={handleAnalyze}
               disabled={isAnalyzing || !text.trim()}
             >

@@ -37,8 +37,8 @@ const SCENE_TYPE_COLORS: Record<string, string> = {
   daily: "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]",
   emotion: "bg-pink-100 text-pink-600",
   action: "bg-orange-100 text-orange-600",
-  epic: "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
-  suspense: "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
+  epic: "bg-[var(--color-accent-bg)] text-[var(--color-accent)]",
+  suspense: "bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
 };
 
 export function StoryboardTab({ project }: StoryboardTabProps) {
@@ -128,7 +128,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
   if (episodes.length === 0) {
     return (
       <div className="text-center py-16">
-        <LayoutPanelTop className="h-12 w-12 text-[var(--color-border)] mx-auto mb-4" />
+        <LayoutPanelTop className="h-12 w-12 text-[var(--color-border-default)] mx-auto mb-4" />
         <p className="text-[var(--color-text-secondary)] font-medium">暂无分镜</p>
         <p className="text-sm text-[var(--color-text-tertiary)] mt-1">
           请先在「剧本」标签页分析文本
@@ -221,7 +221,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         <button
           onClick={handleGenerateStoryboard}
           disabled={isGeneratingStoryboard}
-          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] disabled:opacity-50 transition-colors"
         >
           {isGeneratingStoryboard ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -261,7 +261,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
         <button
           onClick={handleGenerateVideos}
           disabled={isGeneratingVideos || panelsWithImages === 0}
-          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
+          className="cursor-pointer inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-btn-primary)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--color-btn-primary-hover)] disabled:opacity-50 transition-colors"
         >
           {isGeneratingVideos ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -338,7 +338,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
                 toast.error("下载失败");
               }
             }}
-            className="cursor-pointer inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-[var(--color-accent-light)] px-3 py-2 text-sm text-[var(--color-accent)] hover:opacity-80 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1 rounded-[var(--radius-md)] bg-[var(--color-accent-bg)] px-3 py-2 text-sm text-[var(--color-accent)] hover:opacity-80 transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
             下载视频
@@ -381,7 +381,7 @@ function ProgressBanner({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-light)] p-3">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent)] bg-[var(--color-accent-bg)] p-3">
       <div className="flex items-center gap-3">
         <Loader2 className="h-4 w-4 text-[var(--color-accent)] animate-spin shrink-0" />
         <Icon className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
@@ -429,10 +429,10 @@ function EpisodeSection({
   );
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white overflow-hidden">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-tertiary)] transition-colors"
+        className="cursor-pointer flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-bg-surface)] transition-colors"
       >
         {expanded ? (
           <ChevronDown className="h-4 w-4 text-[var(--color-text-tertiary)] shrink-0" />
@@ -685,8 +685,8 @@ function PanelCard({
           className={cn(
             "group relative rounded-[var(--radius-md)] border overflow-hidden cursor-pointer transition-all hover:shadow-md",
             panel.imageUrl
-              ? "border-[var(--color-border)]"
-              : "border-dashed border-[var(--color-border)]",
+              ? "border-[var(--color-border-default)]"
+              : "border-dashed border-[var(--color-border-default)]",
           )}
           onClick={() => {
             if (isPlaying) {
@@ -756,11 +756,11 @@ function PanelCard({
               )}
             </div>
           ) : (
-            <div className="aspect-[9/16] bg-[var(--color-bg-tertiary)] flex items-center justify-center">
+            <div className="aspect-[9/16] bg-[var(--color-bg-surface)] flex items-center justify-center">
               {regenerating === "image" ? (
                 <Loader2 className="h-6 w-6 text-[var(--color-accent)] animate-spin" />
               ) : (
-                <ImageIcon className="h-6 w-6 text-[var(--color-border)]" />
+                <ImageIcon className="h-6 w-6 text-[var(--color-border-default)]" />
               )}
             </div>
           )}
@@ -975,7 +975,7 @@ function PanelCard({
           {/* Asset thumbnails row */}
           {(boundCharacters.length > 0 || boundLocation) && (
             <div
-              className="flex gap-1 px-1.5 py-1 border-t border-[var(--color-border-light)] cursor-pointer hover:bg-[var(--color-bg-tertiary)] transition-colors"
+              className="flex gap-1 px-1.5 py-1 border-t border-[var(--color-border-light)] cursor-pointer hover:bg-[var(--color-bg-surface)] transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowAssetPicker(true);
@@ -994,7 +994,7 @@ function PanelCard({
                 ) : (
                   <div
                     key={c.id}
-                    className="w-6 h-6 rounded-full bg-[var(--color-border)] flex items-center justify-center text-[8px] text-[var(--color-text-tertiary)]"
+                    className="w-6 h-6 rounded-full bg-[var(--color-border-default)] flex items-center justify-center text-[8px] text-[var(--color-text-tertiary)]"
                   >
                     {c.name[0]}
                   </div>
@@ -1023,7 +1023,7 @@ function PanelCard({
                   "cursor-pointer relative flex-1 aspect-square rounded overflow-hidden border-2 transition-all",
                   idx === (panel.selectedImageIndex ?? 0)
                     ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]"
-                    : "border-transparent hover:border-[var(--color-border)]",
+                    : "border-transparent hover:border-[var(--color-border-default)]",
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1199,7 +1199,7 @@ function PanelDetailsPopup({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-3"
+        className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border-default)] p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-3"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -1226,7 +1226,7 @@ function PanelDetailsPopup({
         {panel.sourceText && (
           <div>
             <span className="text-[10px] text-[var(--color-text-tertiary)] uppercase">原文片段</span>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 bg-[var(--color-bg-tertiary)] rounded p-2">
+            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 bg-[var(--color-bg-surface)] rounded p-2">
               {panel.sourceText}
             </p>
           </div>
@@ -1330,15 +1330,15 @@ function StatusBadge({ status }: { status: string }) {
     },
     storyboarded: {
       label: "已分镜",
-      color: "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
+      color: "bg-[var(--color-accent-bg)] text-[var(--color-accent)]",
     },
     generating: {
       label: "生成中",
-      color: "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
+      color: "bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
     },
     completed: {
       label: "完成",
-      color: "bg-[var(--color-success-light)] text-[var(--color-success)]",
+      color: "bg-[var(--color-success-bg)] text-[var(--color-success)]",
     },
   };
   const cfg = config[status] || config.draft;

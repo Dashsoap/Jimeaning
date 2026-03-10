@@ -54,7 +54,7 @@ export function Sidebar() {
         className="group relative mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[var(--color-text-secondary)] shadow-md transition-all hover:shadow-lg hover:text-[var(--color-accent)] cursor-pointer"
       >
         <Plus size={20} strokeWidth={2} />
-        <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+        <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text-primary)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
           {t("projects")}
         </span>
       </Link>
@@ -73,12 +73,12 @@ export function Sidebar() {
             className={cn(
               "group relative flex h-11 w-11 items-center justify-center rounded-full transition-all cursor-pointer",
               isActive
-                ? "bg-white text-[var(--color-text)] shadow-md ring-2 ring-[var(--color-text)]/10"
+                ? "bg-white text-[var(--color-text-primary)] shadow-md ring-2 ring-[var(--color-text-primary)]/10"
                 : "bg-white/80 text-[var(--color-text-tertiary)] shadow-sm hover:bg-white hover:shadow-md hover:text-[var(--color-text-secondary)]"
             )}
           >
             {item.icon}
-            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+            <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text-primary)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
               {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets")}
             </span>
           </Link>

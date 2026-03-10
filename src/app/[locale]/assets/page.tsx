@@ -193,7 +193,7 @@ function CharacterDetailModal({
 
       {/* Voice binding */}
       <div className="mb-6">
-        <label className="mb-1.5 block text-sm font-medium text-[var(--color-text)]">
+        <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
           {t("bindVoice")}
         </label>
         <select
@@ -201,7 +201,7 @@ function CharacterDetailModal({
           onChange={(e) =>
             bindVoiceMutation.mutate(e.target.value || null)
           }
-          className="w-full cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm"
+          className="w-full cursor-pointer rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm"
         >
           <option value="">{t("noVoice")}</option>
           {voices.map((v) => (
@@ -214,10 +214,10 @@ function CharacterDetailModal({
 
       {/* Appearances */}
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[var(--color-text)]">{t("appearances")}</h3>
+        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{t("appearances")}</h3>
         <button
           onClick={() => setShowAddAppearance(true)}
-          className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] cursor-pointer"
+          className="flex items-center gap-1 text-xs text-[var(--color-accent)] hover:text-[var(--color-btn-primary-hover)] cursor-pointer"
         >
           <Plus size={14} />
           {t("addAppearance")}
@@ -226,7 +226,7 @@ function CharacterDetailModal({
 
       {/* Add appearance form */}
       {showAddAppearance && (
-        <div className="mb-4 p-3 border border-[var(--color-border)] rounded-[var(--radius-md)] space-y-2">
+        <div className="mb-4 p-3 border border-[var(--color-border-default)] rounded-[var(--radius-md)] space-y-2">
           <Input
             id="app-desc"
             label={t("appearanceDesc")}
@@ -328,7 +328,7 @@ function AppearanceCard({
     : [];
 
   return (
-    <div className="border border-[var(--color-border)] rounded-[var(--radius-md)] p-3">
+    <div className="border border-[var(--color-border-default)] rounded-[var(--radius-md)] p-3">
       <div className="flex items-start gap-3">
         {/* Main image */}
         <div className="w-20 h-20 rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-bg-secondary)] flex-shrink-0">
@@ -371,7 +371,7 @@ function AppearanceCard({
             <button
               onClick={() => onGenerateImage(appearance.appearanceIndex)}
               disabled={isGenerating}
-              className="cursor-pointer rounded p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)]"
+              className="cursor-pointer rounded p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-accent-bg)] hover:text-[var(--color-accent)]"
               title={t("generateImage")}
             >
               <Sparkles size={14} />
@@ -379,7 +379,7 @@ function AppearanceCard({
             {appearance.appearanceIndex > 0 && (
               <button
                 onClick={() => onDelete(appearance.appearanceIndex)}
-                className="cursor-pointer rounded p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-danger-light)] hover:text-[var(--color-danger)]"
+                className="cursor-pointer rounded p-1.5 text-[var(--color-text-tertiary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error)]"
               >
                 <Trash2 size={14} />
               </button>
@@ -415,7 +415,7 @@ function AppearanceCard({
                 className={`relative w-16 h-16 rounded-[var(--radius-md)] overflow-hidden flex-shrink-0 border-2 transition-colors cursor-pointer ${
                   appearance.selectedIndex === i
                     ? "border-[var(--color-accent)]"
-                    : "border-transparent hover:border-[var(--color-border)]"
+                    : "border-transparent hover:border-[var(--color-border-default)]"
                 }`}
               >
                 <img
@@ -576,7 +576,7 @@ export default function AssetsPage() {
       <div className="max-w-5xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-[var(--color-text)]">{t("title")}</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">{t("title")}</h1>
           <Button onClick={() => setShowCreate(true)}>
             <Plus size={18} className="mr-1" />
             {t("create")}
@@ -584,7 +584,7 @@ export default function AssetsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-[var(--color-border)]">
+        <div className="flex gap-1 mb-6 border-b border-[var(--color-border-default)]">
           {tabs.map((tb) => (
             <button
               key={tb.key}
@@ -592,7 +592,7 @@ export default function AssetsPage() {
               className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                 tab === tb.key
                   ? "border-[var(--color-accent)] text-[var(--color-accent)]"
-                  : "border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                  : "border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
               }`}
             >
               {tb.icon}
@@ -627,7 +627,7 @@ export default function AssetsPage() {
                 ) : null}
 
                 {/* Info */}
-                <h3 className="font-semibold text-[var(--color-text)] truncate">{item.name}</h3>
+                <h3 className="font-semibold text-[var(--color-text-primary)] truncate">{item.name}</h3>
                 {item.description && (
                   <p className="text-sm text-[var(--color-text-secondary)] mt-1 line-clamp-2">
                     {item.description}
@@ -689,7 +689,7 @@ export default function AssetsPage() {
                         })
                       }
                       disabled={generateImageMutation.isPending}
-                      className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)]"
+                      className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-accent-bg)] hover:text-[var(--color-accent)]"
                       title={t("generateImage")}
                     >
                       <Sparkles size={16} />
@@ -702,7 +702,7 @@ export default function AssetsPage() {
                         deleteMutation.mutate({ type: tab, id: item.id });
                       }
                     }}
-                    className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-danger-light)] hover:text-[var(--color-danger)]"
+                    className="cursor-pointer rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-error-bg)] hover:text-[var(--color-error)]"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -735,7 +735,7 @@ export default function AssetsPage() {
             <div>
               <label
                 htmlFor="desc"
-                className="mb-1.5 block text-sm font-medium text-[var(--color-text)]"
+                className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
               >
                 {tc("description")}
               </label>
@@ -744,7 +744,7 @@ export default function AssetsPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
+                className="flex w-full rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-white px-3 py-2 text-sm placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent"
               />
             </div>
             <div className="flex justify-end gap-2">

@@ -67,7 +67,7 @@ export function ShotVariantsPanel({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-[var(--radius-lg)] bg-white border border-[var(--color-border)] shadow-2xl p-6"
+        className="relative w-full max-w-lg max-h-[80vh] overflow-y-auto rounded-[var(--radius-lg)] bg-white border border-[var(--color-border-default)] shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -94,7 +94,7 @@ export function ShotVariantsPanel({
             {variants.map((v) => (
               <div
                 key={v.id}
-                className="rounded-[var(--radius-md)] border border-[var(--color-border)] p-3 hover:border-[var(--color-accent)] transition-colors"
+                className="rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-3 hover:border-[var(--color-accent)] transition-colors"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h4 className="text-sm font-medium">{v.title}</h4>
@@ -114,7 +114,7 @@ export function ShotVariantsPanel({
                 </div>
                 <button
                   onClick={() => onSelectVariant(v)}
-                  className="cursor-pointer inline-flex items-center gap-1 rounded-md bg-[var(--color-accent-light)] text-[var(--color-accent)] px-2.5 py-1 text-xs font-medium hover:opacity-80 transition-colors"
+                  className="cursor-pointer inline-flex items-center gap-1 rounded-md bg-[var(--color-accent-bg)] text-[var(--color-accent)] px-2.5 py-1 text-xs font-medium hover:opacity-80 transition-colors"
                 >
                   <Copy className="h-3 w-3" />
                   生成此变体

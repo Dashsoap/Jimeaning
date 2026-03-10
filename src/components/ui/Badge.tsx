@@ -16,17 +16,17 @@ interface BadgeProps {
 
 const variantStyles: Record<BadgeVariant, string> = {
   default:
-    "bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]",
+    "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)]",
   accent:
-    "bg-[var(--color-accent-light)] text-[var(--color-accent)]",
+    "bg-[var(--color-accent-bg)] text-[var(--color-accent)]",
   success:
-    "bg-[var(--color-success-light)] text-[var(--color-success)]",
+    "bg-[var(--color-success-bg)] text-[var(--color-success)]",
   danger:
-    "bg-[var(--color-danger-light)] text-[var(--color-danger)]",
+    "bg-[var(--color-error-bg)] text-[var(--color-error)]",
   warning:
-    "bg-[var(--color-warning-light)] text-[var(--color-warning)]",
+    "bg-[var(--color-warning-bg)] text-[var(--color-warning)]",
   info:
-    "bg-[var(--color-info-light)] text-[var(--color-info)]",
+    "bg-[var(--color-info-bg)] text-[var(--color-info)]",
 };
 
 export function Badge({ children, variant = "default", className }: BadgeProps) {

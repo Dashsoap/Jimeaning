@@ -68,7 +68,7 @@ export function PanelAssetPicker({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border)] p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-4"
+        className="bg-white rounded-[var(--radius-lg)] border border-[var(--color-border-default)] p-4 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -91,8 +91,8 @@ export function PanelAssetPicker({
                   className={cn(
                     "cursor-pointer flex flex-col items-center gap-1 p-2 rounded-[var(--radius-md)] border-2 transition-all",
                     selected
-                      ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]"
-                      : "border-[var(--color-border)] hover:border-[var(--color-border)]",
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent-bg)]"
+                      : "border-[var(--color-border-default)] hover:border-[var(--color-border-default)]",
                   )}
                 >
                   {c.imageUrl ? (
@@ -103,7 +103,7 @@ export function PanelAssetPicker({
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-[var(--color-bg-tertiary)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
+                    <div className="w-12 h-12 rounded-full bg-[var(--color-bg-surface)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
                       {c.name[0]}
                     </div>
                   )}
@@ -133,7 +133,7 @@ export function PanelAssetPicker({
                     "cursor-pointer flex flex-col items-center gap-1 p-2 rounded-[var(--radius-md)] border-2 transition-all",
                     selected
                       ? "border-emerald-500 bg-emerald-50"
-                      : "border-[var(--color-border)] hover:border-[var(--color-border)]",
+                      : "border-[var(--color-border-default)] hover:border-[var(--color-border-default)]",
                   )}
                 >
                   {l.imageUrl ? (
@@ -144,7 +144,7 @@ export function PanelAssetPicker({
                       className="w-12 h-12 rounded object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded bg-[var(--color-bg-tertiary)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
+                    <div className="w-12 h-12 rounded bg-[var(--color-bg-surface)] flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
                       {l.name[0]}
                     </div>
                   )}
@@ -164,14 +164,14 @@ export function PanelAssetPicker({
         <div className="flex justify-end gap-2 pt-2 border-t border-[var(--color-border-light)]">
           <button
             onClick={onClose}
-            className="cursor-pointer px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text)] rounded-[var(--radius-md)] hover:bg-[var(--color-bg-secondary)] transition-colors"
+            className="cursor-pointer px-3 py-1.5 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded-[var(--radius-md)] hover:bg-[var(--color-bg-secondary)] transition-colors"
           >
             取消
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="cursor-pointer px-3 py-1.5 text-xs text-white bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] rounded-[var(--radius-md)] disabled:opacity-50 transition-colors"
+            className="cursor-pointer px-3 py-1.5 text-xs text-white bg-[var(--color-btn-primary)] hover:bg-[var(--color-btn-primary-hover)] rounded-[var(--radius-md)] disabled:opacity-50 transition-colors"
           >
             {saving ? "保存中..." : "保存"}
           </button>

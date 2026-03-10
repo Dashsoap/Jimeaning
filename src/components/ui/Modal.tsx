@@ -34,25 +34,25 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[4px]"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose();
       }}
     >
       <div
         className={cn(
-          "relative w-full max-w-lg rounded-[var(--radius-xl)] bg-white p-8 shadow-xl",
+          "relative w-full max-w-lg rounded-[var(--radius-xl)] bg-white p-8 shadow-[var(--shadow-md)]",
           className
         )}
       >
         {title && (
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--color-text)]">
+            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
               {title}
             </h2>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-sm)] text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-secondary)] cursor-pointer"
             >
               <X size={18} />
             </button>

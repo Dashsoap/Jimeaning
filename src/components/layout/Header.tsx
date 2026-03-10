@@ -41,10 +41,10 @@ export function Header() {
     <header className="flex h-16 items-center justify-between bg-white px-8">
       {/* Logo */}
       <Link href={`/${currentLocale}`} className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-text)] text-white">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-text-primary)] text-white">
           <Film size={16} />
         </div>
-        <span className="text-lg font-semibold tracking-tight text-[var(--color-text)]">
+        <span className="text-lg font-semibold tracking-tight text-[var(--color-text-primary)]">
           JiMeaning
         </span>
       </Link>
@@ -54,14 +54,14 @@ export function Header() {
         {/* Language */}
         <button
           onClick={toggleLocale}
-          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text)] cursor-pointer"
+          className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)] cursor-pointer"
         >
           <Globe size={16} />
           {currentLocale === "zh" ? "EN" : "中文"}
         </button>
 
         {/* Notifications placeholder */}
-        <button className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-text-secondary)] cursor-pointer">
+        <button className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-secondary)] cursor-pointer">
           <Bell size={18} />
         </button>
 
@@ -70,15 +70,15 @@ export function Header() {
           <div className="relative ml-1" ref={menuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-text)] text-sm font-semibold text-white transition-opacity hover:opacity-80 cursor-pointer"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-text-primary)] text-sm font-semibold text-white transition-opacity hover:opacity-80 cursor-pointer"
             >
               {userInitial}
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-white py-1.5 shadow-xl z-50">
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white py-1.5 shadow-xl z-50">
                 <div className="px-4 py-3 border-b border-[var(--color-border-light)]">
-                  <p className="text-sm font-medium text-[var(--color-text)] truncate">
+                  <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">
                     {session.user.name || session.user.email}
                   </p>
                   {session.user.name && session.user.email && (
@@ -91,7 +91,7 @@ export function Header() {
                   <Link
                     href={`/${currentLocale}/settings`}
                     onClick={() => setUserMenuOpen(false)}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text)] transition-colors"
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
                   >
                     <Settings size={15} />
                     {t("settings")}
@@ -101,7 +101,7 @@ export function Header() {
                       setUserMenuOpen(false);
                       signOut();
                     }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-danger-light)] transition-colors cursor-pointer"
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-[var(--color-error)] hover:bg-[var(--color-error-bg)] transition-colors cursor-pointer"
                   >
                     <LogOut size={15} />
                     {t("signOut")}
