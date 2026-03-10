@@ -48,6 +48,10 @@ export const PATCH = apiHandler(async (req: NextRequest, { params }: RouteParams
   if (typeof body.durationMs === "number") data.durationMs = body.durationMs;
   if (typeof body.sortOrder === "number") data.sortOrder = body.sortOrder;
   if (typeof body.videoGenerationMode === "string") data.videoGenerationMode = body.videoGenerationMode;
+  if (typeof body.characterIds === "string") data.characterIds = body.characterIds;
+  if (body.characterIds === null) data.characterIds = null;
+  if (typeof body.locationId === "string") data.locationId = body.locationId;
+  if (body.locationId === null) data.locationId = null;
 
   const updated = await prisma.panel.update({
     where: { id: panelId },

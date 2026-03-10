@@ -212,6 +212,10 @@ model Panel {
   selectedImageIndex Int     @default(0)
   videoGenerationMode String?         // normal | firstlastframe
 
+  // Asset bindings
+  characterIds   String?  @db.Text  // JSON: string[] of character IDs
+  locationId     String?            // location ID
+
   // Generated media URLs
   imageUrl String? @db.MediumText
   videoUrl String? @db.MediumText

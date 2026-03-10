@@ -246,6 +246,8 @@ export interface CanvasProjectData {
         cameraAngle?: string | null;
         durationMs: number;
         sortOrder: number;
+        characterIds?: string | null;
+        locationId?: string | null;
         voiceLines: Array<{
           id: string;
           text?: string | null;
@@ -360,7 +362,7 @@ function renderStoryboardData(editor: Editor, data: CanvasProjectData): void {
   const area = STAGE_AREAS.storyboard;
   let y = area.y + 80;
   const panelW = 180;
-  const panelH = 320;
+  const panelH = 400;
   const gap = 15;
   const cols = 8;
 
@@ -404,6 +406,29 @@ function renderStoryboardData(editor: Editor, data: CanvasProjectData): void {
         );
       }
 
+      // Character/location names
+      const charNames = panel.characterIds
+        ? (() => {
+            try {
+              const ids: string[] = JSON.parse(panel.characterIds);
+              return ids
+                .map((id) => data.characters.find((c) => c.id === id)?.name)
+                .filter(Boolean)
+                .join(", ");
+            } catch {
+              return "";
+            }
+          })()
+        : "";
+      const locName = panel.locationId
+        ? data.locations.find((l) => l.id === panel.locationId)?.name || ""
+        : "";
+
+      const assetLine = [charNames, locName].filter(Boolean).join(" | ");
+      if (assetLine) {
+        createText(editor, px + 5, py + panelH - 80, assetLine, "s", "grey");
+      }
+
       const statusIcon = panel.videoUrl ? "V" : panel.imageUrl ? "I" : "-";
       const info = [
         `#${i + 1} [${statusIcon}]`,
@@ -413,7 +438,36 @@ function renderStoryboardData(editor: Editor, data: CanvasProjectData): void {
         .filter(Boolean)
         .join(" | ");
 
-      createText(editor, px + 5, py + panelH - 40, info, "s");
+      createText(editor, px + 5, py + panelH - 55, info, "s");
+
+      // Voice line preview
+      if (panel.voiceLines.length > 0 && panel.voiceLines[0].text) {
+        const vlText = panel.voiceLines[0].text.substring(0, 30) +
+          (panel.voiceLines[0].text.length > 30 ? "..." : "");
+        createText(editor, px + 5, py + panelH - 30, vlText, "s", "grey");
+      }
+
+      // Character/location thumbnails
+      let thumbX = px + 5;
+      const thumbY = py + panelH - 15;
+      if (panel.characterIds) {
+        try {
+          const ids: string[] = JSON.parse(panel.characterIds);
+          for (const id of ids.slice(0, 3)) {
+            const char = data.characters.find((c) => c.id === id);
+            if (char?.imageUrl && !char.imageUrl.startsWith("data:")) {
+              createImage(editor, thumbX, thumbY, 30, 30, char.imageUrl);
+              thumbX += 35;
+            }
+          }
+        } catch { /* ignore */ }
+      }
+      if (panel.locationId) {
+        const loc = data.locations.find((l) => l.id === panel.locationId);
+        if (loc?.imageUrl && !loc.imageUrl.startsWith("data:")) {
+          createImage(editor, thumbX, thumbY, 30, 30, loc.imageUrl);
+        }
+      }
     }
 
     const rows = Math.ceil(allPanels.length / cols);

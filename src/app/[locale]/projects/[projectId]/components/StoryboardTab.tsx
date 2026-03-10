@@ -26,7 +26,8 @@ import { useTaskPolling } from "@/hooks/useTaskPolling";
 import { PanelActionMenu } from "@/components/task/PanelActionMenu";
 import { AiModifyPromptDialog } from "@/components/task/AiModifyPromptDialog";
 import { ShotVariantsPanel } from "@/components/task/ShotVariantsPanel";
-import type { ProjectData, EpisodeData, PanelData } from "./types";
+import { PanelAssetPicker } from "./PanelAssetPicker";
+import type { ProjectData, EpisodeData, PanelData, CharacterData, LocationData } from "./types";
 
 interface StoryboardTabProps {
   project: ProjectData;
@@ -358,6 +359,8 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           key={episode.id}
           episode={episode}
           projectId={project.id}
+          characters={project.characters || []}
+          locations={project.locations || []}
         />
       ))}
     </div>
@@ -409,13 +412,21 @@ function ProgressBanner({
 function EpisodeSection({
   episode,
   projectId,
+  characters,
+  locations,
 }: {
   episode: EpisodeData;
   projectId: string;
+  characters: CharacterData[];
+  locations: LocationData[];
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const clipCount = episode.clips.length;
   const panelCount = episode.clips.reduce((s, c) => s + c.panels.length, 0);
+  const hasDialogue = episode.clips.some(
+    (c) => c.dialogue || c.panels.some((p) => p.voiceLines.length > 0),
+  );
 
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
@@ -442,31 +453,76 @@ function EpisodeSection({
               暂无片段，请先生成分镜文本
             </p>
           ) : (
-            <div className="space-y-4">
-              {episode.clips.map((clip) => (
-                <div key={clip.id}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold text-gray-500">
-                      {clip.title || `片段 ${clip.sortOrder + 1}`}
-                    </span>
-                    {clip.dialogue && (
-                      <span className="text-xs text-gray-400 truncate max-w-xs">
-                        — {clip.dialogue}
-                      </span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                    {clip.panels.map((panel, panelIndex) => (
-                      <PanelCard
-                        key={panel.id}
-                        panel={panel}
-                        projectId={projectId}
-                        nextPanel={clip.panels[panelIndex + 1] || null}
-                      />
-                    ))}
-                  </div>
+            <div className="flex gap-4">
+              {/* Dialogue sidebar */}
+              {hasDialogue && (
+                <div className={cn(
+                  "shrink-0 border-r border-gray-100 dark:border-gray-800 pr-3 transition-all overflow-hidden",
+                  sidebarOpen ? "w-60" : "w-8",
+                )}>
+                  <button
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    className="mb-2 text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    title={sidebarOpen ? "收起剧本" : "展开剧本"}
+                  >
+                    {sidebarOpen ? "◀ 剧本" : "▶"}
+                  </button>
+                  {sidebarOpen && (
+                    <div className="space-y-3 overflow-y-auto max-h-[60vh]">
+                      {episode.clips.map((clip) => (
+                        <div key={clip.id} className="space-y-1">
+                          <p className="text-[10px] font-semibold text-gray-500 truncate">
+                            {clip.title || `片段 ${clip.sortOrder + 1}`}
+                          </p>
+                          {clip.dialogue && (
+                            <p className="text-[10px] text-gray-400 line-clamp-3 leading-relaxed">
+                              {clip.dialogue}
+                            </p>
+                          )}
+                          {clip.panels.flatMap((p) => p.voiceLines).map((vl) => (
+                            <div key={vl.id} className="text-[10px] leading-relaxed pl-1 border-l-2 border-blue-200 dark:border-blue-800">
+                              {vl.character && (
+                                <span className="font-medium text-blue-500">{vl.character.name}: </span>
+                              )}
+                              <span className="text-gray-500">{vl.text}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
+              )}
+
+              {/* Panel grid */}
+              <div className="flex-1 min-w-0 space-y-4">
+                {episode.clips.map((clip) => (
+                  <div key={clip.id}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold text-gray-500">
+                        {clip.title || `片段 ${clip.sortOrder + 1}`}
+                      </span>
+                      {clip.dialogue && (
+                        <span className="text-xs text-gray-400 truncate max-w-xs">
+                          — {clip.dialogue}
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                      {clip.panels.map((panel, panelIndex) => (
+                        <PanelCard
+                          key={panel.id}
+                          panel={panel}
+                          projectId={projectId}
+                          nextPanel={clip.panels[panelIndex + 1] || null}
+                          characters={characters}
+                          locations={locations}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -481,13 +537,18 @@ function PanelCard({
   panel,
   projectId,
   nextPanel,
+  characters,
+  locations,
 }: {
   panel: PanelData;
   projectId: string;
   nextPanel: PanelData | null;
+  characters: CharacterData[];
+  locations: LocationData[];
 }) {
   const [showPreview, setShowPreview] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [regenerating, setRegenerating] = useState<"image" | "video" | null>(
     null,
   );
@@ -512,6 +573,23 @@ function PanelCard({
         }
       })()
     : [];
+
+  // Parse bound characters/locations
+  const boundCharacterIds: string[] = panel.characterIds
+    ? (() => {
+        try {
+          return JSON.parse(panel.characterIds);
+        } catch {
+          return [];
+        }
+      })()
+    : [];
+  const boundCharacters = boundCharacterIds
+    .map((id) => characters.find((c) => c.id === id))
+    .filter(Boolean) as CharacterData[];
+  const boundLocation = panel.locationId
+    ? locations.find((l) => l.id === panel.locationId) || null
+    : null;
 
   const handleRegenerate = async (
     type: "image" | "video",
@@ -859,16 +937,79 @@ function PanelCard({
             />
           </div>
 
-          <div className="p-1.5">
+          <div className="p-1.5 space-y-0.5">
+            {/* Metadata row: characters, location, shot info */}
+            {(boundCharacters.length > 0 || boundLocation || panel.shotType || panel.cameraAngle || panel.cameraMove) && (
+              <div className="text-[9px] text-gray-400 leading-tight space-y-0.5">
+                {(boundCharacters.length > 0 || boundLocation) && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {boundCharacters.length > 0 && (
+                      <span className="truncate max-w-[80%]">
+                        {boundCharacters.map((c) => c.name).join(", ")}
+                      </span>
+                    )}
+                    {boundLocation && (
+                      <span className="text-emerald-500 truncate">
+                        {boundLocation.name}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {(panel.shotType || panel.cameraAngle || panel.cameraMove) && (
+                  <div className="text-gray-400/80">
+                    {[panel.shotType, panel.cameraAngle, panel.cameraMove].filter(Boolean).join(" | ")}
+                  </div>
+                )}
+              </div>
+            )}
             <p className="text-[10px] text-gray-500 line-clamp-2 leading-tight">
               {panel.sceneDescription || "等待生成..."}
             </p>
             {panel.voiceLines.length > 0 && (
-              <p className="text-[10px] text-blue-500 mt-0.5 truncate">
-                🎙 {panel.voiceLines[0].text}
+              <p className="text-[10px] text-blue-500 truncate">
+                {panel.voiceLines[0].text}
               </p>
             )}
           </div>
+
+          {/* Asset thumbnails row */}
+          {(boundCharacters.length > 0 || boundLocation) && (
+            <div
+              className="flex gap-1 px-1.5 py-1 border-t border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowAssetPicker(true);
+              }}
+              title="点击修改绑定"
+            >
+              {boundCharacters.map((c) =>
+                c.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={c.id}
+                    src={c.imageUrl}
+                    alt={c.name}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <div
+                    key={c.id}
+                    className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[8px] text-gray-400"
+                  >
+                    {c.name[0]}
+                  </div>
+                ),
+              )}
+              {boundLocation?.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={boundLocation.imageUrl}
+                  alt={boundLocation.name}
+                  className="w-6 h-6 rounded object-cover"
+                />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Candidate images thumbnail strip */}
@@ -1006,6 +1147,19 @@ function PanelCard({
               toast.error("提交失败");
             }
           }}
+        />
+      )}
+
+      {showAssetPicker && (
+        <PanelAssetPicker
+          panelId={panel.id}
+          projectId={projectId}
+          characters={characters}
+          locations={locations}
+          currentCharacterIds={boundCharacterIds}
+          currentLocationId={panel.locationId || null}
+          onClose={() => setShowAssetPicker(false)}
+          onSaved={refreshProject}
         />
       )}
     </>

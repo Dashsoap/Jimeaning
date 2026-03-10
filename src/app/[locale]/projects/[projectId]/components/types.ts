@@ -52,6 +52,8 @@ export interface PanelData {
   candidateImages?: string;
   selectedImageIndex?: number;
   videoGenerationMode?: string;
+  characterIds?: string;     // JSON string[] — bound character IDs
+  locationId?: string;       // bound location ID
 }
 
 export interface VoiceLineData {

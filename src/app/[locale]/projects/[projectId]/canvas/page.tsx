@@ -136,6 +136,8 @@ export default function CanvasPage() {
                     cameraAngle: p.cameraAngle,
                     durationMs: (p.durationMs as number) || 3000,
                     sortOrder: p.sortOrder,
+                    characterIds: p.characterIds,
+                    locationId: p.locationId,
                     voiceLines: (p.voiceLines as Array<Record<string, unknown>>) || [],
                   }),
                 ),

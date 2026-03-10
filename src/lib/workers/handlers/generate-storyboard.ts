@@ -87,6 +87,48 @@ async function parseJsonWithRetry<T>(
   }
 }
 
+// ─── Asset matching helpers ─────────────────────────────────────────────
+
+function matchCharacterIds(
+  planCharacters: Array<{ name: string }> | undefined,
+  dbCharacters: Array<{ id: string; name: string }>,
+): string[] {
+  if (!planCharacters || planCharacters.length === 0) return [];
+  const matched: string[] = [];
+  for (const pc of planCharacters) {
+    const name = pc.name?.trim();
+    if (!name) continue;
+    // Exact match first
+    let found = dbCharacters.find((c) => c.name === name);
+    // Fuzzy: one includes the other
+    if (!found) {
+      found = dbCharacters.find(
+        (c) => c.name.includes(name) || name.includes(c.name),
+      );
+    }
+    if (found && !matched.includes(found.id)) {
+      matched.push(found.id);
+    }
+  }
+  return matched;
+}
+
+function matchLocationId(
+  planLocation: string | undefined,
+  dbLocations: Array<{ id: string; name: string }>,
+): string | null {
+  if (!planLocation) return null;
+  const loc = planLocation.trim();
+  if (!loc) return null;
+  let found = dbLocations.find((l) => l.name === loc);
+  if (!found) {
+    found = dbLocations.find(
+      (l) => l.name.includes(loc) || loc.includes(l.name),
+    );
+  }
+  return found?.id || null;
+}
+
 // ─── Main Handler ─────────────────────────────────────────────────────────
 
 export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
@@ -278,6 +320,12 @@ export const handleGenerateStoryboard = withTaskLifecycle(async (payload: TaskPa
             actingNotes: actingDir?.characters
               ? JSON.stringify(actingDir.characters)
               : null,
+            // Asset bindings
+            characterIds: (() => {
+              const ids = matchCharacterIds(plan.characters, characters);
+              return ids.length > 0 ? JSON.stringify(ids) : null;
+            })(),
+            locationId: matchLocationId(plan.location, locations),
           },
         });
         savedPanels.push({ id: panel.id, panelNumber: plan.panelNumber });
