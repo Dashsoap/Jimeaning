@@ -386,7 +386,18 @@ export default function SmartImportPage() {
       let text: string;
       const name = file.name.toLowerCase();
 
-      if (name.endsWith(".doc") || name.endsWith(".docx")) {
+      if (name.endsWith(".doc") && !name.endsWith(".docx")) {
+        // Old .doc (OLE binary) — mammoth can't handle it, use server-side parser
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/scripts/parse-doc", { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to parse .doc file");
+        }
+        const data = await res.json();
+        text = data.text;
+      } else if (name.endsWith(".docx")) {
         const mammoth = await import("mammoth");
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
