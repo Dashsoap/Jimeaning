@@ -8,11 +8,36 @@ import { useTaskTextStream } from "@/hooks/useTaskTextStream";
 import { Upload, FileVideo, FileAudio, Image as ImageIcon, X, Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 
+interface ShotData {
+  number: number;
+  timestamp: string;
+  duration: number;
+  framing: string;
+  angle: string;
+  movement: string;
+  content: string;
+  dialogue: string;
+  sfx: string;
+  bgm: string;
+  emotion: string;
+}
+
+interface TechnicalSummary {
+  totalShots: number;
+  estimatedDuration: string;
+  dominantFraming: string;
+  dominantMovement: string;
+  bgmChanges: number;
+  dialogueRatio: string;
+}
+
 interface ScriptAnalysis {
   scenes: { number: number; description: string; timestamp: string; emotion: string }[];
+  shots: ShotData[];
   characters: { name: string; role?: string; description: string; relationship: string }[];
   plotElements: { name: string; category: string; description: string; tags: string[] }[];
   narrativeStructure: { hook: string; conflict: string; climax: string; resolution: string };
+  technicalSummary: TechnicalSummary;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -65,7 +90,9 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
   const [analysisData, setAnalysisData] = useState<ScriptAnalysis | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    technicalSummary: true,
     scenes: true,
+    shots: true,
     characters: true,
     plotElements: false,
     narrative: true,
@@ -260,7 +287,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
       open={open}
       onClose={isBusy ? handleCancelTask : (phase === "result" ? handleDiscard : resetAndClose)}
       title={t("reverseScript")}
-      className={phase === "result" ? "max-w-4xl" : "max-w-2xl"}
+      className={phase === "result" ? "max-w-5xl" : "max-w-2xl"}
     >
       <div className="space-y-4">
         {/* Phase: Input */}
@@ -373,7 +400,32 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
               </div>
             )}
             {analysisData && (
-              <div className="space-y-2 max-h-80 overflow-y-auto">
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {/* Technical Summary */}
+                {analysisData.technicalSummary && (
+                  <AnalysisSection
+                    title="技术概览"
+                    expanded={expandedSections.technicalSummary}
+                    onToggle={() => toggleSection("technicalSummary")}
+                  >
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "总镜头数", value: analysisData.technicalSummary.totalShots },
+                        { label: "预估时长", value: analysisData.technicalSummary.estimatedDuration },
+                        { label: "主要景别", value: analysisData.technicalSummary.dominantFraming },
+                        { label: "主要运镜", value: analysisData.technicalSummary.dominantMovement },
+                        { label: "BGM变化", value: `${analysisData.technicalSummary.bgmChanges}次` },
+                        { label: "对话占比", value: analysisData.technicalSummary.dialogueRatio },
+                      ].map((item) => (
+                        <div key={item.label} className="rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-2 text-center">
+                          <p className="text-[10px] text-[var(--color-text-tertiary)]">{item.label}</p>
+                          <p className="text-sm font-medium mt-0.5">{item.value || "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </AnalysisSection>
+                )}
+
                 {/* Narrative Structure */}
                 {analysisData.narrativeStructure && (
                   <AnalysisSection
@@ -427,6 +479,50 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  </AnalysisSection>
+                )}
+
+                {/* Shots */}
+                {analysisData.shots?.length > 0 && (
+                  <AnalysisSection
+                    title="分镜头"
+                    count={analysisData.shots.length}
+                    expanded={expandedSections.shots}
+                    onToggle={() => toggleSection("shots")}
+                  >
+                    <div className="space-y-2">
+                      {analysisData.shots.map((shot, i) => (
+                        <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-light)] p-2 text-xs">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="font-medium text-sm">镜头 {shot.number}</span>
+                            <span className="text-[var(--color-text-tertiary)]">{shot.timestamp}</span>
+                            <span className="rounded-full bg-[var(--color-bg-surface)] px-2 py-0.5 text-[var(--color-text-secondary)]">
+                              {shot.duration}s
+                            </span>
+                            {shot.emotion && (
+                              <span className="rounded-full bg-[var(--color-accent-bg)] px-2 py-0.5 text-[var(--color-accent)]">
+                                {shot.emotion}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-x-3 gap-y-1 text-[var(--color-text-secondary)]">
+                            <div><span className="font-medium">景别:</span> {shot.framing}</div>
+                            <div><span className="font-medium">角度:</span> {shot.angle}</div>
+                            <div><span className="font-medium">运镜:</span> {shot.movement}</div>
+                          </div>
+                          <p className="mt-1.5 text-[var(--color-text-primary)]">{shot.content}</p>
+                          {shot.dialogue && (
+                            <p className="mt-1 text-[var(--color-text-secondary)]">
+                              <span className="font-medium">对话:</span> {shot.dialogue}
+                            </p>
+                          )}
+                          <div className="flex gap-3 mt-1 text-[var(--color-text-tertiary)]">
+                            {shot.sfx && <span>音效: {shot.sfx}</span>}
+                            {shot.bgm && <span>BGM: {shot.bgm}</span>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </AnalysisSection>
                 )}

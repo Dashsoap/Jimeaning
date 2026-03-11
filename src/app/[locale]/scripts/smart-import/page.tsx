@@ -419,8 +419,9 @@ export default function SmartImportPage() {
       } else {
         toast.success(t("importSuccess"));
       }
-    } catch {
-      toast.error(t("importFailed"));
+    } catch (err) {
+      console.error("File import failed:", err);
+      toast.error(t("importFailed") + (err instanceof Error ? `: ${err.message}` : ""));
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
