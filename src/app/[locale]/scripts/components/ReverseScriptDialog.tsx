@@ -147,6 +147,13 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
     onClose();
   };
 
+  const handleCancelTask = async () => {
+    if (taskId) {
+      try { await fetch(`/api/tasks/${taskId}`, { method: "DELETE" }); } catch {}
+    }
+    resetAndClose();
+  };
+
   const handleFileSelect = (selectedFile: File) => {
     if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
       toast.error(t("unsupportedFileType"));
@@ -251,7 +258,7 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
   return (
     <Modal
       open={open}
-      onClose={isBusy ? () => {} : (phase === "result" ? handleDiscard : resetAndClose)}
+      onClose={isBusy ? handleCancelTask : (phase === "result" ? handleDiscard : resetAndClose)}
       title={t("reverseScript")}
       className={phase === "result" ? "max-w-4xl" : "max-w-2xl"}
     >
@@ -347,6 +354,11 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                 />
               </div>
             )}
+            <div className="flex justify-start">
+              <Button variant="secondary" onClick={handleCancelTask}>
+                {tc("cancel")}
+              </Button>
+            </div>
           </>
         )}
 
