@@ -12,36 +12,38 @@ export const GET = apiHandler(async () => {
     orderBy: { updatedAt: "desc" },
     include: {
       _count: { select: { episodes: true, childProjects: true } },
-      episodes: {
-        select: {
-          clips: {
-            select: {
-              panels: {
-                select: { imageUrl: true, videoUrl: true },
-              },
-            },
-          },
-        },
-      },
     },
   });
 
-  // Aggregate stats on server side to keep response payload small
-  const result = projects.map((p) => {
-    let imageCount = 0;
-    let videoCount = 0;
-    for (const ep of p.episodes) {
-      for (const clip of ep.clips) {
-        for (const panel of clip.panels) {
-          if (panel.imageUrl) imageCount++;
-          if (panel.videoUrl) videoCount++;
-        }
-      }
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { episodes: _episodes, ...rest } = p;
-    return { ...rest, imageCount, videoCount };
-  });
+  if (projects.length === 0) {
+    return NextResponse.json([]);
+  }
+
+  // Aggregate image/video counts via raw SQL instead of fetching all panels
+  const projectIds = projects.map((p) => p.id);
+  const counts = await prisma.$queryRawUnsafe<
+    Array<{ projectId: string; imageCount: bigint; videoCount: bigint }>
+  >(
+    `SELECT e.projectId,
+            SUM(CASE WHEN p.imageUrl IS NOT NULL AND p.imageUrl != '' THEN 1 ELSE 0 END) AS imageCount,
+            SUM(CASE WHEN p.videoUrl IS NOT NULL AND p.videoUrl != '' THEN 1 ELSE 0 END) AS videoCount
+     FROM panels p
+     JOIN clips c ON p.clipId = c.id
+     JOIN episodes e ON c.episodeId = e.id
+     WHERE e.projectId IN (${projectIds.map(() => "?").join(",")})
+     GROUP BY e.projectId`,
+    ...projectIds,
+  );
+
+  const countMap = new Map(
+    counts.map((c) => [c.projectId, { imageCount: Number(c.imageCount), videoCount: Number(c.videoCount) }]),
+  );
+
+  const result = projects.map((p) => ({
+    ...p,
+    imageCount: countMap.get(p.id)?.imageCount ?? 0,
+    videoCount: countMap.get(p.id)?.videoCount ?? 0,
+  }));
 
   return NextResponse.json(result);
 });

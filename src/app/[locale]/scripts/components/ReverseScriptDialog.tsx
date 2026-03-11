@@ -10,10 +10,34 @@ import toast from "react-hot-toast";
 
 interface ScriptAnalysis {
   scenes: { number: number; description: string; timestamp: string; emotion: string }[];
-  characters: { name: string; description: string; relationship: string }[];
+  characters: { name: string; role?: string; description: string; relationship: string }[];
   plotElements: { name: string; category: string; description: string; tags: string[] }[];
   narrativeStructure: { hook: string; conflict: string; climax: string; resolution: string };
 }
+
+const ROLE_COLORS: Record<string, string> = {
+  protagonist: "bg-blue-100 text-blue-700",
+  antagonist: "bg-red-100 text-red-700",
+  supporting: "bg-amber-100 text-amber-700",
+  minor: "bg-gray-100 text-gray-600",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  protagonist: "主角",
+  antagonist: "反派",
+  supporting: "配角",
+  minor: "龙套",
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  plotDevice: "bg-violet-100 text-violet-700",
+  character: "bg-pink-100 text-pink-700",
+  narrative: "bg-blue-100 text-blue-700",
+  setting: "bg-emerald-100 text-emerald-700",
+  symbol: "bg-amber-100 text-amber-700",
+  prop: "bg-cyan-100 text-cyan-700",
+  event: "bg-orange-100 text-orange-700",
+};
 
 interface ReverseScriptDialogProps {
   open: boolean;
@@ -406,7 +430,14 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                     <div className="grid gap-2 sm:grid-cols-2">
                       {analysisData.characters.map((char, i) => (
                         <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-2">
-                          <p className="text-sm font-medium">{char.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{char.name}</p>
+                            {char.role && (
+                              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${ROLE_COLORS[char.role] || "bg-gray-100 text-gray-600"}`}>
+                                {ROLE_LABELS[char.role] || char.role}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{char.description}</p>
                           {char.relationship && (
                             <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
@@ -427,23 +458,25 @@ export function ReverseScriptDialog({ open, onClose, onSuccess }: ReverseScriptD
                     expanded={expandedSections.plotElements}
                     onToggle={() => toggleSection("plotElements")}
                   >
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {analysisData.plotElements.map((elem, i) => (
-                        <div key={i} className="flex items-start gap-2 text-sm">
-                          <span className="shrink-0 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-1.5 py-0.5 text-xs text-[var(--color-text-secondary)]">
-                            {elem.category}
-                          </span>
-                          <div>
-                            <span className="font-medium">{elem.name}</span>
-                            <span className="text-[var(--color-text-secondary)] ml-1">{elem.description}</span>
-                            {elem.tags?.length > 0 && (
-                              <span className="ml-2">
-                                {elem.tags.map((tag, j) => (
-                                  <span key={j} className="mr-1 text-xs text-[var(--color-accent)]">#{tag}</span>
-                                ))}
-                              </span>
-                            )}
+                        <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-light)] p-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[elem.category] || "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)]"}`}>
+                              {elem.category}
+                            </span>
+                            <span className="text-sm font-medium">{elem.name}</span>
                           </div>
+                          <p className="text-xs text-[var(--color-text-secondary)] mb-1.5">{elem.description}</p>
+                          {elem.tags?.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {elem.tags.map((tag, j) => (
+                                <span key={j} className="rounded-full bg-[var(--color-accent-bg)] px-2 py-0.5 text-[10px] text-[var(--color-accent)] font-medium">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

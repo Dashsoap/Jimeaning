@@ -17,10 +17,14 @@ export const GET = apiHandler(async (_req: NextRequest, { params }: RouteParams)
         include: {
           clips: {
             include: {
-              panels: { include: { voiceLines: true } },
+              panels: {
+                include: { voiceLines: true },
+                orderBy: { sortOrder: "asc" },
+              },
             },
             orderBy: { sortOrder: "asc" },
           },
+          composition: { select: { id: true, outputUrl: true, status: true } },
         },
         orderBy: { sortOrder: "asc" },
       },

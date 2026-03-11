@@ -338,9 +338,35 @@ export default function SmartImportPage() {
 
   // ─── Handlers ────────────────────────────────────────────────────────
 
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   const goBack = () => {
+    if (isBusy) {
+      setShowExitConfirm(true);
+      return;
+    }
     clearPersistedState();
     router.push(`/${locale}/scripts`);
+  };
+
+  const forceExit = async () => {
+    // Cancel any running tasks
+    if (splitTaskId) {
+      try { await fetch(`/api/tasks/${splitTaskId}`, { method: "DELETE" }); } catch {}
+    }
+    if (rewriteTaskId) {
+      try { await fetch(`/api/tasks/${rewriteTaskId}`, { method: "DELETE" }); } catch {}
+    }
+    clearPersistedState();
+    router.push(`/${locale}/scripts`);
+  };
+
+  const handleCancelRewrite = async () => {
+    if (rewriteTaskId) {
+      try { await fetch(`/api/tasks/${rewriteTaskId}`, { method: "DELETE" }); } catch {}
+    }
+    setRewriteTaskId(null);
+    // Stay on step 5 so user can re-enter prompt or skip
   };
 
   const handleFileImport = useCallback(async (file: File) => {
@@ -590,9 +616,8 @@ export default function SmartImportPage() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <button
-            onClick={isBusy ? undefined : goBack}
-            className="rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-secondary)] disabled:opacity-50 cursor-pointer"
-            disabled={isBusy}
+            onClick={goBack}
+            className="rounded-[var(--radius-md)] p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-secondary)] cursor-pointer"
           >
             <ArrowLeft size={20} />
           </button>
@@ -1023,6 +1048,13 @@ export default function SmartImportPage() {
                       />
                     </div>
                   )}
+                  {rewriteStream.isStreaming && (
+                    <div className="flex justify-start pt-2">
+                      <Button variant="secondary" onClick={handleCancelRewrite}>
+                        {tc("cancel")}
+                      </Button>
+                    </div>
+                  )}
                   {rewriteStream.isComplete && (
                     <div className="flex justify-end pt-2">
                       <Button onClick={handleFinish}>
@@ -1035,6 +1067,24 @@ export default function SmartImportPage() {
               )}
             </div>
           </Card>
+        )}
+        {/* Exit confirmation dialog */}
+        {showExitConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-[var(--radius-lg)] p-6 shadow-xl max-w-sm mx-4">
+              <p className="text-sm text-[var(--color-text-primary)] mb-4">
+                {locale === "zh" ? "取消当前任务并退出？" : "Cancel current task and exit?"}
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setShowExitConfirm(false)}>
+                  {tc("cancel")}
+                </Button>
+                <Button onClick={forceExit}>
+                  {locale === "zh" ? "确认退出" : "Confirm Exit"}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </AppShell>

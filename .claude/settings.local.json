@@ -15,7 +15,9 @@
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
       "WebSearch",
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(wc:*)",
+      "Bash(cat:*)"
     ]
   }
 }

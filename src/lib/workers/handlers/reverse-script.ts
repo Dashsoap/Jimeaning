@@ -151,8 +151,37 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
 
   // 7. Phase 2: Structured analysis via non-streaming Gemini call
   await ctx.reportProgress(85);
+  ctx.publishText("\n\n--- 正在进行结构化分析 ---\n");
   let analysisData: Prisma.InputJsonValue | null = null;
-  try {
+
+  const parseJsonFromText = (text: string): Prisma.InputJsonValue | null => {
+    if (!text.trim()) return null;
+
+    // Try direct parse
+    try {
+      return JSON.parse(text);
+    } catch { /* not pure JSON */ }
+
+    // Extract from markdown code block: ```json\n{...}\n```
+    const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (codeBlockMatch) {
+      try {
+        return JSON.parse(codeBlockMatch[1]);
+      } catch { /* code block content isn't valid JSON */ }
+    }
+
+    // Greedy extract: first { to last }
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch { /* extracted block isn't valid JSON */ }
+    }
+
+    return null;
+  };
+
+  const callAnalysis = async (useJsonMime: boolean): Promise<string> => {
     const analysisResult = await genai.models.generateContent({
       model: modelId,
       contents: [
@@ -161,17 +190,39 @@ export const handleReverseScript = withTaskLifecycle(async (payload: TaskPayload
           parts: [{ text: `${ANALYZE_SCRIPT_PROMPT}\n\n---\n\n${resultText}` }],
         },
       ],
-      config: {
-        responseMimeType: "application/json",
-      },
+      ...(useJsonMime ? { config: { responseMimeType: "application/json" } } : {}),
     });
+    return analysisResult.text ?? "";
+  };
 
-    const analysisText = analysisResult.text ?? "";
-    if (analysisText.trim()) {
-      analysisData = JSON.parse(analysisText);
+  // Attempt 1: without responseMimeType (most compatible with proxies)
+  try {
+    const text = await callAnalysis(false);
+    analysisData = parseJsonFromText(text);
+    if (!analysisData) {
+      console.warn("[reverse-script] Attempt 1: got text but JSON parse failed. Response:", text.substring(0, 500));
     }
-  } catch {
-    // Analysis failed — non-critical, continue saving without it
+  } catch (err) {
+    console.warn("[reverse-script] Attempt 1 failed:", err instanceof Error ? err.message : err);
+  }
+
+  // Attempt 2: with responseMimeType (works on direct Google API)
+  if (!analysisData) {
+    try {
+      const text = await callAnalysis(true);
+      analysisData = parseJsonFromText(text);
+      if (!analysisData) {
+        console.warn("[reverse-script] Attempt 2: got text but JSON parse failed. Response:", text.substring(0, 500));
+      }
+    } catch (err) {
+      console.warn("[reverse-script] Attempt 2 failed:", err instanceof Error ? err.message : err);
+    }
+  }
+
+  if (analysisData) {
+    ctx.publishText("结构化分析完成 ✓\n");
+  } else {
+    ctx.publishText("结构化分析失败（将仅保存剧本文本）\n");
   }
 
   await ctx.reportProgress(95);

@@ -3,6 +3,8 @@ import { apiHandler } from "@/lib/api-errors";
 import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
+const STALE_TASK_MS = 10 * 60 * 1000; // 10 minutes — task is considered dead
+
 /**
  * GET /api/scripts/smart-import/resume
  * Check if there's a resumable smart import for the current user.
@@ -72,20 +74,35 @@ export const GET = apiHandler(async () => {
       id: true,
       type: true,
       status: true,
+      heartbeatAt: true,
+      updatedAt: true,
     },
   });
 
+  if (!activeTask) {
+    // No active task — don't auto-resume
+    return NextResponse.json({ resumable: false });
+  }
+
+  // Check if the task is stale (no heartbeat / no update for 10 min)
+  const lastAlive = activeTask.heartbeatAt || activeTask.updatedAt;
+  const isStale = Date.now() - new Date(lastAlive).getTime() > STALE_TASK_MS;
+
+  if (isStale) {
+    // Force-cancel the stale task so it doesn't block future imports
+    await prisma.task.update({
+      where: { id: activeTask.id },
+      data: { status: "failed", error: "Task timed out (stale)", finishedAt: new Date() },
+    });
+    return NextResponse.json({ resumable: false });
+  }
+
   // Determine resumable step
   let step: number;
-  if (activeTask?.type === "SMART_SPLIT") {
+  if (activeTask.type === "SMART_SPLIT") {
     step = 3; // Analysis in progress
-  } else if (activeTask?.type === "BATCH_REWRITE") {
-    step = 5; // Rewrite in progress
-  } else if (rewrittenCount >= chapters.length) {
-    // All chapters rewritten — nothing to resume
-    return NextResponse.json({ resumable: false });
   } else {
-    step = 5; // Chapters confirmed, ready to rewrite (or partially rewritten)
+    step = 5; // Rewrite in progress
   }
 
   return NextResponse.json({

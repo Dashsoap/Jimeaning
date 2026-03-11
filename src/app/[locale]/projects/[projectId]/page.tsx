@@ -84,7 +84,8 @@ export default function ProjectWorkspacePage() {
   const { data: project, isLoading } = useQuery<ProjectData>({
     queryKey: ["project", projectId],
     queryFn: () => fetch(`/api/projects/${projectId}`).then((r) => r.json()),
-    refetchInterval: 30000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
   const router = useRouter();
   const pathname = usePathname();

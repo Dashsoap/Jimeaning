@@ -36,10 +36,10 @@ export const ANALYZE_SCRIPT_PROMPT = `你是一位专业的剧本分析师。请
     { "number": 1, "description": "场景描述", "timestamp": "时间点或时间范围", "emotion": "场景情绪氛围" }
   ],
   "characters": [
-    { "name": "角色名", "description": "角色描述", "relationship": "与其他角色的关系" }
+    { "name": "角色名", "role": "protagonist|antagonist|supporting|minor", "description": "角色描述（外貌、性格、动机）", "relationship": "与其他角色的关系" }
   ],
   "plotElements": [
-    { "name": "元素名称", "category": "道具|地点|事件|符号", "description": "描述", "tags": ["标签1", "标签2"] }
+    { "name": "元素名称", "category": "plotDevice|character|narrative|setting|symbol|prop|event", "description": "详细描述该元素在剧情中的作用和意义（至少2-3句话）", "tags": ["标签1", "标签2", "标签3"] }
   ],
   "narrativeStructure": {
     "hook": "开场钩子 — 吸引观众的关键元素",
@@ -51,8 +51,16 @@ export const ANALYZE_SCRIPT_PROMPT = `你是一位专业的剧本分析师。请
 
 要求：
 - scenes: 列出所有场景，按时间顺序编号，描述要简洁
-- characters: 列出所有出现的角色，包括主角和配角
-- plotElements: 提取关键道具、地点、事件、象征符号等叙事元素
-- narrativeStructure: 分析整体叙事结构的四个关键节点
+- characters: 列出所有出现的角色，包括主角和配角。role 字段标注角色定位（protagonist=主角, antagonist=反派, supporting=配角, minor=龙套）
+- plotElements: 提取关键叙事元素，类别包括：
+  - plotDevice: 推动剧情的关键装置/机关
+  - character: 角色相关的重要特质或弧线
+  - narrative: 叙事手法（如闪回、伏笔、平行叙事）
+  - setting: 重要场景/环境
+  - symbol: 象征符号
+  - prop: 关键道具
+  - event: 关键事件/转折点
+  每个元素请给出详细描述和至少2-3个标签，标签应涵盖主题、情绪、功能等维度
+- narrativeStructure: 分析整体叙事结构的四个关键节点，每个节点请用2-3句话详细描述
 - 如果某个字段信息不足，可以留空字符串或空数组，但不要省略字段
 - 只输出 JSON，不要添加任何其他文字`;

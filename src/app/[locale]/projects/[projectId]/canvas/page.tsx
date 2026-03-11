@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useState, useEffect, useRef } from "react";
-import { Tldraw } from "tldraw";
+import dynamic from "next/dynamic";
 import { useEditor } from "@tldraw/editor";
 import type { Editor } from "@tldraw/editor";
 import "tldraw/tldraw.css";
@@ -29,6 +29,15 @@ import {
   FileText,
   Clapperboard,
 } from "lucide-react";
+
+const Tldraw = dynamic(() => import("tldraw").then((mod) => mod.Tldraw), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
+    </div>
+  ),
+});
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import type { CanvasStage } from "@/lib/canvas/types";
@@ -693,7 +702,8 @@ export default function CanvasPage() {
         ),
       } satisfies CanvasProjectData;
     },
-    refetchInterval: 15000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
 
   const handleRefresh = useCallback(() => {

@@ -195,10 +195,34 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
     setMasterScriptId(null);
   }, []);
 
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
   const handleClose = () => {
-    if (splitStream.isStreaming || rewriteStream.isStreaming) return;
+    if (splitStream.isStreaming || rewriteStream.isStreaming) {
+      setShowCloseConfirm(true);
+      return;
+    }
     resetAll();
     onClose();
+  };
+
+  const forceClose = async () => {
+    if (splitTaskId) {
+      try { await fetch(`/api/tasks/${splitTaskId}`, { method: "DELETE" }); } catch {}
+    }
+    if (rewriteTaskId) {
+      try { await fetch(`/api/tasks/${rewriteTaskId}`, { method: "DELETE" }); } catch {}
+    }
+    setShowCloseConfirm(false);
+    resetAll();
+    onClose();
+  };
+
+  const handleCancelRewrite = async () => {
+    if (rewriteTaskId) {
+      try { await fetch(`/api/tasks/${rewriteTaskId}`, { method: "DELETE" }); } catch {}
+    }
+    setRewriteTaskId(null);
   };
 
   const handleFileImport = async (file: File) => {
@@ -445,7 +469,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
   return (
     <Modal
       open={open}
-      onClose={isBusy ? () => {} : handleClose}
+      onClose={handleClose}
       title={ti("title")}
       className="max-w-3xl max-h-[85vh] overflow-y-auto"
     >
@@ -823,6 +847,13 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
                     />
                   </div>
                 )}
+                {rewriteStream.isStreaming && (
+                  <div className="flex justify-start">
+                    <Button variant="secondary" onClick={handleCancelRewrite}>
+                      {tc("cancel")}
+                    </Button>
+                  </div>
+                )}
                 {rewriteStream.isComplete && (
                   <div className="flex justify-end">
                     <Button onClick={handleFinish}>{ti("finish")}</Button>
@@ -831,6 +862,24 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
               </>
             )}
           </>
+        )}
+        {/* Close confirmation */}
+        {showCloseConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <div className="bg-white rounded-[var(--radius-lg)] p-6 shadow-xl max-w-sm mx-4">
+              <p className="text-sm text-[var(--color-text-primary)] mb-4">
+                {ti("cancelConfirm") || "取消当前任务并关闭？"}
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setShowCloseConfirm(false)}>
+                  {tc("cancel")}
+                </Button>
+                <Button onClick={forceClose}>
+                  {tc("confirm") || "确认"}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </Modal>
