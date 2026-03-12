@@ -29,8 +29,12 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
 } from "lucide-react";
 import toast from "react-hot-toast";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnalysisData = Record<string, any>;
 
 interface Script {
   id: string;
@@ -42,6 +46,7 @@ interface Script {
   masterScriptId: string | null;
   chapterIndex: number | null;
   chapterSummary: string | null;
+  analysisData?: AnalysisData | null;
   _count?: { chapters: number };
   createdAt: string;
   updatedAt: string;
@@ -74,6 +79,11 @@ export default function ScriptsPage() {
   const [expandedMasterIds, setExpandedMasterIds] = useState<Set<string>>(new Set());
   const [rewritePreSelectedId, setRewritePreSelectedId] = useState<string | undefined>();
   const [viewScript, setViewScript] = useState<Script | null>(null);
+  const [viewAnalysis, setViewAnalysis] = useState<AnalysisData | null>(null);
+  const [viewAnalysisLoading, setViewAnalysisLoading] = useState(false);
+  const [viewExpandedSections, setViewExpandedSections] = useState<Record<string, boolean>>({
+    technicalSummary: true, scenes: true, shots: true, characters: true, plotElements: false, narrative: true,
+  });
   const [editScript, setEditScript] = useState<Script | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -91,6 +101,19 @@ export default function ScriptsPage() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Fetch analysisData when viewing a reverse-type script
+  useEffect(() => {
+    if (!viewScript) { setViewAnalysis(null); return; }
+    if (viewScript.sourceType !== "reverse") return;
+    if (viewScript.analysisData) { setViewAnalysis(viewScript.analysisData); return; }
+    setViewAnalysisLoading(true);
+    fetch(`/api/scripts/${viewScript.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.analysisData) setViewAnalysis(data.analysisData); })
+      .catch(() => {})
+      .finally(() => setViewAnalysisLoading(false));
+  }, [viewScript]);
 
   const { data: scripts = [], isLoading } = useQuery<Script[]>({
     queryKey: ["scripts"],
@@ -543,7 +566,7 @@ export default function ScriptsPage() {
         </Modal>
 
         {/* View Script Modal */}
-        <Modal open={!!viewScript} onClose={() => setViewScript(null)} title={viewScript?.title} className="max-w-2xl">
+        <Modal open={!!viewScript} onClose={() => setViewScript(null)} title={viewScript?.title} className={viewAnalysis ? "max-w-5xl" : "max-w-2xl"}>
           {viewScript && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -554,6 +577,22 @@ export default function ScriptsPage() {
                   {new Date(viewScript.createdAt).toLocaleString()}
                 </span>
               </div>
+
+              {/* Analysis Data (reverse scripts) */}
+              {viewAnalysisLoading && (
+                <div className="flex items-center gap-2 text-sm text-[var(--color-accent)]">
+                  <span className="animate-spin">⏳</span>
+                  <span>加载分析数据...</span>
+                </div>
+              )}
+              {viewAnalysis && (
+                <ScriptAnalysisView
+                  data={viewAnalysis}
+                  expandedSections={viewExpandedSections}
+                  onToggle={(key) => setViewExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }))}
+                />
+              )}
+
               <div className="max-h-96 overflow-y-auto rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-4 text-sm whitespace-pre-wrap text-[var(--color-text-primary)]">
                 {viewScript.content}
               </div>
@@ -580,5 +619,186 @@ export default function ScriptsPage() {
         />
       </div>
     </AppShell>
+  );
+}
+
+// ── Reusable analysis rendering for reverse scripts ──
+
+const ROLE_COLORS: Record<string, string> = {
+  protagonist: "bg-blue-100 text-blue-700", antagonist: "bg-red-100 text-red-700",
+  supporting: "bg-amber-100 text-amber-700", minor: "bg-gray-100 text-gray-600",
+};
+const ROLE_LABELS: Record<string, string> = {
+  protagonist: "主角", antagonist: "反派", supporting: "配角", minor: "龙套",
+};
+const CATEGORY_COLORS: Record<string, string> = {
+  plotDevice: "bg-violet-100 text-violet-700", character: "bg-pink-100 text-pink-700",
+  narrative: "bg-blue-100 text-blue-700", setting: "bg-emerald-100 text-emerald-700",
+  symbol: "bg-amber-100 text-amber-700", prop: "bg-cyan-100 text-cyan-700",
+  event: "bg-orange-100 text-orange-700",
+};
+
+function ExpandableSection({ title, count, expanded, onToggle, children }: {
+  title: string; count?: number; expanded: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-[var(--radius-md)] border border-[var(--color-border-default)]">
+      <button onClick={onToggle} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-[var(--color-bg-secondary)] cursor-pointer">
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>{title}</span>
+        {count !== undefined && <span className="text-xs text-[var(--color-text-tertiary)]">({count})</span>}
+      </button>
+      {expanded && <div className="px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
+function ScriptAnalysisView({ data, expandedSections, onToggle }: {
+  data: AnalysisData; expandedSections: Record<string, boolean>; onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+      {/* Technical Summary */}
+      {data.technicalSummary && (
+        <ExpandableSection title="技术概览" expanded={expandedSections.technicalSummary} onToggle={() => onToggle("technicalSummary")}>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "总镜头数", value: data.technicalSummary.totalShots },
+              { label: "预估时长", value: data.technicalSummary.estimatedDuration },
+              { label: "主要景别", value: data.technicalSummary.dominantFraming },
+              { label: "主要运镜", value: data.technicalSummary.dominantMovement },
+              { label: "BGM变化", value: `${data.technicalSummary.bgmChanges ?? 0}次` },
+              { label: "对话占比", value: data.technicalSummary.dialogueRatio },
+            ].map((item) => (
+              <div key={item.label} className="rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-2 text-center">
+                <p className="text-[10px] text-[var(--color-text-tertiary)]">{item.label}</p>
+                <p className="text-sm font-medium mt-0.5">{item.value || "—"}</p>
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
+      )}
+
+      {/* Narrative Structure */}
+      {data.narrativeStructure && (
+        <ExpandableSection title="叙事结构" expanded={expandedSections.narrative} onToggle={() => onToggle("narrative")}>
+          <div className="grid grid-cols-2 gap-2">
+            {(["hook", "conflict", "climax", "resolution"] as const).map((key) => (
+              <div key={key} className="rounded-[var(--radius-md)] bg-[var(--color-bg-secondary)] p-2">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                  {{ hook: "开场钩子", conflict: "核心冲突", climax: "高潮", resolution: "结局" }[key]}
+                </p>
+                <p className="text-sm mt-0.5">{data.narrativeStructure[key] || "—"}</p>
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
+      )}
+
+      {/* Scenes */}
+      {data.scenes?.length > 0 && (
+        <ExpandableSection title="场景" count={data.scenes.length} expanded={expandedSections.scenes} onToggle={() => onToggle("scenes")}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-[var(--color-text-secondary)]">
+                  <th className="pb-1 pr-3">#</th><th className="pb-1 pr-3">描述</th>
+                  <th className="pb-1 pr-3">时间</th><th className="pb-1">情绪</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border-light)]">
+                {data.scenes.map((scene: AnalysisData, i: number) => (
+                  <tr key={i}>
+                    <td className="py-1 pr-3 text-[var(--color-text-tertiary)]">{scene.number}</td>
+                    <td className="py-1 pr-3">{scene.description}</td>
+                    <td className="py-1 pr-3 text-xs text-[var(--color-text-secondary)]">{scene.timestamp}</td>
+                    <td className="py-1 text-xs">
+                      <span className="rounded-full bg-[var(--color-accent-bg)] px-2 py-0.5 text-[var(--color-accent)]">{scene.emotion}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ExpandableSection>
+      )}
+
+      {/* Shots */}
+      {data.shots?.length > 0 && (
+        <ExpandableSection title="分镜头" count={data.shots.length} expanded={expandedSections.shots} onToggle={() => onToggle("shots")}>
+          <div className="space-y-2">
+            {data.shots.map((shot: AnalysisData, i: number) => (
+              <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-light)] p-2 text-xs">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="font-medium text-sm">镜头 {shot.number}</span>
+                  <span className="text-[var(--color-text-tertiary)]">{shot.timestamp}</span>
+                  <span className="rounded-full bg-[var(--color-bg-surface)] px-2 py-0.5 text-[var(--color-text-secondary)]">{shot.duration}s</span>
+                  {shot.emotion && <span className="rounded-full bg-[var(--color-accent-bg)] px-2 py-0.5 text-[var(--color-accent)]">{shot.emotion}</span>}
+                </div>
+                <div className="grid grid-cols-3 gap-x-3 gap-y-1 text-[var(--color-text-secondary)]">
+                  <div><span className="font-medium">景别:</span> {shot.framing}</div>
+                  <div><span className="font-medium">角度:</span> {shot.angle}</div>
+                  <div><span className="font-medium">运镜:</span> {shot.movement}</div>
+                </div>
+                <p className="mt-1.5 text-[var(--color-text-primary)]">{shot.content}</p>
+                {shot.dialogue && <p className="mt-1 text-[var(--color-text-secondary)]"><span className="font-medium">对话:</span> {shot.dialogue}</p>}
+                <div className="flex gap-3 mt-1 text-[var(--color-text-tertiary)]">
+                  {shot.sfx && <span>音效: {shot.sfx}</span>}
+                  {shot.bgm && <span>BGM: {shot.bgm}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
+      )}
+
+      {/* Characters */}
+      {data.characters?.length > 0 && (
+        <ExpandableSection title="角色" count={data.characters.length} expanded={expandedSections.characters} onToggle={() => onToggle("characters")}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {data.characters.map((char: AnalysisData, i: number) => (
+              <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-default)] p-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">{char.name}</p>
+                  {char.role && (
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${ROLE_COLORS[char.role] || "bg-gray-100 text-gray-600"}`}>
+                      {ROLE_LABELS[char.role] || char.role}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{char.description}</p>
+                {char.relationship && <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5"><span className="font-medium">关系:</span> {char.relationship}</p>}
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
+      )}
+
+      {/* Plot Elements */}
+      {data.plotElements?.length > 0 && (
+        <ExpandableSection title="叙事元素" count={data.plotElements.length} expanded={expandedSections.plotElements} onToggle={() => onToggle("plotElements")}>
+          <div className="space-y-2">
+            {data.plotElements.map((elem: AnalysisData, i: number) => (
+              <div key={i} className="rounded-[var(--radius-md)] border border-[var(--color-border-light)] p-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[elem.category] || "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)]"}`}>
+                    {elem.category}
+                  </span>
+                  <span className="text-sm font-medium">{elem.name}</span>
+                </div>
+                <p className="text-xs text-[var(--color-text-secondary)] mb-1.5">{elem.description}</p>
+                {elem.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {elem.tags.map((tag: string, j: number) => (
+                      <span key={j} className="rounded-full bg-[var(--color-accent-bg)] px-2 py-0.5 text-[10px] text-[var(--color-accent)] font-medium">{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </ExpandableSection>
+      )}
+    </div>
   );
 }
