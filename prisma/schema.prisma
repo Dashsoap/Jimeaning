@@ -17,15 +17,16 @@ model User {
   image         String?
   passwordHash  String?
 
-  accounts   Account[]
-  sessions   Session[]
-  preference UserPreference?
-  projects   Project[]
-  tasks      Task[]
-  scripts    Script[]
-  characters Character[]
-  locations  Location[]
-  voices     Voice[]
+  accounts      Account[]
+  sessions      Session[]
+  preference    UserPreference?
+  projects      Project[]
+  tasks         Task[]
+  scripts       Script[]
+  agentProjects AgentProject[]
+  characters    Character[]
+  locations     Location[]
+  voices        Voice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -89,9 +90,9 @@ model UserPreference {
 
   // Default model selections (provider::modelId format)
   defaultLlmModel   String?
-  defaultImageModel  String?
-  defaultVideoModel  String?
-  defaultAudioModel  String?
+  defaultImageModel String?
+  defaultVideoModel String?
+  defaultAudioModel String?
 
   // TTS voice preference
   ttsVoice String @default("alloy")
@@ -151,10 +152,10 @@ model Episode {
   id        String @id @default(cuid())
   projectId String
 
-  title    String
-  synopsis String?   @db.Text
-  sortOrder Int      @default(0)
-  status    String   @default("draft") // draft | storyboarded | generating | completed
+  title     String
+  synopsis  String? @db.Text
+  sortOrder Int     @default(0)
+  status    String  @default("draft") // draft | storyboarded | generating | completed
 
   project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   clips       Clip[]
@@ -203,18 +204,18 @@ model Panel {
   imagePrompt      String? @db.Text
 
   // 4-phase storyboard pipeline data
-  sceneType          String?          // daily | emotion | action | epic | suspense
-  videoPrompt        String? @db.Text // motion-rich video generation prompt
-  sourceText         String? @db.Text // original text excerpt this panel is based on
-  photographyRules   String? @db.Text // JSON: lighting, depth_of_field, color_tone, character positions
-  actingNotes        String? @db.Text // JSON: per-character acting directions
-  candidateImages    String? @db.Text // JSON: array of candidate image URLs
-  selectedImageIndex Int     @default(0)
-  videoGenerationMode String?         // normal | firstlastframe
+  sceneType           String? // daily | emotion | action | epic | suspense
+  videoPrompt         String? @db.Text // motion-rich video generation prompt
+  sourceText          String? @db.Text // original text excerpt this panel is based on
+  photographyRules    String? @db.Text // JSON: lighting, depth_of_field, color_tone, character positions
+  actingNotes         String? @db.Text // JSON: per-character acting directions
+  candidateImages     String? @db.Text // JSON: array of candidate image URLs
+  selectedImageIndex  Int     @default(0)
+  videoGenerationMode String? // normal | firstlastframe
 
   // Asset bindings
-  characterIds   String?  @db.Text  // JSON: string[] of character IDs
-  locationId     String?            // location ID
+  characterIds String? @db.Text // JSON: string[] of character IDs
+  locationId   String? // location ID
 
   // Generated media URLs
   imageUrl String? @db.MediumText
@@ -275,11 +276,11 @@ model CharacterAppearance {
   characterId String
 
   appearanceIndex Int     @default(0) // 0 = primary
-  description     String? @db.Text       // appearance description
+  description     String? @db.Text // appearance description
   imageUrl        String? @db.MediumText // currently selected image
   candidateImages String? @db.MediumText // JSON: candidate image URL array
-  selectedIndex   Int?                // selected candidate index (null=unselected)
-  changeReason    String?             // outfit change, time skip, etc.
+  selectedIndex   Int? // selected candidate index (null=unselected)
+  changeReason    String? // outfit change, time skip, etc.
 
   character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
@@ -368,8 +369,8 @@ model Composition {
   episodeId String @unique
 
   // Settings
-  bgmUrl         String? @db.Text
-  bgmVolume      Float   @default(0.3)
+  bgmUrl          String? @db.Text
+  bgmVolume       Float   @default(0.3)
   subtitleEnabled Boolean @default(true)
   subtitleStyle   String  @default("default") // default | cinematic | minimal
   transition      String  @default("crossfade") // crossfade | cut | fade
@@ -411,10 +412,10 @@ model Asset {
   id       String  @id @default(cuid())
   folderId String?
 
-  name     String
-  type     String // image | audio | video | font
-  url      String @db.Text
-  mimeType String?
+  name      String
+  type      String // image | audio | video | font
+  url       String  @db.Text
+  mimeType  String?
   sizeBytes Int?
 
   folder AssetFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
@@ -429,22 +430,22 @@ model Asset {
 // ─── Tasks (Job Queue Tracking) ─────────────────────────────────────────────
 
 model Task {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   projectId String?
   userId    String
 
   type    String // ANALYZE_SCRIPT | GENERATE_STORYBOARD | GENERATE_IMAGE | GENERATE_VIDEO | GENERATE_VOICE | COMPOSE_VIDEO | BATCH_GENERATE
-  status  String @default("pending") // pending | running | completed | failed
-  payload Json?  @db.Json
-  result  Json?  @db.Json
+  status  String  @default("pending") // pending | running | completed | failed
+  payload Json?   @db.Json
+  result  Json?   @db.Json
   error   String? @db.Text
 
   // Error classification
   errorCode String?
 
   // Progress tracking
-  progress    Int @default(0)
-  totalSteps  Int @default(1)
+  progress   Int @default(0)
+  totalSteps Int @default(1)
 
   // Retry tracking
   attempt     Int @default(0)
@@ -480,15 +481,15 @@ model Script {
   title       String
   content     String  @db.LongText
   sourceType  String  @default("manual") // manual | reverse | rewrite | import | chapter
-  sourceMedia String? @db.Text           // 原始媒体文件路径（倒推时）
-  prompt      String? @db.Text           // 改写要求（改写时）
-  parentId    String?                    // 改写来源的 scriptId
+  sourceMedia String? @db.Text // 原始媒体文件路径（倒推时）
+  prompt      String? @db.Text // 改写要求（改写时）
+  parentId    String? // 改写来源的 scriptId
 
-  chapterIndex   Int?                    // 章节序号（仅 chapter 类型）
-  chapterSummary String?  @db.Text       // 章节摘要
-  masterScriptId String?                 // 指向母本（分章关系，区别于 parentId 的改写版本链）
-  importMeta     Json?                   // { targetDuration, targetEpisodes, direction, contentType }
-  analysisData   Json?                   // 结构化分析（scenes, characters, plotElements, narrativeStructure）
+  chapterIndex   Int? // 章节序号（仅 chapter 类型）
+  chapterSummary String? @db.Text // 章节摘要
+  masterScriptId String? // 指向母本（分章关系，区别于 parentId 的改写版本链）
+  importMeta     Json? // { targetDuration, targetEpisodes, direction, contentType }
+  analysisData   Json? // 结构化分析（scenes, characters, plotElements, narrativeStructure）
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   Script?  @relation("ScriptVersions", fields: [parentId], references: [id], onDelete: SetNull)
@@ -503,6 +504,69 @@ model Script {
   @@index([userId])
   @@index([masterScriptId])
   @@map("scripts")
+}
+
+// ─── Agent Projects (小说改编工作流) ──────────────────────────────────────────
+
+model AgentProject {
+  id     String @id @default(cuid())
+  userId String
+
+  title      String
+  sourceText String @db.LongText
+
+  // Configuration
+  genre          String? // 题材: 都市/古装/悬疑/甜宠/虐恋/玄幻/...
+  targetEpisodes Int? // 目标集数
+  durationPerEp  String? // 每集时长 "2-5min"
+  modelKey       String? // 使用哪个 LLM 模型
+  autoMode       Boolean @default(false) // 一键全自动模式
+
+  // Workflow state
+  status      String  @default("created") // created | analyzing | planning | writing | reviewing | storyboarding | imaging | completed | failed
+  currentStep String? // 当前执行的步骤
+
+  // Agent outputs (JSON)
+  analysisData Json? @db.Json // novel-analyzer: 人物图谱/情节骨架/情绪曲线/改编评估
+  planningData Json? @db.Json // episode-architect: 分集大纲
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episodes AgentEpisode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("agent_projects")
+}
+
+model AgentEpisode {
+  id             String @id @default(cuid())
+  agentProjectId String
+  episodeNumber  Int
+
+  title   String?
+  outline String? @db.Text // 分集大纲内容
+
+  // Agent outputs per episode
+  script        String? @db.LongText // script-writer 产出的剧本
+  scriptVersion Int     @default(0)
+  reviewData    Json?   @db.Json // review-director: {score, dimensions, issues, passed}
+  reviewScore   Int? // 快速访问总分 (/50)
+  storyboard    String? @db.LongText // storyboard-director 产出的分镜脚本
+  imagePrompts  String? @db.LongText // image-generator 产出的图片 Prompt
+
+  // Per-episode status
+  status String @default("pending") // pending | writing | reviewing | storyboarding | imaging | completed
+
+  agentProject AgentProject @relation(fields: [agentProjectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([agentProjectId, episodeNumber])
+  @@index([agentProjectId])
+  @@map("agent_episodes")
 }
 
 // ─── Templates ──────────────────────────────────────────────────────────────

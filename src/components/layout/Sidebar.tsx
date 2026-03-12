@@ -8,6 +8,7 @@ import {
   FolderOpen,
   FileText,
   Image as ImageIcon,
+  Sparkles,
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,11 @@ export function Sidebar() {
       icon: <ImageIcon size={20} />,
       labelKey: "assets",
     },
+    {
+      href: `/${locale}/agents`,
+      icon: <Sparkles size={20} />,
+      labelKey: "agents",
+    },
   ];
 
   return (
@@ -80,7 +86,7 @@ export function Sidebar() {
           >
             {item.icon}
             <span className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-[var(--radius-sm)] bg-[var(--color-text-primary)] px-2.5 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-              {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets")}
+              {t(item.labelKey as "dashboard" | "projects" | "scripts" | "assets" | "agents")}
             </span>
           </Link>
         );

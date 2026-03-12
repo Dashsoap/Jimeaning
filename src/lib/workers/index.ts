@@ -22,6 +22,15 @@ import { handleEpisodeSplit } from "./handlers/episode-split";
 import { handleAnalyzeNovel } from "./handlers/analyze-novel";
 import { handleSmartSplit } from "./handlers/smart-split";
 import { handleBatchRewrite } from "./handlers/batch-rewrite";
+import {
+  handleAgentAnalyze,
+  handleAgentPlan,
+  handleAgentWrite,
+  handleAgentReview,
+  handleAgentStoryboard,
+  handleAgentImagePrompts,
+  handleAgentAuto,
+} from "./handlers/agent-workflow";
 
 const logger = createScopedLogger({ module: "worker" });
 
@@ -43,6 +52,13 @@ const handlers: Record<string, (payload: TaskPayload) => Promise<void>> = {
   [TaskType.ANALYZE_NOVEL]: handleAnalyzeNovel,
   [TaskType.SMART_SPLIT]: handleSmartSplit,
   [TaskType.BATCH_REWRITE]: handleBatchRewrite,
+  [TaskType.AGENT_ANALYZE]: handleAgentAnalyze,
+  [TaskType.AGENT_PLAN]: handleAgentPlan,
+  [TaskType.AGENT_WRITE]: handleAgentWrite,
+  [TaskType.AGENT_REVIEW]: handleAgentReview,
+  [TaskType.AGENT_STORYBOARD]: handleAgentStoryboard,
+  [TaskType.AGENT_IMAGE_PROMPTS]: handleAgentImagePrompts,
+  [TaskType.AGENT_AUTO]: handleAgentAuto,
 };
 
 async function processJob(payload: TaskPayload) {
