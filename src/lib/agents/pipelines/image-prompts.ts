@@ -1,5 +1,6 @@
 /**
  * Pipeline: image-prompts — runs image-generator agent.
+ * Only runs when outputFormat is "script" (visual pipeline not needed for novel rewrite).
  */
 
 import type { PipelineDef, PipelineContext } from "../types";
@@ -13,6 +14,10 @@ export const imagePromptsPipeline: PipelineDef = {
     defineStep({
       id: "image-prompts",
       agent: imageGeneratorAgent,
+      shouldRun: (ctx: PipelineContext) => {
+        const fmt = ctx.initialData.outputFormat as string | undefined;
+        return !fmt || fmt === "script";
+      },
       prepareInput: (ctx: PipelineContext) => ({
         episodeNumber: ctx.initialData.episodeNumber as number,
         storyboard: ctx.initialData.storyboard as StoryboardResult,

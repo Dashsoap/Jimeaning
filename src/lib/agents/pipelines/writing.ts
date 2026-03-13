@@ -1,10 +1,12 @@
 /**
  * Pipeline: writing — runs script-writer agent for a single episode.
+ * Format-aware: passes outputFormat + styleFingerprint from initialData.
  */
 
 import type { PipelineDef, PipelineContext } from "../types";
 import { defineStep } from "../types";
 import { scriptWriterAgent } from "../definitions";
+import type { OutputFormat, StyleFingerprint } from "@/lib/llm/prompts/rewrite-script";
 
 export const writingPipeline: PipelineDef = {
   name: "writing",
@@ -23,6 +25,8 @@ export const writingPipeline: PipelineDef = {
           personality: string[];
           appearance: string;
         }>,
+        outputFormat: (ctx.initialData.outputFormat as OutputFormat) || "script",
+        styleFingerprint: ctx.initialData.styleFingerprint as StyleFingerprint | undefined,
       }),
     }),
   ],

@@ -34,7 +34,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   if (isErrorResponse(auth)) return auth;
 
   const body = await req.json();
-  const { title, sourceText, durationPerEp, autoMode } = body;
+  const { title, sourceText, durationPerEp, autoMode, outputFormat } = body;
 
   if (!title?.trim()) return badRequest("title is required");
   if (!sourceText?.trim()) return badRequest("sourceText is required");
@@ -46,6 +46,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
       sourceText: sourceText.trim(),
       durationPerEp: durationPerEp || null,
       autoMode: autoMode ?? false,
+      outputFormat: outputFormat || "script",
     },
   });
 

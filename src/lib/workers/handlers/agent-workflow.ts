@@ -1,10 +1,11 @@
 /**
  * Worker handlers for agent workflow tasks.
  * Each AGENT_* task type runs a specific pipeline via the agent runner.
+ * Format-aware: supports "script" (screenplay), "novel" (rewrite), and "same" (auto-detect).
  */
 
 import { prisma } from "@/lib/prisma";
-import { createLLMClient } from "@/lib/llm/client";
+import { createLLMClient, chatCompletionJson } from "@/lib/llm/client";
 import { resolveLlmConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import { runPipeline } from "@/lib/agents/runner";
@@ -16,8 +17,12 @@ import {
   storyboardPipeline,
   imagePromptsPipeline,
 } from "@/lib/agents/pipelines";
+import {
+  STYLE_ANALYSIS_SYSTEM,
+  STYLE_ANALYSIS_USER,
+} from "@/lib/llm/prompts/rewrite-script";
+import type { StyleFingerprint } from "@/lib/llm/prompts/rewrite-script";
 import type { TaskPayload } from "@/lib/task/types";
-import type { PipelineDef } from "@/lib/agents/types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -42,6 +47,11 @@ async function updateProjectStatus(id: string, status: string, currentStep?: str
   });
 }
 
+/** Check if this project uses visual pipeline (storyboard + image prompts) */
+function needsVisualPipeline(outputFormat: string | null | undefined): boolean {
+  return !outputFormat || outputFormat === "script";
+}
+
 // ─── AGENT_ANALYZE ───────────────────────────────────────────────────
 
 export const handleAgentAnalyze = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
@@ -58,21 +68,37 @@ export const handleAgentAnalyze = withTaskLifecycle(async (payload: TaskPayload,
     model,
     taskCtx: ctx,
     initialData: { sourceText: project.sourceText },
-    progressRange: [5, 95],
+    progressRange: [5, 80],
   });
 
   const analysisData = pipelineCtx.results["analyze"];
+
+  // Style fingerprint analysis — extract writing style for rewrite/review
+  ctx.publishText("\n\n📋 分析写作风格...\n");
+  let styleData: StyleFingerprint | null = null;
+  try {
+    styleData = await chatCompletionJson<StyleFingerprint>(client, {
+      model,
+      systemPrompt: STYLE_ANALYSIS_SYSTEM,
+      userPrompt: STYLE_ANALYSIS_USER(project.sourceText.slice(0, 6000)),
+      temperature: 0.3,
+    });
+    ctx.publishText(`风格: ${styleData.contentType} | ${styleData.emotionalTone} | ${styleData.sentenceStyle}\n`);
+  } catch {
+    ctx.publishText("⚠️ 风格分析跳过\n");
+  }
 
   await prisma.agentProject.update({
     where: { id: agentProjectId },
     data: {
       analysisData: analysisData as object,
+      ...(styleData ? { styleData: styleData as object } : {}),
       status: "analyzed",
       currentStep: null,
     },
   });
 
-  return { analysisData };
+  return { analysisData, styleData };
 });
 
 // ─── AGENT_PLAN ──────────────────────────────────────────────────────
@@ -100,7 +126,6 @@ export const handleAgentPlan = withTaskLifecycle(async (payload: TaskPayload, ct
     progressRange: [5, 80],
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const planningData = pipelineCtx.results["plan"] as {
     totalEpisodes: number;
     episodes: Array<Record<string, unknown>>;
@@ -159,6 +184,8 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
 
   const project = await getAgentProject(agentProjectId);
   const analysis = project.analysisData as { characters?: Array<{ name: string; personality: string[]; appearance: string }> } | null;
+  const outputFormat = project.outputFormat || "script";
+  const styleFingerprint = project.styleData as StyleFingerprint | null;
 
   const episode = project.episodes.find((e) => e.episodeNumber === episodeNumber);
   if (!episode) throw new Error(`Episode ${episodeNumber} not found`);
@@ -182,6 +209,8 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
       sourceText: project.sourceText,
       previousEpisodeEnding: prevEnding,
       characters: analysis?.characters ?? [],
+      outputFormat,
+      styleFingerprint: styleFingerprint ?? undefined,
     },
     progressRange: [5, 90],
   });
@@ -214,6 +243,7 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
   await updateProjectStatus(agentProjectId, "reviewing", `review-ep${episodeNumber}`);
 
   const project = await getAgentProject(agentProjectId);
+  const outputFormat = project.outputFormat || "script";
   const episode = project.episodes.find((e) => e.episodeNumber === episodeNumber);
   if (!episode?.script) throw new Error(`Episode ${episodeNumber} has no script to review`);
 
@@ -230,6 +260,7 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
       analysisCharacters: project.analysisData
         ? JSON.stringify((project.analysisData as { characters?: unknown }).characters)
         : undefined,
+      outputFormat,
     },
     progressRange: [5, 90],
   });
@@ -242,6 +273,12 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
   const PASS_THRESHOLD = 35;
   const passed = reviewResult.totalScore >= PASS_THRESHOLD;
 
+  // For novel format, reviewed = completed (no visual pipeline)
+  const isVisual = needsVisualPipeline(outputFormat);
+  const newStatus = passed
+    ? (isVisual ? "reviewed" : "completed")
+    : "review-failed";
+
   await prisma.agentEpisode.update({
     where: {
       agentProjectId_episodeNumber: { agentProjectId, episodeNumber },
@@ -249,7 +286,7 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
     data: {
       reviewData: pipelineCtx.results["review"] as object,
       reviewScore: reviewResult.totalScore,
-      status: passed ? "reviewed" : "review-failed",
+      status: newStatus,
     },
   });
 
@@ -282,6 +319,7 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
       episodeNumber,
       script: episode.script,
       characters: analysis?.characters ?? [],
+      outputFormat: project.outputFormat || "script",
     },
     progressRange: [5, 90],
   });
@@ -339,6 +377,7 @@ export const handleAgentImagePrompts = withTaskLifecycle(async (payload: TaskPay
       episodeNumber,
       storyboard: storyboardParsed.storyboard,
       characterCards,
+      outputFormat: project.outputFormat || "script",
     },
     progressRange: [5, 90],
   });
@@ -369,6 +408,8 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
 
   const project = await getAgentProject(agentProjectId);
   const { client, model } = await setupLLM(userId);
+  const outputFormat = project.outputFormat || "script";
+  const isVisual = needsVisualPipeline(outputFormat);
 
   // Phase 1: Analysis (0-15%)
   if (!project.analysisData) {
@@ -376,12 +417,30 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     const analysisPipelineCtx = await runPipeline(analysisPipeline, {
       client, model, taskCtx: ctx,
       initialData: { sourceText: project.sourceText },
-      progressRange: [0, 15],
+      progressRange: [0, 12],
     });
     await prisma.agentProject.update({
       where: { id: agentProjectId },
       data: { analysisData: analysisPipelineCtx.results["analyze"] as object },
     });
+
+    // Style fingerprint analysis
+    ctx.publishText("\n\n📋 分析写作风格...\n");
+    try {
+      const styleData = await chatCompletionJson<StyleFingerprint>(client, {
+        model,
+        systemPrompt: STYLE_ANALYSIS_SYSTEM,
+        userPrompt: STYLE_ANALYSIS_USER(project.sourceText.slice(0, 6000)),
+        temperature: 0.3,
+      });
+      await prisma.agentProject.update({
+        where: { id: agentProjectId },
+        data: { styleData: styleData as object },
+      });
+      ctx.publishText(`风格: ${styleData.contentType} | ${styleData.emotionalTone}\n`);
+    } catch {
+      ctx.publishText("⚠️ 风格分析跳过\n");
+    }
   }
   await ctx.reportProgress(15);
 
@@ -434,8 +493,9 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   const analysis = finalProject.analysisData as {
     characters?: Array<{ name: string; personality: string[]; appearance: string }>;
   } | null;
+  const styleFingerprint = finalProject.styleData as StyleFingerprint | null;
 
-  // Phase 3: Write + Review + Storyboard + Image Prompts per episode (30-95%)
+  // Phase 3: Write + Review [+ Storyboard + Image Prompts] per episode (30-95%)
   // Skip already completed episodes — only process incomplete ones
   const incompleteEpisodes = episodes.filter((e) => e.status !== "completed");
   const perEpisodeProgress = incompleteEpisodes.length > 0 ? 65 / incompleteEpisodes.length : 65;
@@ -445,15 +505,26 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     const freshEp = await prisma.agentEpisode.findUnique({
       where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: incompleteEpisodes[i].episodeNumber } },
     });
-    // Skip if completed, or if all steps are already done
     if (!freshEp || freshEp.status === "completed") continue;
-    if (freshEp.script && freshEp.reviewScore && freshEp.storyboard && freshEp.imagePrompts) {
-      // All data exists — fix status and skip
-      await prisma.agentEpisode.update({
-        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: freshEp.episodeNumber } },
-        data: { status: "completed" },
-      });
-      continue;
+
+    // Check completion based on format
+    if (isVisual) {
+      if (freshEp.script && freshEp.reviewScore && freshEp.storyboard && freshEp.imagePrompts) {
+        await prisma.agentEpisode.update({
+          where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: freshEp.episodeNumber } },
+          data: { status: "completed" },
+        });
+        continue;
+      }
+    } else {
+      // Novel format: completed after review
+      if (freshEp.script && freshEp.reviewScore) {
+        await prisma.agentEpisode.update({
+          where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: freshEp.episodeNumber } },
+          data: { status: "completed" },
+        });
+        continue;
+      }
     }
 
     const epNum = freshEp.episodeNumber;
@@ -473,6 +544,8 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           sourceText: finalProject.sourceText,
           previousEpisodeEnding: prevEp?.script?.slice(-500),
           characters: analysis?.characters ?? [],
+          outputFormat,
+          styleFingerprint: styleFingerprint ?? undefined,
         },
         progressRange: [baseProgress, baseProgress + perEpisodeProgress * 0.3],
       });
@@ -492,15 +565,29 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           episodeNumber: epNum,
           script,
           sourceText: finalProject.sourceText,
+          outputFormat,
         },
         progressRange: [baseProgress + perEpisodeProgress * 0.3, baseProgress + perEpisodeProgress * 0.5],
       });
       const reviewResult = reviewCtx.results["review"] as { totalScore: number; passed: boolean };
+
+      // For novel format, reviewed = completed
+      const reviewStatus = !isVisual ? "completed" : undefined;
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
-        data: { reviewData: reviewCtx.results["review"] as object, reviewScore: reviewResult.totalScore },
+        data: {
+          reviewData: reviewCtx.results["review"] as object,
+          reviewScore: reviewResult.totalScore,
+          ...(reviewStatus ? { status: reviewStatus } : {}),
+        },
       });
+
+      // Skip visual pipeline for novel format
+      if (!isVisual) continue;
     }
+
+    // Visual pipeline — only for screenplay format
+    if (!isVisual) continue;
 
     // Storyboard — skip if already has storyboard data
     let storyboardData: unknown = null;
@@ -512,6 +599,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           episodeNumber: epNum,
           script,
           characters: analysis?.characters ?? [],
+          outputFormat,
         },
         progressRange: [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.75],
       });
@@ -538,6 +626,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           episodeNumber: epNum,
           storyboard: storyboardData,
           characterCards,
+          outputFormat,
         },
         progressRange: [baseProgress + perEpisodeProgress * 0.75, baseProgress + perEpisodeProgress],
       });

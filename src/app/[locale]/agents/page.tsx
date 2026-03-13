@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Film,
+  Upload,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -52,6 +53,7 @@ interface AgentProject {
   targetEpisodes: number | null;
   durationPerEp: string | null;
   autoMode: boolean;
+  outputFormat: string | null;
   analysisData: unknown;
   planningData: unknown;
   createdAt: string;
@@ -83,6 +85,7 @@ export default function AgentsPage() {
   const t = useTranslations("agents");
   const tc = useTranslations("common");
   const pathname = usePathname();
+  const router = useRouter();
   const locale = pathname.split("/")[1] || "zh";
   const { status: sessionStatus } = useSession();
   const queryClient = useQueryClient();
@@ -104,7 +107,7 @@ export default function AgentsPage() {
       if (activeTaskId) return 3000;
       // Poll at 5s if any project has a busy status (backend still running after page refresh)
       const data = query.state.data as AgentProject[] | undefined;
-      const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
+      const busyStatuses = ["created", "analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
       if (data?.some((p) => busyStatuses.includes(p.status))) return 5000;
       return false;
     },
@@ -152,6 +155,21 @@ export default function AgentsPage() {
         if (!r.ok) throw new Error("Failed");
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["agent-projects"] }),
+  });
+
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const publishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      setPublishingId(id);
+      const res = await fetch(`/api/agent-projects/${id}/publish`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json() as Promise<{ projectId: string }>;
+    },
+    onSuccess: (data) => {
+      setPublishingId(null);
+      router.push(`/${locale}/projects/${data.projectId}`);
+    },
+    onError: () => setPublishingId(null),
   });
 
   // ─── Render ──────────────────────────────────────────────────────
@@ -214,6 +232,8 @@ export default function AgentsPage() {
                   await fetch(`/api/agent-projects/${project.id}`, { method: "PATCH" });
                   queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
                 }}
+                onPublish={() => publishMutation.mutate(project.id)}
+                isPublishing={publishingId === project.id}
                 onViewContent={setViewContent}
                 t={t}
                 isWorking={!!activeTaskId && activeProjectId === project.id}
@@ -228,12 +248,14 @@ export default function AgentsPage() {
       <CreateProjectModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        onCreated={(id, autoMode) => {
+        onCreated={async (id, autoMode) => {
           setShowCreate(false);
-          queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
-          if (autoMode) {
-            triggerAction(`/api/agent-projects/${id}/auto`);
-          }
+          // Always start analysis; autoMode runs the full pipeline
+          await triggerAction(
+            autoMode
+              ? `/api/agent-projects/${id}/auto`
+              : `/api/agent-projects/${id}/analyze`,
+          );
         }}
         t={t}
         tc={tc}
@@ -263,6 +285,8 @@ function ProjectCard({
   onTrigger,
   onDelete,
   onReset,
+  onPublish,
+  isPublishing,
   onViewContent,
   t,
   isWorking,
@@ -274,6 +298,8 @@ function ProjectCard({
   onTrigger: (url: string, body?: object) => Promise<unknown>;
   onDelete: () => void;
   onReset: () => void;
+  onPublish: () => void;
+  isPublishing: boolean;
   onViewContent: (v: { title: string; content: string; type: ContentType }) => void;
   t: ReturnType<typeof useTranslations<"agents">>;
   isWorking: boolean; // this project has an active task
@@ -313,6 +339,11 @@ function ProjectCard({
           <Badge variant={statusVariant(isStuck ? "failed" : project.status)}>
             {isStuck ? t("status.failed") : t(`status.${project.status}` as Parameters<typeof t>[0])}
           </Badge>
+          {project.outputFormat && project.outputFormat !== "script" && (
+            <Badge variant="warning">
+              {project.outputFormat === "novel" ? t("formatNovel") : t("formatSame")}
+            </Badge>
+          )}
           {project.episodes?.length > 0 && (
             <span className="text-xs text-[var(--color-text-tertiary)]">
               {project.episodes.length} {t("episodes")}
@@ -321,6 +352,16 @@ function ProjectCard({
         </button>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Publish to project — show when completed */}
+          {project.status === "completed" && (
+            <Button size="sm" disabled={isPublishing}
+              onClick={onPublish}>
+              {isPublishing
+                ? <Loader2 size={14} className="mr-1 animate-spin" />
+                : <Upload size={14} className="mr-1" />}
+              {t("publish")}
+            </Button>
+          )}
           {/* Step-by-step actions — show based on actual data, not just project status */}
           {!project.analysisData && (
             <Button size="sm" variant="secondary" disabled={!canAct}
@@ -417,6 +458,7 @@ function EpisodeRow({
   isWorking: boolean;
 }) {
   const base = `/api/agent-projects/${project.id}/episodes/${ep.episodeNumber}`;
+  const isVisualFormat = !project.outputFormat || project.outputFormat === "script";
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<EpisodeDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -494,13 +536,13 @@ function EpisodeRow({
               {t("steps.review")}
             </Button>
           )}
-          {(ep.status === "reviewed" || ep.status === "review-failed") && (
+          {(ep.status === "reviewed" || ep.status === "review-failed") && isVisualFormat && (
             <Button size="sm" variant="ghost" disabled={isWorking}
               onClick={() => onTrigger(`${base}/storyboard`)}>
               {t("steps.storyboard")}
             </Button>
           )}
-          {ep.status === "storyboarded" && (
+          {ep.status === "storyboarded" && isVisualFormat && (
             <Button size="sm" variant="ghost" disabled={isWorking}
               onClick={() => onTrigger(`${base}/image-prompts`)}>
               {t("steps.imagePrompts")}
@@ -537,7 +579,7 @@ function EpisodeRow({
                   <Eye size={14} /> {t("viewReview")}
                 </button>
               )}
-              {detail.storyboard && (
+              {isVisualFormat && detail.storyboard && (
                 <button
                   onClick={() => viewSection(t("viewStoryboard"), detail.storyboard!, "storyboard")}
                   className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
@@ -545,7 +587,7 @@ function EpisodeRow({
                   <Film size={14} /> {t("viewStoryboard")}
                 </button>
               )}
-              {detail.imagePrompts && (
+              {isVisualFormat && detail.imagePrompts && (
                 <button
                   onClick={() => viewSection(t("viewImagePrompts"), detail.imagePrompts!, "imagePrompts")}
                   className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
@@ -583,6 +625,7 @@ function CreateProjectModal({
   const [sourceText, setSourceText] = useState("");
   const [durationPerEp, setDurationPerEp] = useState("");
   const [autoMode, setAutoMode] = useState(false);
+  const [outputFormat, setOutputFormat] = useState<"script" | "novel" | "same">("script");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -599,6 +642,7 @@ function CreateProjectModal({
           sourceText: sourceText.trim(),
           durationPerEp: durationPerEp.trim() || null,
           autoMode,
+          outputFormat,
         }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -607,6 +651,7 @@ function CreateProjectModal({
       setSourceText("");
       setDurationPerEp("");
       setAutoMode(false);
+      setOutputFormat("script");
       onCreated(data.id, autoMode);
     } finally {
       setSubmitting(false);
@@ -640,6 +685,31 @@ function CreateProjectModal({
               {sourceText.length.toLocaleString()} 字
             </p>
           )}
+        </div>
+        {/* Output format selector */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
+            {t("outputFormat")}
+          </label>
+          <div className="flex gap-2">
+            {(["script", "novel", "same"] as const).map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                onClick={() => setOutputFormat(fmt)}
+                className={`flex-1 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                  outputFormat === fmt
+                    ? "bg-[var(--color-btn-primary)] text-white"
+                    : "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface-hover)]"
+                }`}
+              >
+                {t(`format_${fmt}` as Parameters<typeof t>[0])}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-[var(--color-text-tertiary)]">
+            {t(`formatHint_${outputFormat}` as Parameters<typeof t>[0])}
+          </p>
         </div>
         <Input
           id="duration"

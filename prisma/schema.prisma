@@ -521,6 +521,7 @@ model AgentProject {
   durationPerEp  String? // 每集时长 "2-5min"
   modelKey       String? // 使用哪个 LLM 模型
   autoMode       Boolean @default(false) // 一键全自动模式
+  outputFormat   String? // "script" | "novel" | "same"
 
   // Workflow state
   status      String  @default("created") // created | analyzing | planning | writing | reviewing | storyboarding | imaging | completed | failed
@@ -529,6 +530,7 @@ model AgentProject {
   // Agent outputs (JSON)
   analysisData Json? @db.Json // novel-analyzer: 人物图谱/情节骨架/情绪曲线/改编评估
   planningData Json? @db.Json // episode-architect: 分集大纲
+  styleData    Json? @db.Json // StyleFingerprint: 风格指纹
 
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   episodes AgentEpisode[]
