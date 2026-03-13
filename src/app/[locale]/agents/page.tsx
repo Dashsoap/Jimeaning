@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
+import { ContentRenderer, type ContentType } from "@/components/agents/ContentRenderer";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ export default function AgentsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [viewContent, setViewContent] = useState<{ title: string; content: string } | null>(null);
+  const [viewContent, setViewContent] = useState<{ title: string; content: string; type: ContentType } | null>(null);
 
   // ─── Queries ─────────────────────────────────────────────────────
 
@@ -245,9 +246,9 @@ export default function AgentsPage() {
         title={viewContent?.title}
         className="max-w-3xl max-h-[80vh] overflow-y-auto"
       >
-        <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)] leading-relaxed">
-          {viewContent?.content}
-        </pre>
+        {viewContent && (
+          <ContentRenderer content={viewContent.content} type={viewContent.type} />
+        )}
       </Modal>
     </AppShell>
   );
@@ -273,7 +274,7 @@ function ProjectCard({
   onTrigger: (url: string, body?: object) => Promise<unknown>;
   onDelete: () => void;
   onReset: () => void;
-  onViewContent: (v: { title: string; content: string }) => void;
+  onViewContent: (v: { title: string; content: string; type: ContentType }) => void;
   t: ReturnType<typeof useTranslations<"agents">>;
   isWorking: boolean; // this project has an active task
   globalBusy: boolean; // any project has an active task
@@ -376,6 +377,7 @@ function ProjectCard({
               onViewContent({
                 title: t("steps.analyze"),
                 content: JSON.stringify(project.analysisData, null, 2),
+                type: "raw",
               })
             }
             className="text-sm text-[var(--color-accent)] hover:underline cursor-pointer"
@@ -410,7 +412,7 @@ function EpisodeRow({
   project: AgentProject;
   episode: AgentEpisode;
   onTrigger: (url: string) => Promise<unknown>;
-  onViewContent: (v: { title: string; content: string }) => void;
+  onViewContent: (v: { title: string; content: string; type: ContentType }) => void;
   t: ReturnType<typeof useTranslations<"agents">>;
   isWorking: boolean;
 }) {
@@ -445,8 +447,8 @@ function EpisodeRow({
     }
   };
 
-  const viewSection = (title: string, content: string) => {
-    onViewContent({ title: `EP${ep.episodeNumber} ${title}`, content });
+  const viewSection = (title: string, content: string, type: ContentType) => {
+    onViewContent({ title: `EP${ep.episodeNumber} ${title}`, content, type });
   };
 
   return (
@@ -518,7 +520,7 @@ function EpisodeRow({
             <div className="flex flex-wrap gap-2">
               {detail.script && (
                 <button
-                  onClick={() => viewSection(t("viewScript"), detail.script!)}
+                  onClick={() => viewSection(t("viewScript"), detail.script!, "script")}
                   className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
                 >
                   <FileText size={14} /> {t("viewScript")}
@@ -529,7 +531,7 @@ function EpisodeRow({
               )}
               {!!detail.reviewData && (
                 <button
-                  onClick={() => viewSection(t("viewReview"), JSON.stringify(detail.reviewData, null, 2))}
+                  onClick={() => viewSection(t("viewReview"), JSON.stringify(detail.reviewData), "review")}
                   className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
                 >
                   <Eye size={14} /> {t("viewReview")}
@@ -537,14 +539,7 @@ function EpisodeRow({
               )}
               {detail.storyboard && (
                 <button
-                  onClick={() => {
-                    try {
-                      const sb = JSON.parse(detail.storyboard!);
-                      viewSection(t("viewStoryboard"), JSON.stringify(sb, null, 2));
-                    } catch {
-                      viewSection(t("viewStoryboard"), detail.storyboard!);
-                    }
-                  }}
+                  onClick={() => viewSection(t("viewStoryboard"), detail.storyboard!, "storyboard")}
                   className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
                 >
                   <Film size={14} /> {t("viewStoryboard")}
@@ -552,14 +547,7 @@ function EpisodeRow({
               )}
               {detail.imagePrompts && (
                 <button
-                  onClick={() => {
-                    try {
-                      const ip = JSON.parse(detail.imagePrompts!);
-                      viewSection(t("viewImagePrompts"), JSON.stringify(ip, null, 2));
-                    } catch {
-                      viewSection(t("viewImagePrompts"), detail.imagePrompts!);
-                    }
-                  }}
+                  onClick={() => viewSection(t("viewImagePrompts"), detail.imagePrompts!, "imagePrompts")}
                   className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
                 >
                   <ImageIcon size={14} /> {t("viewImagePrompts")}

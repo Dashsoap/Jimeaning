@@ -4,6 +4,7 @@
  */
 
 import type { AgentDef } from "../types";
+import { detectLanguage, getCharacterAppearanceDefault } from "@/lib/llm/language-detect";
 
 export interface AnalyzerInput {
   sourceText: string;
@@ -72,16 +73,18 @@ export const novelAnalyzerAgent: AgentDef<AnalyzerInput, AnalysisResult> = {
 5. adaptationAssessment: { visualDifficulty, dialogueRatio, sceneCount, recommendedEpisodes, innerMonologueRatio, cutSuggestions[], addSuggestions[] }
 6. highlights[]: { name, position, excerpt(50字以内), visualPotential(1-5), suggestion }
 
-角色外貌必须具体到发型/体型/标志性穿着。如原著没写，根据身份合理推断并在描述中标注"[推断]"。
+角色外貌必须具体到发型/体型/标志性穿着/种族特征。如原著没写，根据身份合理推断并在描述中标注"[推断]"。
 
 Respond ONLY with valid JSON.`,
 
   userPrompt: (input) => {
+    const lang = detectLanguage(input.sourceText);
+    const appearanceNote = getCharacterAppearanceDefault(lang);
     const segInfo = input.totalSegments && input.totalSegments > 1
       ? `\n（这是第 ${(input.segmentIndex ?? 0) + 1}/${input.totalSegments} 段，请分析此段内容）`
       : "";
     return `分析以下小说文本，提取改编所需的全部结构化信息。${segInfo}
-
+${appearanceNote ? `\n注意：${appearanceNote}\n` : ""}
 原著文本：
 ${input.sourceText}`;
   },

@@ -5,6 +5,7 @@
 
 import type { AgentDef } from "../types";
 import type { StoryboardResult } from "./storyboard-director";
+import { detectLanguage, getCulturalContext } from "@/lib/llm/language-detect";
 
 export interface ImageGeneratorInput {
   episodeNumber: number;
@@ -135,15 +136,23 @@ Respond ONLY with valid JSON.`,
       })
       .join("\n\n");
 
-    return `为第 ${input.episodeNumber} 集的每个分镜镜头生成图片 Prompt。
+    // Detect language from storyboard descriptions to inject cultural context
+    const sampleText = input.storyboard.scenes
+      .flatMap((s) => s.shots.map((sh) => sh.description))
+      .join(" ")
+      .slice(0, 500);
+    const lang = detectLanguage(sampleText);
+    const culturalCtx = getCulturalContext(lang);
 
+    return `为第 ${input.episodeNumber} 集的每个分镜镜头生成图片 Prompt。
+${culturalCtx ? `\n## 文化背景要求\n${culturalCtx}\n` : ""}
 ## 角色描述卡（英文）
 ${charCards}
 
 ## 分镜脚本
 ${storyboardSummary}
 
-为每个镜头生成可直接用于 AI 图片生成的英文 Prompt。使用角色卡原文描述角色，不要使用角色名。`;
+为每个镜头生成可直接用于 AI 图片生成的英文 Prompt。使用角色卡原文描述角色，不要使用角色名。${lang === "zh" ? "\n\n重要：所有角色默认使用 East Asian 面孔特征（black hair, East Asian features），除非角色卡中明确指定了其他种族。每个 prompt 中的人物描述必须包含种族/外貌基础特征。" : ""}`;
   },
 
   parseOutput: (raw) => {
