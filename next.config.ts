@@ -7,6 +7,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n.ts");
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: resolve(__dirname),
+  transpilePackages: ["react-markdown"],
   eslint: {
     ignoreDuringBuilds: false,
   },
