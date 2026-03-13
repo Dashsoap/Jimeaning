@@ -16,6 +16,8 @@ import {
   Eye,
   Zap,
   Loader2,
+  RotateCcw,
+  AlertCircle,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -191,6 +193,10 @@ export default function AgentsPage() {
                     deleteMutation.mutate(project.id);
                   }
                 }}
+                onReset={async () => {
+                  await fetch(`/api/agent-projects/${project.id}`, { method: "PATCH" });
+                  queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
+                }}
                 onViewContent={setViewContent}
                 t={t}
                 isWorking={!!activeTaskId}
@@ -238,6 +244,7 @@ function ProjectCard({
   onToggle,
   onTrigger,
   onDelete,
+  onReset,
   onViewContent,
   t,
   isWorking,
@@ -247,14 +254,34 @@ function ProjectCard({
   onToggle: () => void;
   onTrigger: (url: string, body?: object) => Promise<unknown>;
   onDelete: () => void;
+  onReset: () => void;
   onViewContent: (v: { title: string; content: string }) => void;
   t: ReturnType<typeof useTranslations<"agents">>;
   isWorking: boolean;
 }) {
-  const isBusy = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"].includes(project.status);
+  const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
+  const isBusy = busyStatuses.includes(project.status);
+  // A project is "stuck" if status says busy but no active task is tracking it
+  const isStuck = isBusy && !isWorking;
+  // Show actions when not truly busy (either idle or stuck with no active task)
+  const canAct = !isWorking;
 
   return (
     <Card className="overflow-hidden">
+      {/* Stuck warning */}
+      {isStuck && (
+        <div className="mb-3 flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-error)]/10 px-3 py-2 text-sm text-[var(--color-error)]">
+          <AlertCircle size={14} />
+          {t("taskStuck")}
+          <button
+            onClick={onReset}
+            className="ml-auto flex items-center gap-1 rounded-[var(--radius-sm)] bg-[var(--color-error)]/10 px-2 py-0.5 text-xs font-medium hover:bg-[var(--color-error)]/20 transition-colors cursor-pointer"
+          >
+            <RotateCcw size={12} /> {t("resetStatus")}
+          </button>
+        </div>
+      )}
+
       {/* Header row */}
       <div className="flex items-center gap-3">
         <button onClick={onToggle} className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
@@ -262,37 +289,37 @@ function ProjectCard({
           <span className="font-medium text-[var(--color-text-primary)] truncate">
             {project.title}
           </span>
-          <Badge variant={statusVariant(project.status)}>
-            {t(`status.${project.status}` as Parameters<typeof t>[0])}
+          <Badge variant={statusVariant(isStuck ? "failed" : project.status)}>
+            {isStuck ? t("status.failed") : t(`status.${project.status}` as Parameters<typeof t>[0])}
           </Badge>
-          {project.targetEpisodes && (
+          {project.episodes?.length > 0 && (
             <span className="text-xs text-[var(--color-text-tertiary)]">
-              {project.targetEpisodes} {t("episodes")}
+              {project.episodes.length} {t("episodes")}
             </span>
           )}
         </button>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Step-by-step actions */}
-          {project.status === "created" && (
-            <Button size="sm" variant="secondary" disabled={isWorking || isBusy}
+          {/* Step-by-step actions — show based on actual data, not just project status */}
+          {!project.analysisData && (
+            <Button size="sm" variant="secondary" disabled={!canAct}
               onClick={() => onTrigger(`/api/agent-projects/${project.id}/analyze`)}>
               <Play size={14} className="mr-1" /> {t("steps.analyze")}
             </Button>
           )}
-          {project.status === "analyzed" && !project.planningData && (
-            <Button size="sm" variant="secondary" disabled={isWorking || isBusy}
+          {!!project.analysisData && !project.planningData && (
+            <Button size="sm" variant="secondary" disabled={!canAct}
               onClick={() => onTrigger(`/api/agent-projects/${project.id}/plan`)}>
               <Play size={14} className="mr-1" /> {t("steps.plan")}
             </Button>
           )}
-          {(project.status === "planned" || project.status === "analyzed") && !!project.analysisData && (
-            <Button size="sm" disabled={isWorking || isBusy}
+          {!!project.analysisData && !!project.planningData && (
+            <Button size="sm" disabled={!canAct}
               onClick={() => onTrigger(`/api/agent-projects/${project.id}/auto`)}>
               <Zap size={14} className="mr-1" /> {t("steps.auto")}
             </Button>
           )}
-          {isBusy && (
+          {isBusy && !isStuck && (
             <Loader2 size={16} className="animate-spin text-[var(--color-accent)]" />
           )}
           <button
@@ -315,7 +342,7 @@ function ProjectCard({
               onTrigger={onTrigger}
               onViewContent={onViewContent}
               t={t}
-              isWorking={isWorking || isBusy}
+              isWorking={isWorking || (isBusy && !isStuck)}
             />
           ))}
         </div>

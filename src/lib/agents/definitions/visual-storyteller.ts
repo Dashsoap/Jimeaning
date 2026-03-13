@@ -90,7 +90,7 @@ Respond ONLY with valid JSON.`,
   userPrompt: (input) => {
     // Handle LLM returning scenes[] with shots[], or flat shots[], or other structures
     let storyboardSummary = "";
-    const sb = input.storyboard as Record<string, unknown>;
+    const sb = input.storyboard as unknown as Record<string, unknown>;
     if (Array.isArray(sb.scenes)) {
       storyboardSummary = (sb.scenes as Array<Record<string, unknown>>)
         .map((s) => {

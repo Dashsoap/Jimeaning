@@ -402,6 +402,8 @@
     "viewImagePrompts": "View Image Prompts",
     "deleteConfirm": "Delete adaptation project \"{title}\"? This cannot be undone.",
     "taskStarted": "Task submitted",
+    "taskStuck": "Task interrupted. Status is stuck. Please reset and retry.",
+    "resetStatus": "Reset Status",
     "epStatus": {
       "pending": "Pending",
       "planned": "Planned",

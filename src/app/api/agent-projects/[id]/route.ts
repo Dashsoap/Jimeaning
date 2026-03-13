@@ -25,6 +25,34 @@ export const GET = apiHandler(async (_req: NextRequest, { params }: Params) => {
   return NextResponse.json(project);
 });
 
+/** PATCH /api/agent-projects/:id — reset stuck project status based on actual episode states */
+export const PATCH = apiHandler(async (_req: NextRequest, { params }: Params) => {
+  const auth = await requireAuth();
+  if (isErrorResponse(auth)) return auth;
+  const { id } = await params;
+
+  const project = await prisma.agentProject.findFirst({
+    where: { id, userId: auth.user.id },
+    include: { episodes: { orderBy: { episodeNumber: "asc" } } },
+  });
+  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Determine correct status from episode states
+  let newStatus = "created";
+  if (project.analysisData) newStatus = "analyzed";
+  if (project.planningData && project.episodes.length > 0) newStatus = "planned";
+
+  const allCompleted = project.episodes.length > 0 && project.episodes.every((e) => e.status === "completed");
+  if (allCompleted) newStatus = "completed";
+
+  await prisma.agentProject.update({
+    where: { id },
+    data: { status: newStatus, currentStep: null },
+  });
+
+  return NextResponse.json({ status: newStatus });
+});
+
 /** DELETE /api/agent-projects/:id */
 export const DELETE = apiHandler(async (_req: NextRequest, { params }: Params) => {
   const auth = await requireAuth();

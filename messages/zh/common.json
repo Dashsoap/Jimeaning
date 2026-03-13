@@ -402,6 +402,8 @@
     "viewImagePrompts": "查看图片Prompt",
     "deleteConfirm": "确定删除改编项目「{title}」？此操作不可撤销。",
     "taskStarted": "任务已提交",
+    "taskStuck": "任务异常中断，状态已卡住。请重置后重试。",
+    "resetStatus": "重置状态",
     "epStatus": {
       "pending": "待处理",
       "planned": "已规划",
