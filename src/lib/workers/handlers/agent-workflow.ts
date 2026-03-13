@@ -238,6 +238,9 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
     totalScore: number;
     passed: boolean;
   };
+  // Don't trust LLM's `passed` field — compute from score (≥35 = pass)
+  const PASS_THRESHOLD = 35;
+  const passed = reviewResult.totalScore >= PASS_THRESHOLD;
 
   await prisma.agentEpisode.update({
     where: {
@@ -246,13 +249,13 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
     data: {
       reviewData: pipelineCtx.results["review"] as object,
       reviewScore: reviewResult.totalScore,
-      status: reviewResult.passed ? "reviewed" : "review-failed",
+      status: passed ? "reviewed" : "review-failed",
     },
   });
 
   await updateProjectStatus(agentProjectId, "planned", undefined);
 
-  return { episodeNumber, score: reviewResult.totalScore, passed: reviewResult.passed };
+  return { episodeNumber, score: reviewResult.totalScore, passed };
 });
 
 // ─── AGENT_STORYBOARD ────────────────────────────────────────────────
@@ -442,7 +445,16 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     const freshEp = await prisma.agentEpisode.findUnique({
       where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: incompleteEpisodes[i].episodeNumber } },
     });
+    // Skip if completed, or if all steps are already done
     if (!freshEp || freshEp.status === "completed") continue;
+    if (freshEp.script && freshEp.reviewScore && freshEp.storyboard && freshEp.imagePrompts) {
+      // All data exists — fix status and skip
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: freshEp.episodeNumber } },
+        data: { status: "completed" },
+      });
+      continue;
+    }
 
     const epNum = freshEp.episodeNumber;
     const baseProgress = 30 + i * perEpisodeProgress;

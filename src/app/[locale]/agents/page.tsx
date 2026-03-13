@@ -87,6 +87,7 @@ export default function AgentsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [viewContent, setViewContent] = useState<{ title: string; content: string } | null>(null);
 
   // ─── Queries ─────────────────────────────────────────────────────
@@ -103,10 +104,12 @@ export default function AgentsPage() {
   useTaskPolling(activeTaskId, {
     onComplete: () => {
       setActiveTaskId(null);
+      setActiveProjectId(null);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
     },
     onFailed: () => {
       setActiveTaskId(null);
+      setActiveProjectId(null);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
     },
   });
@@ -123,6 +126,9 @@ export default function AgentsPage() {
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       setActiveTaskId(data.taskId);
+      // Extract project ID from URL: /api/agent-projects/{id}/...
+      const match = url.match(/\/agent-projects\/([^/]+)/);
+      if (match) setActiveProjectId(match[1]);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
       return data;
     },
@@ -199,7 +205,8 @@ export default function AgentsPage() {
                 }}
                 onViewContent={setViewContent}
                 t={t}
-                isWorking={!!activeTaskId}
+                isWorking={!!activeTaskId && activeProjectId === project.id}
+                globalBusy={!!activeTaskId}
               />
             ))}
           </div>
@@ -248,6 +255,7 @@ function ProjectCard({
   onViewContent,
   t,
   isWorking,
+  globalBusy,
 }: {
   project: AgentProject;
   expanded: boolean;
@@ -257,14 +265,15 @@ function ProjectCard({
   onReset: () => void;
   onViewContent: (v: { title: string; content: string }) => void;
   t: ReturnType<typeof useTranslations<"agents">>;
-  isWorking: boolean;
+  isWorking: boolean; // this project has an active task
+  globalBusy: boolean; // any project has an active task
 }) {
   const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
   const isBusy = busyStatuses.includes(project.status);
   // A project is "stuck" if status says busy but no active task is tracking it
   const isStuck = isBusy && !isWorking;
-  // Show actions when not truly busy (either idle or stuck with no active task)
-  const canAct = !isWorking;
+  // Disable actions if this project is busy, or any task is running globally
+  const canAct = !globalBusy;
 
   return (
     <Card className="overflow-hidden">
@@ -342,7 +351,7 @@ function ProjectCard({
               onTrigger={onTrigger}
               onViewContent={onViewContent}
               t={t}
-              isWorking={isWorking || (isBusy && !isStuck)}
+              isWorking={globalBusy || (isBusy && !isStuck)}
             />
           ))}
         </div>
