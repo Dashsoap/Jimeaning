@@ -96,7 +96,15 @@ export default function AgentsPage() {
     queryKey: ["agent-projects"],
     queryFn: () => fetch("/api/agent-projects").then((r) => r.json()),
     enabled: sessionStatus === "authenticated",
-    refetchInterval: activeTaskId ? 3000 : false,
+    refetchInterval: (query) => {
+      // Always poll at 3s if we have an activeTaskId
+      if (activeTaskId) return 3000;
+      // Poll at 5s if any project has a busy status (backend still running after page refresh)
+      const data = query.state.data as AgentProject[] | undefined;
+      const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
+      if (data?.some((p) => busyStatuses.includes(p.status))) return 5000;
+      return false;
+    },
   });
 
   // ─── Task polling ────────────────────────────────────────────────
@@ -270,8 +278,9 @@ function ProjectCard({
 }) {
   const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
   const isBusy = busyStatuses.includes(project.status);
-  // A project is "stuck" if status says busy but no active task is tracking it
-  const isStuck = isBusy && !isWorking;
+  // A project is "stuck" only if status says busy, no active task, AND updatedAt is stale (>2min)
+  const staleMs = Date.now() - new Date(project.updatedAt).getTime();
+  const isStuck = isBusy && !isWorking && staleMs > 2 * 60 * 1000;
   // Disable actions if this project is busy, or any task is running globally
   const canAct = !globalBusy;
 
