@@ -101,12 +101,13 @@ function ScriptRenderer({ content }: { content: string }) {
 
 // ─── Review Card ──────────────────────────────────────────────────
 
+// Flexible: dimensions can be { key: number } or { key: { score, notes } }
 interface ReviewData {
   totalScore: number;
   passed: boolean;
-  dimensions: Record<string, { score: number; notes: string }>;
-  issues?: Array<{ dimension: string; description: string; location: string; suggestion: string }>;
-  compliance?: { sensitiveWords: boolean; valueGuidance: boolean; platformRules: boolean; notes?: string };
+  dimensions: Record<string, number | { score: number; notes: string }>;
+  issues?: Array<string | { dimension: string; description: string; location: string; suggestion: string }>;
+  compliance?: Record<string, string | boolean>;
 }
 
 const DIMENSION_LABELS: Record<string, string> = {
@@ -117,11 +118,17 @@ const DIMENSION_LABELS: Record<string, string> = {
   formatCompliance: "格式分",
 };
 
+const COMPLIANCE_LABELS: Record<string, string> = {
+  sensitiveWords: "敏感词",
+  valueOrientation: "价值导向",
+  valueGuidance: "价值导向",
+  platformRules: "平台规则",
+};
+
 function ReviewRenderer({ content }: { content: string }) {
   let data: ReviewData;
   try {
-    const parsed = JSON.parse(content);
-    data = parsed as ReviewData;
+    data = JSON.parse(content) as ReviewData;
   } catch {
     return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
   }
@@ -152,29 +159,34 @@ function ReviewRenderer({ content }: { content: string }) {
 
       {/* 5 dimensions */}
       <div className="space-y-3">
-        {Object.entries(data.dimensions).map(([key, dim]) => (
-          <div key={key} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                {DIMENSION_LABELS[key] || key}
-              </span>
-              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-                {dim.score}/10
-              </span>
+        {Object.entries(data.dimensions).map(([key, dim]) => {
+          // Handle both { score, notes } and plain number
+          const score = typeof dim === "number" ? dim : dim.score;
+          const notes = typeof dim === "object" ? dim.notes : null;
+          return (
+            <div key={key} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {DIMENSION_LABELS[key] || key}
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {score}/10
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-2 rounded-full bg-[var(--color-bg-primary)] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${score * 10}%`,
+                    backgroundColor: score >= 7 ? "var(--color-success)" : score >= 5 ? "var(--color-accent)" : "var(--color-error)",
+                  }}
+                />
+              </div>
+              {notes && <p className="mt-2 text-xs text-[var(--color-text-tertiary)] leading-relaxed">{notes}</p>}
             </div>
-            {/* Progress bar */}
-            <div className="h-2 rounded-full bg-[var(--color-bg-primary)] overflow-hidden mb-2">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${dim.score * 10}%`,
-                  backgroundColor: dim.score >= 7 ? "var(--color-success)" : dim.score >= 5 ? "var(--color-accent)" : "var(--color-error)",
-                }}
-              />
-            </div>
-            <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">{dim.notes}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Issues */}
@@ -184,16 +196,24 @@ function ReviewRenderer({ content }: { content: string }) {
           <div className="space-y-2">
             {data.issues.map((issue, i) => (
               <div key={i} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3 text-sm">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded bg-[var(--color-accent-bg)] px-1.5 py-0.5 text-xs text-[var(--color-accent)]">
-                    {DIMENSION_LABELS[issue.dimension] || issue.dimension}
-                  </span>
-                  {issue.location && (
-                    <span className="text-xs text-[var(--color-text-tertiary)]">{issue.location}</span>
-                  )}
-                </div>
-                <p className="text-[var(--color-text-secondary)]">{issue.description}</p>
-                <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">建议：{issue.suggestion}</p>
+                {typeof issue === "string" ? (
+                  <p className="text-[var(--color-text-secondary)] leading-relaxed">{issue}</p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="rounded bg-[var(--color-accent-bg)] px-1.5 py-0.5 text-xs text-[var(--color-accent)]">
+                        {DIMENSION_LABELS[issue.dimension] || issue.dimension}
+                      </span>
+                      {issue.location && (
+                        <span className="text-xs text-[var(--color-text-tertiary)]">{issue.location}</span>
+                      )}
+                    </div>
+                    <p className="text-[var(--color-text-secondary)]">{issue.description}</p>
+                    {issue.suggestion && (
+                      <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">建议：{issue.suggestion}</p>
+                    )}
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -204,29 +224,21 @@ function ReviewRenderer({ content }: { content: string }) {
       {data.compliance && (
         <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3">
           <h4 className="text-sm font-medium text-[var(--color-text-primary)] mb-2">合规检查</h4>
-          <div className="flex gap-4 text-xs">
-            <ComplianceItem label="敏感词" ok={!data.compliance.sensitiveWords} />
-            <ComplianceItem label="价值导向" ok={data.compliance.valueGuidance} />
-            <ComplianceItem label="平台规则" ok={data.compliance.platformRules} />
+          <div className="space-y-1.5 text-sm">
+            {Object.entries(data.compliance).map(([key, val]) => (
+              <div key={key} className="flex items-start gap-2">
+                <span className="text-[var(--color-text-tertiary)] shrink-0">
+                  {COMPLIANCE_LABELS[key] || key}：
+                </span>
+                <span className="text-[var(--color-text-secondary)]">
+                  {typeof val === "boolean" ? (val ? "通过" : "未通过") : String(val)}
+                </span>
+              </div>
+            ))}
           </div>
-          {data.compliance.notes && (
-            <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">{data.compliance.notes}</p>
-          )}
         </div>
       )}
     </div>
-  );
-}
-
-function ComplianceItem({ label, ok }: { label: string; ok: boolean }) {
-  return (
-    <span className="flex items-center gap-1">
-      <span
-        className="inline-block h-2 w-2 rounded-full"
-        style={{ backgroundColor: ok ? "var(--color-success)" : "var(--color-error)" }}
-      />
-      <span className="text-[var(--color-text-secondary)]">{label}</span>
-    </span>
   );
 }
 
