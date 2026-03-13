@@ -58,12 +58,14 @@ interface PersistedState {
 }
 
 function saveState(state: PersistedState) {
+  if (typeof window === "undefined") return;
   try {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
   } catch { /* quota exceeded etc */ }
 }
 
 function loadState(): PersistedState | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
@@ -79,6 +81,7 @@ function loadState(): PersistedState | null {
 }
 
 function clearPersistedState() {
+  if (typeof window === "undefined") return;
   try { sessionStorage.removeItem(SESSION_KEY); } catch { /* */ }
 }
 
@@ -595,6 +598,7 @@ export default function SmartImportPage() {
         body: JSON.stringify({
           masterScriptId,
           rewritePrompt: rewritePrompt.trim(),
+          outputFormat: "script",
           ...(rewriteModelKey ? { modelKey: rewriteModelKey } : {}),
         }),
       });

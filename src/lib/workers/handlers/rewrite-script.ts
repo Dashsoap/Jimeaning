@@ -1,10 +1,22 @@
 import { prisma } from "@/lib/prisma";
-import { createLLMClient, chatCompletionStream } from "@/lib/llm/client";
 import {
-  REWRITE_SCRIPT_SYSTEM,
-  REWRITE_SCRIPT_USER,
-  REWRITE_SCRIPT_CHUNK_USER,
+  createLLMClient,
+  chatCompletion,
+  chatCompletionStream,
+  chatCompletionJson,
+} from "@/lib/llm/client";
+import {
+  STYLE_ANALYSIS_SYSTEM,
+  STYLE_ANALYSIS_USER,
+  REWRITE_SYSTEM,
+  REWRITE_USER,
+  REWRITE_CHUNK_USER,
+  REFLECT_SYSTEM,
+  REFLECT_USER,
+  IMPROVE_SYSTEM,
+  IMPROVE_USER,
   OutputFormat,
+  StyleFingerprint,
 } from "@/lib/llm/prompts/rewrite-script";
 import { resolveLlmConfig, resolveProviderConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
@@ -36,6 +48,12 @@ function splitIntoChunks(content: string, threshold: number): string[] {
   return chunks.length > 0 ? chunks : [content];
 }
 
+/** Get last N characters of text as transition context */
+function getTail(text: string, maxLen = 300): string {
+  if (text.length <= maxLen) return text;
+  return text.slice(-maxLen);
+}
+
 export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
   const { userId, data } = payload;
   const scriptId = data.scriptId as string;
@@ -48,17 +66,12 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
     where: { id: scriptId },
   });
 
-  if (!originalScript) {
-    throw new Error("Original script not found");
-  }
+  if (!originalScript) throw new Error("Original script not found");
+  if (originalScript.userId !== userId) throw new Error("Script does not belong to this user");
 
-  if (originalScript.userId !== userId) {
-    throw new Error("Script does not belong to this user");
-  }
+  await ctx.reportProgress(5);
 
-  await ctx.reportProgress(10);
-
-  // 2. Get LLM config (with optional model key)
+  // 2. Get LLM config
   let llmCfg: { apiKey: string; baseUrl?: string; model: string };
   if (modelKey) {
     const resolved = await resolveProviderConfig(userId, "llm", modelKey);
@@ -72,62 +85,120 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
   }
   const client = createLLMClient(llmCfg);
 
-  await ctx.reportProgress(20);
+  // 3. Style analysis — extract fingerprint from source text
+  ctx.publishText("📋 分析原文风格...\n\n");
+  let styleFingerprint: StyleFingerprint | undefined;
+  try {
+    styleFingerprint = await chatCompletionJson<StyleFingerprint>(client, {
+      model: llmCfg.model,
+      systemPrompt: STYLE_ANALYSIS_SYSTEM,
+      userPrompt: STYLE_ANALYSIS_USER(originalScript.content),
+      temperature: 0.3,
+    });
+  } catch {
+    // Style analysis is optional — continue without it
+    ctx.publishText("⚠️ 风格分析跳过\n\n");
+  }
 
-  // 3. Rewrite — smart chunking for long scripts (streaming)
+  await ctx.reportProgress(15);
+
+  // 4. Rewrite with style-aware prompt
+  ctx.publishText("✍️ 开始改写...\n\n");
   const content = originalScript.content;
   let result: string;
 
   if (content.length <= CHUNK_THRESHOLD) {
-    // Short script: single streaming call
     result = await chatCompletionStream(client, {
       model: llmCfg.model,
-      systemPrompt: REWRITE_SCRIPT_SYSTEM(outputFormat),
-      userPrompt: REWRITE_SCRIPT_USER(content, rewritePrompt),
+      systemPrompt: REWRITE_SYSTEM(outputFormat, styleFingerprint),
+      userPrompt: REWRITE_USER(content, rewritePrompt),
       temperature: 0.7,
       onChunk: (delta) => ctx.publishText(delta),
     });
   } else {
-    // Long script: chunk and rewrite each part with streaming
     const chunks = splitIntoChunks(content, CHUNK_THRESHOLD);
     const rewrittenParts: string[] = [];
 
     for (let i = 0; i < chunks.length; i++) {
-      if (i > 0) {
-        ctx.publishText("\n\n");
-      }
+      if (i > 0) ctx.publishText("\n\n");
+
+      const prevTail = i > 0 ? getTail(rewrittenParts[i - 1]) : undefined;
 
       const chunkResult = await chatCompletionStream(client, {
         model: llmCfg.model,
-        systemPrompt: REWRITE_SCRIPT_SYSTEM(outputFormat),
-        userPrompt: REWRITE_SCRIPT_CHUNK_USER(chunks[i], rewritePrompt, i, chunks.length),
+        systemPrompt: REWRITE_SYSTEM(outputFormat, styleFingerprint),
+        userPrompt: REWRITE_CHUNK_USER(chunks[i], rewritePrompt, i, chunks.length, prevTail),
         temperature: 0.7,
         onChunk: (delta) => ctx.publishText(delta),
       });
 
       rewrittenParts.push(chunkResult.trim());
 
-      // Progress: 20% to 70% distributed across chunks
-      const chunkProgress = 20 + Math.round(((i + 1) / chunks.length) * 50);
+      const chunkProgress = 15 + Math.round(((i + 1) / chunks.length) * 45);
       await ctx.reportProgress(chunkProgress);
     }
 
     result = rewrittenParts.join("\n\n");
   }
-  await ctx.flushText();
 
-  if (!result.trim()) {
-    throw new Error("LLM returned empty response");
+  if (!result.trim()) throw new Error("LLM returned empty response");
+  await ctx.reportProgress(65);
+
+  // 5. Reflect — diagnose AI traces and quality issues
+  ctx.publishText("\n\n🔍 质量检查...\n");
+  let reflectionText = "";
+  let totalScore = 50; // default if reflection fails
+  try {
+    const reflection = await chatCompletionJson<{
+      scores: Record<string, { score: number; issue: string }>;
+      totalScore: number;
+      aiPatterns: string[];
+      suggestions: string[];
+    }>(client, {
+      model: llmCfg.model,
+      systemPrompt: REFLECT_SYSTEM,
+      userPrompt: REFLECT_USER(content, result),
+      temperature: 0.3,
+    });
+
+    totalScore = reflection.totalScore;
+    const patternList = reflection.aiPatterns.length > 0
+      ? reflection.aiPatterns.map((p) => `- ${p}`).join("\n")
+      : "无明显AI痕迹";
+    const suggestionList = reflection.suggestions.map((s) => `- ${s}`).join("\n");
+
+    reflectionText = `质量评分: ${totalScore}/50\nAI痕迹:\n${patternList}\n改进建议:\n${suggestionList}`;
+    ctx.publishText(`\n评分: ${totalScore}/50\n`);
+  } catch {
+    ctx.publishText("\n⚠️ 质量检查跳过\n");
   }
 
-  await ctx.reportProgress(80);
+  await ctx.reportProgress(75);
 
-  // 4. Extract title and content
+  // 6. Improve — if score is below threshold, apply reflection feedback
+  if (totalScore < 40 && reflectionText) {
+    ctx.publishText("\n✨ 润色改进中...\n\n");
+    const improved = await chatCompletionStream(client, {
+      model: llmCfg.model,
+      systemPrompt: IMPROVE_SYSTEM,
+      userPrompt: IMPROVE_USER(result, reflectionText),
+      temperature: 0.6,
+      onChunk: (delta) => ctx.publishText(delta),
+    });
+
+    if (improved.trim()) {
+      result = improved;
+    }
+  }
+
+  await ctx.flushText();
+  await ctx.reportProgress(90);
+
+  // 7. Save
   const lines = result.trim().split("\n");
   const title = lines[0].replace(/^[#\s*]+/, "").trim() || `${originalScript.title} (改写)`;
   const content2 = lines.slice(1).join("\n").trim() || result.trim();
 
-  // 5. Save new script with parentId
   const newScript = await prisma.script.create({
     data: {
       userId,

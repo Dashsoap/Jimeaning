@@ -10,7 +10,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   if (isErrorResponse(auth)) return auth;
 
   const body = await req.json();
-  const { masterScriptId, rewritePrompt, modelKey } = body;
+  const { masterScriptId, rewritePrompt, modelKey, outputFormat } = body;
 
   if (!masterScriptId) {
     return badRequest("masterScriptId is required");
@@ -40,6 +40,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     data: {
       masterScriptId,
       rewritePrompt: rewritePrompt.trim(),
+      outputFormat: outputFormat || "same",
       ...(modelKey ? { modelKey } : {}),
     },
   });

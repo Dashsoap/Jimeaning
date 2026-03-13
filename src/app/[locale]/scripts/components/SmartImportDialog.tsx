@@ -438,6 +438,7 @@ export function SmartImportDialog({ open, onClose, onSuccess }: SmartImportDialo
         body: JSON.stringify({
           masterScriptId,
           rewritePrompt: rewritePrompt.trim(),
+          outputFormat: "script",
           ...(rewriteModelKey ? { modelKey: rewriteModelKey } : {}),
         }),
       });
