@@ -120,12 +120,17 @@ const DIMENSION_LABELS: Record<string, string> = {
 function ReviewRenderer({ content }: { content: string }) {
   let data: ReviewData;
   try {
-    data = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    data = parsed as ReviewData;
   } catch {
     return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
   }
 
-  const scoreColor = data.totalScore >= 35 ? "var(--color-success)" : "var(--color-error)";
+  if (!data.dimensions || typeof data.dimensions !== "object") {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{JSON.stringify(data, null, 2)}</pre>;
+  }
+
+  const scoreColor = (data.totalScore ?? 0) >= 35 ? "var(--color-success)" : "var(--color-error)";
 
   return (
     <div className="space-y-5">
@@ -251,9 +256,15 @@ interface StoryboardData {
 function StoryboardRenderer({ content }: { content: string }) {
   let data: StoryboardData;
   try {
-    data = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    // Handle nested structure: {storyboard: {...}, visualNarrative: {...}}
+    data = parsed.storyboard ?? parsed;
   } catch {
     return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
+  }
+
+  if (!data.scenes || !Array.isArray(data.scenes)) {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{JSON.stringify(data, null, 2)}</pre>;
   }
 
   return (
@@ -341,6 +352,10 @@ function ImagePromptsRenderer({ content }: { content: string }) {
     data = JSON.parse(content);
   } catch {
     return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
+  }
+
+  if (!data.prompts || !Array.isArray(data.prompts)) {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{JSON.stringify(data, null, 2)}</pre>;
   }
 
   return (
