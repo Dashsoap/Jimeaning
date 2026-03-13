@@ -100,35 +100,39 @@ export const handleAgentPlan = withTaskLifecycle(async (payload: TaskPayload, ct
     progressRange: [5, 80],
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const planningData = pipelineCtx.results["plan"] as {
     totalEpisodes: number;
-    episodes: Array<{ number: number; title: string; synopsis: string }>;
+    episodes: Array<Record<string, unknown>>;
   };
 
   await ctx.reportProgress(85);
 
   // Create AgentEpisode records from the plan
-  const episodeOps = planningData.episodes.map((ep) =>
-    prisma.agentEpisode.upsert({
+  // LLM may return "number" or "episodeNumber" — handle both
+  const episodeOps = planningData.episodes.map((ep, idx) => {
+    const epNum = (ep.number ?? ep.episodeNumber ?? idx + 1) as number;
+    const epTitle = (ep.title as string) ?? `第${epNum}集`;
+    return prisma.agentEpisode.upsert({
       where: {
         agentProjectId_episodeNumber: {
           agentProjectId,
-          episodeNumber: ep.number,
+          episodeNumber: epNum,
         },
       },
       create: {
         agentProjectId,
-        episodeNumber: ep.number,
-        title: ep.title,
+        episodeNumber: epNum,
+        title: epTitle,
         outline: JSON.stringify(ep),
         status: "planned",
       },
       update: {
-        title: ep.title,
+        title: epTitle,
         outline: JSON.stringify(ep),
       },
-    }),
-  );
+    });
+  });
   await prisma.$transaction(episodeOps);
 
   await prisma.agentProject.update({
@@ -393,21 +397,23 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     });
     const planData = planPipelineCtx.results["plan"] as {
       totalEpisodes: number;
-      episodes: Array<{ number: number; title: string; synopsis: string }>;
+      episodes: Array<Record<string, unknown>>;
     };
 
-    const episodeOps = planData.episodes.map((ep) =>
-      prisma.agentEpisode.upsert({
+    const episodeOps = planData.episodes.map((ep, idx) => {
+      const epNum = (ep.number ?? ep.episodeNumber ?? idx + 1) as number;
+      const epTitle = (ep.title as string) ?? `第${epNum}集`;
+      return prisma.agentEpisode.upsert({
         where: {
-          agentProjectId_episodeNumber: { agentProjectId, episodeNumber: ep.number },
+          agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum },
         },
         create: {
-          agentProjectId, episodeNumber: ep.number,
-          title: ep.title, outline: JSON.stringify(ep), status: "planned",
+          agentProjectId, episodeNumber: epNum,
+          title: epTitle, outline: JSON.stringify(ep), status: "planned",
         },
-        update: { title: ep.title, outline: JSON.stringify(ep) },
-      }),
-    );
+        update: { title: epTitle, outline: JSON.stringify(ep) },
+      });
+    });
     await prisma.$transaction(episodeOps);
     await prisma.agentProject.update({
       where: { id: agentProjectId },
