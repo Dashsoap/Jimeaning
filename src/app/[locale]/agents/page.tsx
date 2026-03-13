@@ -18,6 +18,8 @@ import {
   Loader2,
   RotateCcw,
   AlertCircle,
+  Image as ImageIcon,
+  Film,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -389,6 +391,14 @@ function ProjectCard({
 
 // ─── Episode Row ─────────────────────────────────────────────────────
 
+interface EpisodeDetail {
+  script?: string | null;
+  reviewData?: unknown;
+  storyboard?: string | null;
+  imagePrompts?: string | null;
+  outline?: string | null;
+}
+
 function EpisodeRow({
   project,
   episode: ep,
@@ -405,73 +415,163 @@ function EpisodeRow({
   isWorking: boolean;
 }) {
   const base = `/api/agent-projects/${project.id}/episodes/${ep.episodeNumber}`;
+  const [expanded, setExpanded] = useState(false);
+  const [detail, setDetail] = useState<EpisodeDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Determine which content types exist based on status progression
+  const hasScript = ["drafted", "reviewed", "review-failed", "storyboarded", "completed"].includes(ep.status);
+  const hasReview = ep.reviewScore !== null;
+  const hasStoryboard = ["storyboarded", "completed"].includes(ep.status);
+  const hasImagePrompts = ep.status === "completed";
+  const hasAnyContent = hasScript || hasReview || hasStoryboard || hasImagePrompts;
+
+  const toggleExpand = async () => {
+    if (expanded) {
+      setExpanded(false);
+      return;
+    }
+    setExpanded(true);
+    if (!detail) {
+      setLoadingDetail(true);
+      try {
+        const res = await fetch(`/api/agent-projects/${project.id}/episodes`);
+        const eps = await res.json();
+        const full = eps.find((e: { episodeNumber: number }) => e.episodeNumber === ep.episodeNumber);
+        if (full) setDetail(full);
+      } finally {
+        setLoadingDetail(false);
+      }
+    }
+  };
+
+  const viewSection = (title: string, content: string) => {
+    onViewContent({ title: `EP${ep.episodeNumber} ${title}`, content });
+  };
 
   return (
-    <div className="flex items-center gap-3 rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] px-3 py-2">
-      <span className="text-sm font-medium text-[var(--color-text-secondary)] w-16 shrink-0">
-        EP{ep.episodeNumber}
-      </span>
-      <span className="text-sm text-[var(--color-text-primary)] truncate flex-1">
-        {ep.title || "—"}
-      </span>
-      <Badge variant={statusVariant(ep.status)}>
-        {t(`epStatus.${ep.status}` as Parameters<typeof t>[0])}
-      </Badge>
-      {ep.reviewScore !== null && (
-        <span className="text-xs text-[var(--color-text-tertiary)]">
-          {t("score")}: {ep.reviewScore}/50
-        </span>
+    <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] overflow-hidden">
+      {/* Main row */}
+      <div className="flex items-center gap-3 px-3 py-2">
+        {/* Clickable area for expand */}
+        <button
+          onClick={hasAnyContent ? toggleExpand : undefined}
+          className={`flex items-center gap-3 flex-1 min-w-0 ${hasAnyContent ? "cursor-pointer" : ""}`}
+        >
+          {hasAnyContent && (
+            expanded ? <ChevronDown size={14} className="text-[var(--color-text-tertiary)] shrink-0" /> : <ChevronRight size={14} className="text-[var(--color-text-tertiary)] shrink-0" />
+          )}
+          <span className="text-sm font-medium text-[var(--color-text-secondary)] w-12 shrink-0">
+            EP{ep.episodeNumber}
+          </span>
+          <span className="text-sm text-[var(--color-text-primary)] truncate">
+            {ep.title || "—"}
+          </span>
+        </button>
+
+        <Badge variant={statusVariant(ep.status)}>
+          {t(`epStatus.${ep.status}` as Parameters<typeof t>[0])}
+        </Badge>
+        {ep.reviewScore !== null && (
+          <span className="text-xs text-[var(--color-text-tertiary)]">
+            {t("score")}: {ep.reviewScore}/50
+          </span>
+        )}
+
+        {/* Action buttons — show next step */}
+        <div className="flex items-center gap-1 shrink-0">
+          {(ep.status === "planned" || ep.status === "pending") && (
+            <Button size="sm" variant="ghost" disabled={isWorking}
+              onClick={() => onTrigger(`${base}/write`)}>
+              {t("steps.write")}
+            </Button>
+          )}
+          {ep.status === "drafted" && (
+            <Button size="sm" variant="ghost" disabled={isWorking}
+              onClick={() => onTrigger(`${base}/review`)}>
+              {t("steps.review")}
+            </Button>
+          )}
+          {(ep.status === "reviewed" || ep.status === "review-failed") && (
+            <Button size="sm" variant="ghost" disabled={isWorking}
+              onClick={() => onTrigger(`${base}/storyboard`)}>
+              {t("steps.storyboard")}
+            </Button>
+          )}
+          {ep.status === "storyboarded" && (
+            <Button size="sm" variant="ghost" disabled={isWorking}
+              onClick={() => onTrigger(`${base}/image-prompts`)}>
+              {t("steps.imagePrompts")}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded content panel */}
+      {expanded && (
+        <div className="border-t border-[var(--color-border-default)] px-4 py-3">
+          {loadingDetail ? (
+            <div className="flex items-center gap-2 text-sm text-[var(--color-text-tertiary)]">
+              <Loader2 size={14} className="animate-spin" /> {t("loadingDetail")}
+            </div>
+          ) : detail ? (
+            <div className="flex flex-wrap gap-2">
+              {detail.script && (
+                <button
+                  onClick={() => viewSection(t("viewScript"), detail.script!)}
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                >
+                  <FileText size={14} /> {t("viewScript")}
+                  <span className="text-xs text-[var(--color-text-tertiary)]">
+                    {detail.script.length.toLocaleString()}字
+                  </span>
+                </button>
+              )}
+              {!!detail.reviewData && (
+                <button
+                  onClick={() => viewSection(t("viewReview"), JSON.stringify(detail.reviewData, null, 2))}
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                >
+                  <Eye size={14} /> {t("viewReview")}
+                </button>
+              )}
+              {detail.storyboard && (
+                <button
+                  onClick={() => {
+                    try {
+                      const sb = JSON.parse(detail.storyboard!);
+                      viewSection(t("viewStoryboard"), JSON.stringify(sb, null, 2));
+                    } catch {
+                      viewSection(t("viewStoryboard"), detail.storyboard!);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                >
+                  <Film size={14} /> {t("viewStoryboard")}
+                </button>
+              )}
+              {detail.imagePrompts && (
+                <button
+                  onClick={() => {
+                    try {
+                      const ip = JSON.parse(detail.imagePrompts!);
+                      viewSection(t("viewImagePrompts"), JSON.stringify(ip, null, 2));
+                    } catch {
+                      viewSection(t("viewImagePrompts"), detail.imagePrompts!);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                >
+                  <ImageIcon size={14} /> {t("viewImagePrompts")}
+                </button>
+              )}
+              {!detail.script && !detail.reviewData && !detail.storyboard && !detail.imagePrompts && (
+                <span className="text-sm text-[var(--color-text-tertiary)]">{t("noContent")}</span>
+              )}
+            </div>
+          ) : null}
+        </div>
       )}
-
-      {/* View buttons */}
-      <div className="flex items-center gap-1 shrink-0">
-        {ep.script && (
-          <button
-            onClick={() => onViewContent({ title: `EP${ep.episodeNumber} ${t("viewScript")}`, content: ep.script! })}
-            className="p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer"
-            title={t("viewScript")}
-          >
-            <FileText size={14} />
-          </button>
-        )}
-        {!!ep.reviewData && (
-          <button
-            onClick={() => onViewContent({ title: `EP${ep.episodeNumber} ${t("viewReview")}`, content: JSON.stringify(ep.reviewData, null, 2) })}
-            className="p-1 text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer"
-            title={t("viewReview")}
-          >
-            <Eye size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* Action buttons — show next step */}
-      <div className="flex items-center gap-1 shrink-0">
-        {(ep.status === "planned" || ep.status === "pending") && (
-          <Button size="sm" variant="ghost" disabled={isWorking}
-            onClick={() => onTrigger(`${base}/write`)}>
-            {t("steps.write")}
-          </Button>
-        )}
-        {ep.status === "drafted" && (
-          <Button size="sm" variant="ghost" disabled={isWorking}
-            onClick={() => onTrigger(`${base}/review`)}>
-            {t("steps.review")}
-          </Button>
-        )}
-        {(ep.status === "reviewed" || ep.status === "review-failed") && (
-          <Button size="sm" variant="ghost" disabled={isWorking}
-            onClick={() => onTrigger(`${base}/storyboard`)}>
-            {t("steps.storyboard")}
-          </Button>
-        )}
-        {ep.status === "storyboarded" && (
-          <Button size="sm" variant="ghost" disabled={isWorking}
-            onClick={() => onTrigger(`${base}/image-prompts`)}>
-            {t("steps.imagePrompts")}
-          </Button>
-        )}
-      </div>
     </div>
   );
 }

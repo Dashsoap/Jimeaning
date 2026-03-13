@@ -404,6 +404,8 @@
     "taskStarted": "任务已提交",
     "taskStuck": "任务异常中断，状态已卡住。请重置后重试。",
     "resetStatus": "重置状态",
+    "loadingDetail": "加载中...",
+    "noContent": "暂无内容",
     "epStatus": {
       "pending": "待处理",
       "planned": "已规划",

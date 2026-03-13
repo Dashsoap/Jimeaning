@@ -404,6 +404,8 @@
     "taskStarted": "Task submitted",
     "taskStuck": "Task interrupted. Status is stuck. Please reset and retry.",
     "resetStatus": "Reset Status",
+    "loadingDetail": "Loading...",
+    "noContent": "No content yet",
     "epStatus": {
       "pending": "Pending",
       "planned": "Planned",
