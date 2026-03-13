@@ -88,11 +88,26 @@ export const visualStorytellerAgent: AgentDef<VisualStorytellerInput, VisualStor
 Respond ONLY with valid JSON.`,
 
   userPrompt: (input) => {
-    const storyboardSummary = input.storyboard.scenes
-      .map((s) =>
-        s.shots.map((shot) => `镜${shot.shotNumber}: ${shot.description}`).join("\n"),
-      )
-      .join("\n\n");
+    // Handle LLM returning scenes[] with shots[], or flat shots[], or other structures
+    let storyboardSummary = "";
+    const sb = input.storyboard as Record<string, unknown>;
+    if (Array.isArray(sb.scenes)) {
+      storyboardSummary = (sb.scenes as Array<Record<string, unknown>>)
+        .map((s) => {
+          const shots = (s.shots ?? s.shotList ?? []) as Array<Record<string, unknown>>;
+          return shots
+            .map((shot) => `镜${shot.shotNumber ?? shot.number ?? "?"}: ${shot.description ?? ""}`)
+            .join("\n");
+        })
+        .join("\n\n");
+    } else if (Array.isArray(sb.shots)) {
+      storyboardSummary = (sb.shots as Array<Record<string, unknown>>)
+        .map((shot) => `镜${shot.shotNumber ?? shot.number ?? "?"}: ${shot.description ?? ""}`)
+        .join("\n");
+    } else {
+      // Last resort: just stringify
+      storyboardSummary = JSON.stringify(sb, null, 2).slice(0, 3000);
+    }
 
     return `为第 ${input.episodeNumber} 集分镜添加视觉叙事标注。
 
