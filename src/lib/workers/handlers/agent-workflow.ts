@@ -433,86 +433,113 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   } | null;
 
   // Phase 3: Write + Review + Storyboard + Image Prompts per episode (30-95%)
-  const perEpisodeProgress = 65 / episodes.length;
+  // Skip already completed episodes — only process incomplete ones
+  const incompleteEpisodes = episodes.filter((e) => e.status !== "completed");
+  const perEpisodeProgress = incompleteEpisodes.length > 0 ? 65 / incompleteEpisodes.length : 65;
 
-  for (let i = 0; i < episodes.length; i++) {
-    const ep = episodes[i];
+  for (let i = 0; i < incompleteEpisodes.length; i++) {
+    // Re-fetch episode to get latest state (may have been partially done before)
+    const freshEp = await prisma.agentEpisode.findUnique({
+      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: incompleteEpisodes[i].episodeNumber } },
+    });
+    if (!freshEp || freshEp.status === "completed") continue;
+
+    const epNum = freshEp.episodeNumber;
     const baseProgress = 30 + i * perEpisodeProgress;
 
-    // Write
-    await updateProjectStatus(agentProjectId, "writing", `write-ep${ep.episodeNumber}`);
-    const prevEp = finalProject.episodes.find((e) => e.episodeNumber === ep.episodeNumber - 1);
-    const writeCtx = await runPipeline(writingPipeline, {
-      client, model, taskCtx: ctx,
-      initialData: {
-        episodeNumber: ep.episodeNumber,
-        episodeTitle: ep.title ?? `第${ep.episodeNumber}集`,
-        episodeOutline: ep.outline ?? "",
-        sourceText: finalProject.sourceText,
-        previousEpisodeEnding: prevEp?.script?.slice(-500),
-        characters: analysis?.characters ?? [],
-      },
-      progressRange: [baseProgress, baseProgress + perEpisodeProgress * 0.3],
-    });
-    const script = (writeCtx.results["write"] as { script: string }).script;
-    await prisma.agentEpisode.update({
-      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: ep.episodeNumber } },
-      data: { script, scriptVersion: { increment: 1 }, status: "drafted" },
-    });
+    // Write — skip if already has script
+    let script = freshEp.script ?? "";
+    if (!script) {
+      await updateProjectStatus(agentProjectId, "writing", `write-ep${epNum}`);
+      const prevEp = finalProject.episodes.find((e) => e.episodeNumber === epNum - 1);
+      const writeCtx = await runPipeline(writingPipeline, {
+        client, model, taskCtx: ctx,
+        initialData: {
+          episodeNumber: epNum,
+          episodeTitle: freshEp.title ?? `第${epNum}集`,
+          episodeOutline: freshEp.outline ?? "",
+          sourceText: finalProject.sourceText,
+          previousEpisodeEnding: prevEp?.script?.slice(-500),
+          characters: analysis?.characters ?? [],
+        },
+        progressRange: [baseProgress, baseProgress + perEpisodeProgress * 0.3],
+      });
+      script = (writeCtx.results["write"] as { script: string }).script;
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+        data: { script, scriptVersion: { increment: 1 }, status: "drafted" },
+      });
+    }
 
-    // Review
-    await updateProjectStatus(agentProjectId, "reviewing", `review-ep${ep.episodeNumber}`);
-    const reviewCtx = await runPipeline(reviewPipeline, {
-      client, model, taskCtx: ctx,
-      initialData: {
-        episodeNumber: ep.episodeNumber,
-        script,
-        sourceText: finalProject.sourceText,
-      },
-      progressRange: [baseProgress + perEpisodeProgress * 0.3, baseProgress + perEpisodeProgress * 0.5],
-    });
-    const reviewResult = reviewCtx.results["review"] as { totalScore: number; passed: boolean };
-    await prisma.agentEpisode.update({
-      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: ep.episodeNumber } },
-      data: { reviewData: reviewCtx.results["review"] as object, reviewScore: reviewResult.totalScore },
-    });
+    // Review — skip if already reviewed
+    if (!freshEp.reviewScore) {
+      await updateProjectStatus(agentProjectId, "reviewing", `review-ep${epNum}`);
+      const reviewCtx = await runPipeline(reviewPipeline, {
+        client, model, taskCtx: ctx,
+        initialData: {
+          episodeNumber: epNum,
+          script,
+          sourceText: finalProject.sourceText,
+        },
+        progressRange: [baseProgress + perEpisodeProgress * 0.3, baseProgress + perEpisodeProgress * 0.5],
+      });
+      const reviewResult = reviewCtx.results["review"] as { totalScore: number; passed: boolean };
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+        data: { reviewData: reviewCtx.results["review"] as object, reviewScore: reviewResult.totalScore },
+      });
+    }
 
-    // Storyboard
-    await updateProjectStatus(agentProjectId, "storyboarding", `storyboard-ep${ep.episodeNumber}`);
-    const sbCtx = await runPipeline(storyboardPipeline, {
-      client, model, taskCtx: ctx,
-      initialData: {
-        episodeNumber: ep.episodeNumber,
-        script,
-        characters: analysis?.characters ?? [],
-      },
-      progressRange: [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.75],
-    });
-    const storyboardData = sbCtx.results["storyboard"];
-    const visualData = sbCtx.results["visual-narrative"];
-    await prisma.agentEpisode.update({
-      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: ep.episodeNumber } },
-      data: { storyboard: JSON.stringify({ storyboard: storyboardData, visualNarrative: visualData }) },
-    });
+    // Storyboard — skip if already has storyboard data
+    let storyboardData: unknown = null;
+    if (!freshEp.storyboard) {
+      await updateProjectStatus(agentProjectId, "storyboarding", `storyboard-ep${epNum}`);
+      const sbCtx = await runPipeline(storyboardPipeline, {
+        client, model, taskCtx: ctx,
+        initialData: {
+          episodeNumber: epNum,
+          script,
+          characters: analysis?.characters ?? [],
+        },
+        progressRange: [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.75],
+      });
+      storyboardData = sbCtx.results["storyboard"];
+      const visualData = sbCtx.results["visual-narrative"];
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+        data: { storyboard: JSON.stringify({ storyboard: storyboardData, visualNarrative: visualData }) },
+      });
+    } else {
+      const parsed = JSON.parse(freshEp.storyboard);
+      storyboardData = parsed.storyboard ?? parsed;
+    }
 
-    // Image prompts
-    await updateProjectStatus(agentProjectId, "imaging", `images-ep${ep.episodeNumber}`);
-    const characterCards = (analysis?.characters ?? []).map((c) => ({
-      name: c.name, promptDescription: c.appearance,
-    }));
-    const imgCtx = await runPipeline(imagePromptsPipeline, {
-      client, model, taskCtx: ctx,
-      initialData: {
-        episodeNumber: ep.episodeNumber,
-        storyboard: storyboardData,
-        characterCards,
-      },
-      progressRange: [baseProgress + perEpisodeProgress * 0.75, baseProgress + perEpisodeProgress],
-    });
-    await prisma.agentEpisode.update({
-      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: ep.episodeNumber } },
-      data: { imagePrompts: JSON.stringify(imgCtx.results["image-prompts"]), status: "completed" },
-    });
+    // Image prompts — skip if already has image prompts
+    if (!freshEp.imagePrompts) {
+      await updateProjectStatus(agentProjectId, "imaging", `images-ep${epNum}`);
+      const characterCards = (analysis?.characters ?? []).map((c) => ({
+        name: c.name, promptDescription: c.appearance,
+      }));
+      const imgCtx = await runPipeline(imagePromptsPipeline, {
+        client, model, taskCtx: ctx,
+        initialData: {
+          episodeNumber: epNum,
+          storyboard: storyboardData,
+          characterCards,
+        },
+        progressRange: [baseProgress + perEpisodeProgress * 0.75, baseProgress + perEpisodeProgress],
+      });
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+        data: { imagePrompts: JSON.stringify(imgCtx.results["image-prompts"]), status: "completed" },
+      });
+    } else {
+      // All steps done, mark completed
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+        data: { status: "completed" },
+      });
+    }
   }
 
   await prisma.agentProject.update({
