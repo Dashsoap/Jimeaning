@@ -52,6 +52,7 @@ export function RewriteScriptDialog({
   const [selectedId, setSelectedId] = useState(preSelectedId || "");
   const [file, setFile] = useState<File | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [outputFormat, setOutputFormat] = useState<"same" | "novel" | "script">("same");
   const [modelKey, setModelKey] = useState("");
   const [llmModels, setLlmModels] = useState<LlmModel[]>([]);
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export function RewriteScriptDialog({
     setSelectedId("");
     setFile(null);
     setPrompt("");
+    setOutputFormat("same");
     setModelKey("");
     setTaskId(null);
     setSubmitting(false);
@@ -162,12 +164,14 @@ export function RewriteScriptDialog({
           body: JSON.stringify({
             scriptId: selectedId,
             prompt: prompt.trim(),
+            outputFormat,
             ...(modelKey ? { modelKey } : {}),
           }),
         });
       } else {
         const formData = new FormData();
         formData.append("prompt", prompt.trim());
+        formData.append("outputFormat", outputFormat);
         formData.append("file", file!);
         if (modelKey) formData.append("modelKey", modelKey);
         res = await fetch("/api/scripts/rewrite", {
@@ -353,6 +357,32 @@ export function RewriteScriptDialog({
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
               />
+            </div>
+
+            {/* Output format */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
+                {t("outputFormat")}
+              </label>
+              <div className="flex gap-2">
+                {(["same", "novel", "script"] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    className={`flex-1 rounded-[var(--radius-md)] px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                      outputFormat === fmt
+                        ? "bg-[var(--color-btn-primary)] text-white"
+                        : "bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-default)]"
+                    }`}
+                    onClick={() => setOutputFormat(fmt)}
+                  >
+                    {t(`outputFormat_${fmt}`)}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                {t(`outputFormatHint_${outputFormat}`)}
+              </p>
             </div>
 
             {/* Advanced options (model selection) */}

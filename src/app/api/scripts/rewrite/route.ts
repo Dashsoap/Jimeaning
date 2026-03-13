@@ -17,6 +17,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   let file: File | null = null;
   let prompt: string | null = null;
   let modelKey: string | null = null;
+  let outputFormat: string = "same";
 
   const contentType = req.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data")) {
@@ -25,11 +26,13 @@ export const POST = apiHandler(async (req: NextRequest) => {
     file = formData.get("file") as File | null;
     prompt = formData.get("prompt") as string | null;
     modelKey = formData.get("modelKey") as string | null;
+    outputFormat = (formData.get("outputFormat") as string) || "same";
   } else {
     const body = await req.json();
     scriptId = body.scriptId || null;
     prompt = body.prompt || null;
     modelKey = body.modelKey || null;
+    outputFormat = body.outputFormat || "same";
   }
 
   if (!prompt?.trim()) {
@@ -93,6 +96,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     data: {
       scriptId: resolvedScriptId,
       rewritePrompt: prompt.trim(),
+      outputFormat,
       ...(modelKey ? { modelKey } : {}),
     },
   });

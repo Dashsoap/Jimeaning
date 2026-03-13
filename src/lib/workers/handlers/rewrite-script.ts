@@ -4,6 +4,7 @@ import {
   REWRITE_SCRIPT_SYSTEM,
   REWRITE_SCRIPT_USER,
   REWRITE_SCRIPT_CHUNK_USER,
+  OutputFormat,
 } from "@/lib/llm/prompts/rewrite-script";
 import { resolveLlmConfig, resolveProviderConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
@@ -40,6 +41,7 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
   const scriptId = data.scriptId as string;
   const rewritePrompt = data.rewritePrompt as string;
   const modelKey = data.modelKey as string | undefined;
+  const outputFormat = (data.outputFormat as OutputFormat) || "same";
 
   // 1. Read original script
   const originalScript = await prisma.script.findUnique({
@@ -80,7 +82,7 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
     // Short script: single streaming call
     result = await chatCompletionStream(client, {
       model: llmCfg.model,
-      systemPrompt: REWRITE_SCRIPT_SYSTEM,
+      systemPrompt: REWRITE_SCRIPT_SYSTEM(outputFormat),
       userPrompt: REWRITE_SCRIPT_USER(content, rewritePrompt),
       temperature: 0.7,
       onChunk: (delta) => ctx.publishText(delta),
@@ -97,7 +99,7 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
 
       const chunkResult = await chatCompletionStream(client, {
         model: llmCfg.model,
-        systemPrompt: REWRITE_SCRIPT_SYSTEM,
+        systemPrompt: REWRITE_SCRIPT_SYSTEM(outputFormat),
         userPrompt: REWRITE_SCRIPT_CHUNK_USER(chunks[i], rewritePrompt, i, chunks.length),
         temperature: 0.7,
         onChunk: (delta) => ctx.publishText(delta),
