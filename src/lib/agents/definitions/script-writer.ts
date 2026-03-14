@@ -92,6 +92,13 @@ ${Object.keys(styleFingerprint.characterVoices || {}).length > 0
 - **对话重写**：保留对话意图和信息量，改变措辞和节奏
 - **结构微调**：段落长度、场景衔接方式可以调整
 
+### 跨集连贯性（最重要）
+- 如果给出了前一集末尾，你的开头必须与之无缝衔接
+- 不要在每集开头添加"上回说到""接着上文"之类的过渡语
+- 不要每集都像重新开始一个故事，要像同一本书的连续章节
+- 叙事节奏、人称视角、时态必须与前一集保持一致
+- 如果前一集结尾某个角色在说话/行动，本集直接延续那个场景
+
 ### 禁止
 - 不要改变人物性格和行为逻辑
 - 不要增删情节事件
@@ -194,19 +201,20 @@ export const scriptWriterAgent: AgentDef<ScriptWriterInput, ScriptWriterOutput> 
     if (fmt === "novel" || (fmt === "same" && input.styleFingerprint?.contentType !== "script")) {
       // Novel rewrite mode
       const prevContext = input.previousEpisodeEnding
-        ? `\n\n## 前一集末尾（保持衔接）\n${input.previousEpisodeEnding}`
+        ? `\n\n## 前一集末尾（必须无缝衔接，不要重复这段内容，从这之后继续）\n...${input.previousEpisodeEnding}\n\n【重要】你的改写必须从上面末尾处自然承接，语气、节奏、叙事状态保持连贯。不要重新开头，不要总结前情。`
         : "";
 
-      return `改写第 ${input.episodeNumber} 集：${input.episodeTitle}
+      return `改写第 ${input.episodeNumber} 集（共 ${input.characters.length > 0 ? "多" : ""}集连载）：${input.episodeTitle}
+${prevContext}
 
 ## 本集大纲
 ${input.episodeOutline}
-${prevContext}
 
 ## 原文内容
 ${input.sourceText}
 
-请按照改写规则，完整改写以上内容。保留所有情节和对话意图，彻底重写表达方式。`;
+请按照改写规则，完整改写以上内容。保留所有情节和对话意图，彻底重写表达方式。
+${input.previousEpisodeEnding ? "【关键要求】开头必须与前一集末尾自然衔接，像同一篇文章的下一段，不要有断裂感。" : ""}`;
     }
 
     // Screenplay mode (original behavior)

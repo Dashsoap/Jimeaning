@@ -534,7 +534,13 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     let script = freshEp.script ?? "";
     if (!script) {
       await updateProjectStatus(agentProjectId, "writing", `write-ep${epNum}`);
-      const prevEp = finalProject.episodes.find((e) => e.episodeNumber === epNum - 1);
+      // Fetch previous episode's LATEST script from DB (not stale cache)
+      const prevEp = epNum > 1
+        ? await prisma.agentEpisode.findUnique({
+            where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum - 1 } },
+            select: { script: true },
+          })
+        : null;
       const writeCtx = await runPipeline(writingPipeline, {
         client, model, taskCtx: ctx,
         initialData: {
@@ -542,7 +548,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           episodeTitle: freshEp.title ?? `第${epNum}集`,
           episodeOutline: freshEp.outline ?? "",
           sourceText: finalProject.sourceText,
-          previousEpisodeEnding: prevEp?.script?.slice(-500),
+          previousEpisodeEnding: prevEp?.script?.slice(-800),
           characters: analysis?.characters ?? [],
           outputFormat,
           styleFingerprint: styleFingerprint ?? undefined,
