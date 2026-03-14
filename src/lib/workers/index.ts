@@ -30,6 +30,7 @@ import {
   handleAgentStoryboard,
   handleAgentImagePrompts,
   handleAgentAuto,
+  handleAgentRewriteStrategy,
 } from "./handlers/agent-workflow";
 
 const logger = createScopedLogger({ module: "worker" });
@@ -59,6 +60,7 @@ const handlers: Record<string, (payload: TaskPayload) => Promise<void>> = {
   [TaskType.AGENT_STORYBOARD]: handleAgentStoryboard,
   [TaskType.AGENT_IMAGE_PROMPTS]: handleAgentImagePrompts,
   [TaskType.AGENT_AUTO]: handleAgentAuto,
+  [TaskType.AGENT_REWRITE_STRATEGY]: handleAgentRewriteStrategy,
 };
 
 async function processJob(payload: TaskPayload) {

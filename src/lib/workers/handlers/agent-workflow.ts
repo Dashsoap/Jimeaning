@@ -16,13 +16,20 @@ import {
   reviewPipeline,
   storyboardPipeline,
   imagePromptsPipeline,
+  strategyPipeline,
+  novelRewritePipeline,
 } from "@/lib/agents/pipelines";
 import {
   STYLE_ANALYSIS_SYSTEM,
   STYLE_ANALYSIS_USER,
+  CHAPTER_SUMMARY_SYSTEM,
+  CHAPTER_SUMMARY_USER,
 } from "@/lib/llm/prompts/rewrite-script";
 import type { StyleFingerprint } from "@/lib/llm/prompts/rewrite-script";
 import type { TaskPayload } from "@/lib/task/types";
+import type { RewriteStrategy } from "@/lib/agents/definitions/rewrite-strategist";
+import type { ReflectOutput } from "@/lib/agents/definitions/reflect";
+import { chatCompletion } from "@/lib/llm/client";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -50,6 +57,76 @@ async function updateProjectStatus(id: string, status: string, currentStep?: str
 /** Check if this project uses visual pipeline (storyboard + image prompts) */
 function needsVisualPipeline(outputFormat: string | null | undefined): boolean {
   return !outputFormat || outputFormat === "script";
+}
+
+/** Check if this project is in novel rewrite mode */
+function isNovelMode(outputFormat: string | null | undefined): boolean {
+  return outputFormat === "novel" || outputFormat === "same";
+}
+
+/** Build chapter summaries string from project's accumulated summaries */
+function buildPrevChapterSummaries(
+  chapterSummaries: Record<string, { summary: string; tail: string }> | null,
+  upToEpisode: number,
+): string {
+  if (!chapterSummaries) return "";
+  const lines: string[] = [];
+  for (let i = 1; i < upToEpisode; i++) {
+    const entry = chapterSummaries[String(i)];
+    if (entry) {
+      lines.push(`第${i}集: ${entry.summary}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+/** Build transition instructions from strategy chapterPlans */
+function buildTransitionInstructions(
+  strategy: RewriteStrategy | null,
+  episodeNumber: number,
+): string {
+  if (!strategy?.chapterPlans) return "";
+  const plan = strategy.chapterPlans.find((p) => p.episodeNumber === episodeNumber);
+  if (!plan) return "";
+  const parts: string[] = [];
+  if (plan.transitionFromPrev) parts.push(`从上集过渡: ${plan.transitionFromPrev}`);
+  if (plan.transitionToNext) parts.push(`向下集过渡: ${plan.transitionToNext}`);
+  if (plan.keySceneTreatment) parts.push(`关键场景处理: ${plan.keySceneTreatment}`);
+  if (plan.emotionalArc) parts.push(`情绪走向: ${plan.emotionalArc}`);
+  return parts.join("\n");
+}
+
+/** Generate chapter summary after writing */
+async function generateChapterSummary(
+  client: import("openai").default,
+  model: string,
+  script: string,
+): Promise<string> {
+  return chatCompletion(client, {
+    model,
+    systemPrompt: CHAPTER_SUMMARY_SYSTEM,
+    userPrompt: CHAPTER_SUMMARY_USER(script),
+    temperature: 0.3,
+  });
+}
+
+/** Update accumulated chapter summaries on the project */
+async function updateChapterSummaries(
+  agentProjectId: string,
+  episodeNumber: number,
+  summary: string,
+  tail: string,
+) {
+  const project = await prisma.agentProject.findUniqueOrThrow({
+    where: { id: agentProjectId },
+    select: { chapterSummaries: true },
+  });
+  const summaries = (project.chapterSummaries as Record<string, { summary: string; tail: string }>) ?? {};
+  summaries[String(episodeNumber)] = { summary, tail };
+  await prisma.agentProject.update({
+    where: { id: agentProjectId },
+    data: { chapterSummaries: summaries },
+  });
 }
 
 // ─── AGENT_ANALYZE ───────────────────────────────────────────────────
@@ -173,6 +250,79 @@ export const handleAgentPlan = withTaskLifecycle(async (payload: TaskPayload, ct
   return { planningData };
 });
 
+// ─── AGENT_REWRITE_STRATEGY ──────────────────────────────────────
+
+export const handleAgentRewriteStrategy = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
+  const { userId, data } = payload;
+  const agentProjectId = data.agentProjectId as string;
+
+  await updateProjectStatus(agentProjectId, "planning", "strategy");
+
+  const project = await getAgentProject(agentProjectId);
+  if (!project.analysisData) throw new Error("Analysis must be completed before strategy design");
+  if (!project.planningData) throw new Error("Planning must be completed before strategy design");
+  if (!project.styleData) throw new Error("Style analysis must be completed before strategy design");
+
+  const analysis = project.analysisData as {
+    characters?: Array<{ name: string; personality: string[]; appearance: string }>;
+  };
+  const styleFingerprint = project.styleData as unknown as StyleFingerprint;
+
+  const episodeOutlines = project.episodes.map((ep) => ({
+    episodeNumber: ep.episodeNumber,
+    title: ep.title ?? `第${ep.episodeNumber}集`,
+    outline: ep.outline ?? "",
+  }));
+
+  const { client, model } = await setupLLM(userId);
+
+  const pipelineCtx = await runPipeline(strategyPipeline, {
+    client,
+    model,
+    taskCtx: ctx,
+    initialData: {
+      episodeOutlines,
+      styleFingerprint,
+      characters: analysis.characters ?? [],
+      sourceTextSample: project.sourceText.slice(0, 8000),
+      totalEpisodes: project.episodes.length,
+    },
+    progressRange: [5, 85],
+  });
+
+  const strategy = pipelineCtx.results["strategy"] as RewriteStrategy;
+
+  // Save chapter notes to each episode
+  if (strategy.chapterPlans) {
+    for (const plan of strategy.chapterPlans) {
+      const ep = project.episodes.find((e) => e.episodeNumber === plan.episodeNumber);
+      if (ep) {
+        await prisma.agentEpisode.update({
+          where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: plan.episodeNumber } },
+          data: {
+            chapterNotes: [
+              ...plan.focusPoints.map((f) => `重点: ${f}`),
+              plan.keySceneTreatment ? `关键场景: ${plan.keySceneTreatment}` : "",
+              plan.emotionalArc ? `情绪弧线: ${plan.emotionalArc}` : "",
+            ].filter(Boolean).join("\n"),
+          },
+        });
+      }
+    }
+  }
+
+  await prisma.agentProject.update({
+    where: { id: agentProjectId },
+    data: {
+      rewriteStrategy: strategy as object,
+      status: "strategy-designed",
+      currentStep: null,
+    },
+  });
+
+  return { strategy };
+});
+
 // ─── AGENT_WRITE ─────────────────────────────────────────────────────
 
 export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, ctx) => {
@@ -185,52 +335,98 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
   const project = await getAgentProject(agentProjectId);
   const analysis = project.analysisData as { characters?: Array<{ name: string; personality: string[]; appearance: string }> } | null;
   const outputFormat = project.outputFormat || "script";
-  const styleFingerprint = project.styleData as StyleFingerprint | null;
+  const styleFingerprint = project.styleData as unknown as StyleFingerprint | null;
+  const rewriteStrategy = project.rewriteStrategy as unknown as RewriteStrategy | null;
+  const chapterSummaries = project.chapterSummaries as Record<string, { summary: string; tail: string }> | null;
+  const useNovelMode = isNovelMode(outputFormat) && !!rewriteStrategy;
 
   const episode = project.episodes.find((e) => e.episodeNumber === episodeNumber);
   if (!episode) throw new Error(`Episode ${episodeNumber} not found`);
 
-  // Get previous episode ending for continuity
-  const prevEpisode = project.episodes.find((e) => e.episodeNumber === episodeNumber - 1);
-  const prevEnding = prevEpisode?.script
-    ? prevEpisode.script.slice(-500)
-    : undefined;
+  // Get previous episode ending for continuity (fresh DB query, not stale cache)
+  const prevEp = episodeNumber > 1
+    ? await prisma.agentEpisode.findUnique({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: episodeNumber - 1 } },
+        select: { script: true },
+      })
+    : null;
+  const prevEnding = prevEp?.script?.slice(-500);
 
   const { client, model } = await setupLLM(userId);
 
-  const pipelineCtx = await runPipeline(writingPipeline, {
-    client,
-    model,
-    taskCtx: ctx,
-    initialData: {
-      episodeNumber,
-      episodeTitle: episode.title ?? `第${episodeNumber}集`,
-      episodeOutline: episode.outline ?? "",
-      sourceText: project.sourceText,
-      previousEpisodeEnding: prevEnding,
-      characters: analysis?.characters ?? [],
-      outputFormat,
-      styleFingerprint: styleFingerprint ?? undefined,
-    },
-    progressRange: [5, 90],
+  // Choose pipeline based on mode
+  const pipeline = useNovelMode ? novelRewritePipeline : writingPipeline;
+
+  const initialData: Record<string, unknown> = {
+    episodeNumber,
+    episodeTitle: episode.title ?? `第${episodeNumber}集`,
+    episodeOutline: episode.outline ?? "",
+    sourceText: project.sourceText,
+    previousEpisodeEnding: prevEnding,
+    characters: analysis?.characters ?? [],
+    outputFormat,
+    styleFingerprint: styleFingerprint ?? undefined,
+  };
+
+  if (useNovelMode) {
+    initialData.rewriteStrategy = rewriteStrategy;
+    initialData.chapterNotes = episode.chapterNotes ?? undefined;
+    initialData.prevChapterSummaries = buildPrevChapterSummaries(chapterSummaries, episodeNumber);
+    initialData.transitionInstructions = buildTransitionInstructions(rewriteStrategy, episodeNumber);
+    initialData.strategyContext = rewriteStrategy
+      ? { globalStyle: rewriteStrategy.globalStyle, characterVoices: rewriteStrategy.characterVoices, chapterNotes: episode.chapterNotes }
+      : undefined;
+  }
+
+  const pipelineCtx = await runPipeline(pipeline, {
+    client, model, taskCtx: ctx,
+    initialData,
+    progressRange: [5, 80],
   });
 
-  const result = pipelineCtx.results["write"] as { script: string };
+  // Get final script (from improve if ran, otherwise from write)
+  const improveResult = pipelineCtx.results["improve"] as { script: string } | undefined;
+  const writeResult = pipelineCtx.results["write"] as { script: string };
+  const finalScript = improveResult?.script ?? writeResult.script;
+  const reflectResult = pipelineCtx.results["reflect"] as ReflectOutput | undefined;
 
   await prisma.agentEpisode.update({
     where: {
       agentProjectId_episodeNumber: { agentProjectId, episodeNumber },
     },
     data: {
-      script: result.script,
+      script: finalScript,
       scriptVersion: { increment: 1 },
       status: "drafted",
+      rewriteAttempt: { increment: 1 },
+      ...(reflectResult ? { reflectionData: reflectResult as object } : {}),
     },
   });
 
-  await updateProjectStatus(agentProjectId, "planned", undefined);
+  // Generate and store chapter summary for cross-episode continuity (novel mode)
+  if (useNovelMode) {
+    try {
+      ctx.publishText("\n\n📝 生成章节摘要...\n");
+      const summary = await generateChapterSummary(client, model, finalScript);
+      await prisma.agentEpisode.update({
+        where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber } },
+        data: { chapterSummary: summary },
+      });
+      await updateChapterSummaries(agentProjectId, episodeNumber, summary, finalScript.slice(-500));
+      ctx.publishText(`摘要: ${summary.slice(0, 100)}...\n`);
+    } catch {
+      ctx.publishText("⚠️ 章节摘要生成跳过\n");
+    }
+  }
 
-  return { episodeNumber, scriptLength: result.script.length };
+  await updateProjectStatus(agentProjectId, project.strategyConfirmed ? "strategy-confirmed" : "planned", undefined);
+
+  return {
+    episodeNumber,
+    scriptLength: finalScript.length,
+    reflectScore: reflectResult?.totalScore,
+    improved: !!improveResult,
+  };
 });
 
 // ─── AGENT_REVIEW ────────────────────────────────────────────────────
@@ -410,6 +606,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   const { client, model } = await setupLLM(userId);
   const outputFormat = project.outputFormat || "script";
   const isVisual = needsVisualPipeline(outputFormat);
+  const isNovel = isNovelMode(outputFormat);
 
   // Phase 1: Analysis (0-15%)
   if (!project.analysisData) {
@@ -444,7 +641,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   }
   await ctx.reportProgress(15);
 
-  // Phase 2: Planning (15-30%)
+  // Phase 2: Planning (15-28%)
   const freshProject = await getAgentProject(agentProjectId);
   if (!freshProject.planningData) {
     await updateProjectStatus(agentProjectId, "planning", "plan");
@@ -455,7 +652,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         sourceText: freshProject.sourceText,
         durationPerEp: freshProject.durationPerEp ?? "2-5分钟",
       },
-      progressRange: [15, 30],
+      progressRange: [15, 28],
     });
     const planData = planPipelineCtx.results["plan"] as {
       totalEpisodes: number;
@@ -482,9 +679,82 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
       data: { planningData: planData as object, targetEpisodes: planData.totalEpisodes },
     });
   }
-  await ctx.reportProgress(30);
+  await ctx.reportProgress(28);
 
-  // Determine which episodes to process
+  // Phase 2.5: Strategy Design (28-38%) — novel mode only, pause for user confirmation
+  if (isNovel) {
+    const projectForStrategy = await getAgentProject(agentProjectId);
+    if (!projectForStrategy.rewriteStrategy) {
+      await updateProjectStatus(agentProjectId, "planning", "strategy");
+      ctx.publishText("\n\n📐 设计改写策略...\n");
+
+      const analysisForStrategy = projectForStrategy.analysisData as {
+        characters?: Array<{ name: string; personality: string[]; appearance: string }>;
+      };
+      const styleForStrategy = projectForStrategy.styleData as unknown as StyleFingerprint;
+
+      const strategyCtx = await runPipeline(strategyPipeline, {
+        client, model, taskCtx: ctx,
+        initialData: {
+          episodeOutlines: projectForStrategy.episodes.map((ep) => ({
+            episodeNumber: ep.episodeNumber,
+            title: ep.title ?? `第${ep.episodeNumber}集`,
+            outline: ep.outline ?? "",
+          })),
+          styleFingerprint: styleForStrategy,
+          characters: analysisForStrategy?.characters ?? [],
+          sourceTextSample: projectForStrategy.sourceText.slice(0, 8000),
+          totalEpisodes: projectForStrategy.episodes.length,
+        },
+        progressRange: [28, 38],
+      });
+
+      const strategy = strategyCtx.results["strategy"] as RewriteStrategy;
+
+      // Save chapter notes to episodes
+      if (strategy.chapterPlans) {
+        for (const plan of strategy.chapterPlans) {
+          const ep = projectForStrategy.episodes.find((e) => e.episodeNumber === plan.episodeNumber);
+          if (ep) {
+            await prisma.agentEpisode.update({
+              where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: plan.episodeNumber } },
+              data: {
+                chapterNotes: [
+                  ...plan.focusPoints.map((f) => `重点: ${f}`),
+                  plan.keySceneTreatment ? `关键场景: ${plan.keySceneTreatment}` : "",
+                  plan.emotionalArc ? `情绪弧线: ${plan.emotionalArc}` : "",
+                ].filter(Boolean).join("\n"),
+              },
+            });
+          }
+        }
+      }
+
+      await prisma.agentProject.update({
+        where: { id: agentProjectId },
+        data: {
+          rewriteStrategy: strategy as object,
+          status: "strategy-designed",
+          currentStep: null,
+        },
+      });
+
+      ctx.publishText(`\n✅ 改写策略设计完成\n📄 ${strategy.humanReadableSummary?.slice(0, 200)}...\n`);
+      ctx.publishText("\n⏸️ 请审阅改写策略后，点击「确认并执行」继续\n");
+
+      // PAUSE — auto mode stops here for novel. User must confirm strategy then trigger execute.
+      return { paused: true, reason: "strategy-designed" };
+    }
+
+    // Strategy exists but not confirmed — also pause
+    if (!projectForStrategy.strategyConfirmed) {
+      ctx.publishText("\n⏸️ 改写策略已设计，等待用户确认...\n");
+      return { paused: true, reason: "awaiting-confirmation" };
+    }
+  }
+  await ctx.reportProgress(38);
+
+  // Phase 3: Write + Review [+ Storyboard + Image Prompts] per episode (38-95%)
   const finalProject = await getAgentProject(agentProjectId);
   const episodes = targetEpisodes
     ? finalProject.episodes.filter((e) => targetEpisodes.includes(e.episodeNumber))
@@ -493,15 +763,14 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   const analysis = finalProject.analysisData as {
     characters?: Array<{ name: string; personality: string[]; appearance: string }>;
   } | null;
-  const styleFingerprint = finalProject.styleData as StyleFingerprint | null;
+  const styleFingerprint = finalProject.styleData as unknown as StyleFingerprint | null;
+  const rewriteStrategy = finalProject.rewriteStrategy as unknown as RewriteStrategy | null;
+  const chapterSummaries = finalProject.chapterSummaries as Record<string, { summary: string; tail: string }> | null;
 
-  // Phase 3: Write + Review [+ Storyboard + Image Prompts] per episode (30-95%)
-  // Skip already completed episodes — only process incomplete ones
   const incompleteEpisodes = episodes.filter((e) => e.status !== "completed");
-  const perEpisodeProgress = incompleteEpisodes.length > 0 ? 65 / incompleteEpisodes.length : 65;
+  const perEpisodeProgress = incompleteEpisodes.length > 0 ? 57 / incompleteEpisodes.length : 57;
 
   for (let i = 0; i < incompleteEpisodes.length; i++) {
-    // Re-fetch episode to get latest state (may have been partially done before)
     const freshEp = await prisma.agentEpisode.findUnique({
       where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: incompleteEpisodes[i].episodeNumber } },
     });
@@ -517,7 +786,6 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         continue;
       }
     } else {
-      // Novel format: completed after review
       if (freshEp.script && freshEp.reviewScore) {
         await prisma.agentEpisode.update({
           where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: freshEp.episodeNumber } },
@@ -528,38 +796,89 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     }
 
     const epNum = freshEp.episodeNumber;
-    const baseProgress = 30 + i * perEpisodeProgress;
+    const baseProgress = 38 + i * perEpisodeProgress;
 
     // Write — skip if already has script
     let script = freshEp.script ?? "";
     if (!script) {
       await updateProjectStatus(agentProjectId, "writing", `write-ep${epNum}`);
-      // Fetch previous episode's LATEST script from DB (not stale cache)
       const prevEp = epNum > 1
         ? await prisma.agentEpisode.findUnique({
             where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum - 1 } },
             select: { script: true },
           })
         : null;
-      const writeCtx = await runPipeline(writingPipeline, {
+
+      // Use novel rewrite pipeline if strategy exists
+      const useNovelPipeline = isNovel && !!rewriteStrategy;
+      const writePipeline = useNovelPipeline ? novelRewritePipeline : writingPipeline;
+
+      const writeInitialData: Record<string, unknown> = {
+        episodeNumber: epNum,
+        episodeTitle: freshEp.title ?? `第${epNum}集`,
+        episodeOutline: freshEp.outline ?? "",
+        sourceText: finalProject.sourceText,
+        previousEpisodeEnding: prevEp?.script?.slice(-500),
+        characters: analysis?.characters ?? [],
+        outputFormat,
+        styleFingerprint: styleFingerprint ?? undefined,
+      };
+
+      if (useNovelPipeline) {
+        // Re-fetch latest chapter summaries
+        const latestProject = await prisma.agentProject.findUniqueOrThrow({
+          where: { id: agentProjectId },
+          select: { chapterSummaries: true },
+        });
+        const latestSummaries = latestProject.chapterSummaries as Record<string, { summary: string; tail: string }> | null;
+
+        writeInitialData.rewriteStrategy = rewriteStrategy;
+        writeInitialData.chapterNotes = freshEp.chapterNotes ?? undefined;
+        writeInitialData.prevChapterSummaries = buildPrevChapterSummaries(latestSummaries ?? chapterSummaries, epNum);
+        writeInitialData.transitionInstructions = buildTransitionInstructions(rewriteStrategy, epNum);
+        writeInitialData.strategyContext = {
+          globalStyle: rewriteStrategy!.globalStyle,
+          characterVoices: rewriteStrategy!.characterVoices,
+          chapterNotes: freshEp.chapterNotes,
+        };
+      }
+
+      const writeCtx = await runPipeline(writePipeline, {
         client, model, taskCtx: ctx,
-        initialData: {
-          episodeNumber: epNum,
-          episodeTitle: freshEp.title ?? `第${epNum}集`,
-          episodeOutline: freshEp.outline ?? "",
-          sourceText: finalProject.sourceText,
-          previousEpisodeEnding: prevEp?.script?.slice(-800),
-          characters: analysis?.characters ?? [],
-          outputFormat,
-          styleFingerprint: styleFingerprint ?? undefined,
-        },
-        progressRange: [baseProgress, baseProgress + perEpisodeProgress * 0.3],
+        initialData: writeInitialData,
+        progressRange: [baseProgress, baseProgress + perEpisodeProgress * (isNovel ? 0.7 : 0.3)],
       });
-      script = (writeCtx.results["write"] as { script: string }).script;
+
+      // Get best script (improve > write)
+      const improveRes = writeCtx.results["improve"] as { script: string } | undefined;
+      const writeRes = writeCtx.results["write"] as { script: string };
+      script = improveRes?.script ?? writeRes.script;
+      const reflectRes = writeCtx.results["reflect"] as ReflectOutput | undefined;
+
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
-        data: { script, scriptVersion: { increment: 1 }, status: "drafted" },
+        data: {
+          script,
+          scriptVersion: { increment: 1 },
+          status: "drafted",
+          rewriteAttempt: { increment: 1 },
+          ...(reflectRes ? { reflectionData: reflectRes as object } : {}),
+        },
       });
+
+      // Generate chapter summary for novel mode
+      if (useNovelPipeline) {
+        try {
+          const summary = await generateChapterSummary(client, model, script);
+          await prisma.agentEpisode.update({
+            where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+            data: { chapterSummary: summary },
+          });
+          await updateChapterSummaries(agentProjectId, epNum, summary, script.slice(-500));
+        } catch {
+          // Non-critical, continue
+        }
+      }
     }
 
     // Review — skip if already reviewed
@@ -573,11 +892,10 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           sourceText: finalProject.sourceText,
           outputFormat,
         },
-        progressRange: [baseProgress + perEpisodeProgress * 0.3, baseProgress + perEpisodeProgress * 0.5],
+        progressRange: [baseProgress + perEpisodeProgress * (isNovel ? 0.7 : 0.3), baseProgress + perEpisodeProgress * (isNovel ? 0.9 : 0.5)],
       });
       const reviewResult = reviewCtx.results["review"] as { totalScore: number; passed: boolean };
 
-      // For novel format, reviewed = completed
       const reviewStatus = !isVisual ? "completed" : undefined;
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
@@ -588,14 +906,12 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         },
       });
 
-      // Skip visual pipeline for novel format
       if (!isVisual) continue;
     }
 
-    // Visual pipeline — only for screenplay format
     if (!isVisual) continue;
 
-    // Storyboard — skip if already has storyboard data
+    // Storyboard
     let storyboardData: unknown = null;
     if (!freshEp.storyboard) {
       await updateProjectStatus(agentProjectId, "storyboarding", `storyboard-ep${epNum}`);
@@ -620,7 +936,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
       storyboardData = parsed.storyboard ?? parsed;
     }
 
-    // Image prompts — skip if already has image prompts
+    // Image prompts
     if (!freshEp.imagePrompts) {
       await updateProjectStatus(agentProjectId, "imaging", `images-ep${epNum}`);
       const characterCards = (analysis?.characters ?? []).map((c) => ({
@@ -641,7 +957,6 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         data: { imagePrompts: JSON.stringify(imgCtx.results["image-prompts"]), status: "completed" },
       });
     } else {
-      // All steps done, mark completed
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
         data: { status: "completed" },

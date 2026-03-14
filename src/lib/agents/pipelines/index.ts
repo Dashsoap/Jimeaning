@@ -11,3 +11,5 @@ export { writingPipeline } from "./writing";
 export { reviewPipeline } from "./review";
 export { storyboardPipeline } from "./storyboard";
 export { imagePromptsPipeline } from "./image-prompts";
+export { strategyPipeline } from "./strategy";
+export { novelRewritePipeline } from "./novel-rewrite";

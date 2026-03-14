@@ -21,6 +21,7 @@ import {
   Image as ImageIcon,
   Film,
   Upload,
+  BookOpen,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
@@ -44,6 +45,9 @@ interface AgentEpisode {
   storyboard: string | null;
   imagePrompts: string | null;
   outline: string | null;
+  rewriteAttempt?: number;
+  reflectionData?: unknown;
+  chapterNotes?: string | null;
 }
 
 interface AgentProject {
@@ -56,6 +60,8 @@ interface AgentProject {
   outputFormat: string | null;
   analysisData: unknown;
   planningData: unknown;
+  rewriteStrategy: unknown;
+  strategyConfirmed: boolean;
   createdAt: string;
   updatedAt: string;
   episodes: AgentEpisode[];
@@ -75,6 +81,8 @@ function statusVariant(status: string): StatusVariant {
     case "analyzed": case "planned": case "drafted":
     case "reviewed": case "storyboarded":
       return "info";
+    case "strategy-designed": return "warning";
+    case "strategy-confirmed": return "info";
     default: return "default";
   }
 }
@@ -107,7 +115,7 @@ export default function AgentsPage() {
       if (activeTaskId) return 3000;
       // Poll at 5s if any project has a busy status (backend still running after page refresh)
       const data = query.state.data as AgentProject[] | undefined;
-      const busyStatuses = ["created", "analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
+      const busyStatuses = ["created", "analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging", "strategy-designed"];
       if (data?.some((p) => busyStatuses.includes(p.status))) return 5000;
       return false;
     },
@@ -305,6 +313,7 @@ function ProjectCard({
   isWorking: boolean; // this project has an active task
   globalBusy: boolean; // any project has an active task
 }) {
+  const isNovelFormat = project.outputFormat === "novel" || project.outputFormat === "same";
   const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
   const isBusy = busyStatuses.includes(project.status);
   // A project is "stuck" only if status says busy, no active task, AND updatedAt is stale (>2min)
@@ -375,7 +384,26 @@ function ProjectCard({
               <Play size={14} className="mr-1" /> {t("steps.plan")}
             </Button>
           )}
-          {!!project.analysisData && !!project.planningData && (
+          {!!project.analysisData && !!project.planningData && isNovelFormat && !project.rewriteStrategy && (
+            <Button size="sm" variant="secondary" disabled={!canAct}
+              onClick={() => onTrigger(`/api/agent-projects/${project.id}/strategy`)}>
+              <Play size={14} className="mr-1" /> {t("steps.strategy")}
+            </Button>
+          )}
+          {project.status === "strategy-designed" && isNovelFormat && (
+            <Button size="sm" disabled={!canAct}
+              onClick={async () => {
+                await fetch(`/api/agent-projects/${project.id}/strategy`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ confirmed: true }),
+                });
+                onTrigger(`/api/agent-projects/${project.id}/execute`);
+              }}>
+              <Zap size={14} className="mr-1" /> {t("steps.confirmStrategy")}
+            </Button>
+          )}
+          {!!project.analysisData && !!project.planningData && (!isNovelFormat || project.strategyConfirmed) && (
             <Button size="sm" disabled={!canAct}
               onClick={() => onTrigger(`/api/agent-projects/${project.id}/auto`)}>
               <Zap size={14} className="mr-1" /> {t("steps.auto")}
@@ -408,6 +436,15 @@ function ProjectCard({
             />
           ))}
         </div>
+      )}
+
+      {/* Strategy review panel — show when strategy is designed */}
+      {expanded && !!project.rewriteStrategy && isNovelFormat && (
+        <StrategyPanel
+          project={project}
+          onViewContent={onViewContent}
+          t={t}
+        />
       )}
 
       {/* Analysis data preview */}
@@ -521,6 +558,16 @@ function EpisodeRow({
             {t("score")}: {ep.reviewScore}/50
           </span>
         )}
+        {!!ep.rewriteAttempt && ep.rewriteAttempt > 0 && (
+          <span className="text-xs text-[var(--color-text-tertiary)]">
+            {t("attempt")}: {ep.rewriteAttempt}
+          </span>
+        )}
+        {!!(ep.reflectionData as { totalScore?: number } | null)?.totalScore && (
+          <span className="text-xs text-[var(--color-text-tertiary)]">
+            {t("reflectScore")}: {(ep.reflectionData as { totalScore: number }).totalScore}/50
+          </span>
+        )}
 
         {/* Action buttons — show next step */}
         <div className="flex items-center gap-1 shrink-0">
@@ -600,6 +647,123 @@ function EpisodeRow({
               )}
             </div>
           ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Strategy Panel ──────────────────────────────────────────────────
+
+interface StrategyData {
+  globalStyle?: {
+    narrativeVoice: string;
+    toneAndRegister: string;
+    sentenceRhythm: string;
+    dialogueApproach: string;
+    tabooPatterns: string[];
+  };
+  characterVoices?: Record<string, {
+    speechStyle: string;
+    innerWorld: string;
+    uniqueMarkers: string;
+  }>;
+  chapterPlans?: Array<{
+    episodeNumber: number;
+    focusPoints: string[];
+    emotionalArc: string;
+  }>;
+  coherenceRules?: {
+    recurringMotifs: string[];
+    timelineConsistency: string;
+    characterArcProgression: string;
+    foreshadowingNotes: string[];
+  };
+  humanReadableSummary?: string;
+}
+
+function StrategyPanel({
+  project,
+  onViewContent,
+  t,
+}: {
+  project: AgentProject;
+  onViewContent: (v: { title: string; content: string; type: ContentType }) => void;
+  t: ReturnType<typeof useTranslations<"agents">>;
+}) {
+  const strategy = project.rewriteStrategy as StrategyData | null;
+  if (!strategy) return null;
+
+  return (
+    <div className="mt-4 border-t border-[var(--color-border-default)] pt-4">
+      <div className="flex items-center gap-2 mb-3">
+        <BookOpen size={16} className="text-[var(--color-accent)]" />
+        <span className="text-sm font-medium text-[var(--color-text-primary)]">
+          {t("strategyTitle")}
+        </span>
+        {project.strategyConfirmed && (
+          <Badge variant="success">{t("strategyConfirmed")}</Badge>
+        )}
+        <button
+          onClick={() => onViewContent({
+            title: t("strategyTitle"),
+            content: JSON.stringify(strategy, null, 2),
+            type: "raw",
+          })}
+          className="ml-auto text-xs text-[var(--color-accent)] hover:underline cursor-pointer"
+        >
+          {t("viewStrategy")}
+        </button>
+      </div>
+
+      {/* Summary */}
+      {strategy.humanReadableSummary && (
+        <p className="text-sm text-[var(--color-text-secondary)] mb-3 leading-relaxed">
+          {strategy.humanReadableSummary}
+        </p>
+      )}
+
+      {/* Global style */}
+      {strategy.globalStyle && (
+        <div className="mb-3 space-y-1">
+          <p className="text-xs font-medium text-[var(--color-text-tertiary)] uppercase">
+            {t("strategyStyle")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant="default">{t("narrativeVoice")}: {strategy.globalStyle.narrativeVoice}</Badge>
+            <Badge variant="default">{t("toneAndRegister")}: {strategy.globalStyle.toneAndRegister}</Badge>
+            <Badge variant="default">{t("sentenceRhythm")}: {strategy.globalStyle.sentenceRhythm}</Badge>
+          </div>
+          {strategy.globalStyle.tabooPatterns?.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {strategy.globalStyle.tabooPatterns.slice(0, 5).map((p, i) => (
+                <span key={i} className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-error)]/10 text-[var(--color-error)]">
+                  {p}
+                </span>
+              ))}
+              {strategy.globalStyle.tabooPatterns.length > 5 && (
+                <span className="text-xs text-[var(--color-text-tertiary)]">
+                  +{strategy.globalStyle.tabooPatterns.length - 5}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Character voices */}
+      {strategy.characterVoices && Object.keys(strategy.characterVoices).length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-medium text-[var(--color-text-tertiary)] uppercase mb-1">
+            {t("strategyCharacters")}
+          </p>
+          <div className="grid gap-1.5">
+            {Object.entries(strategy.characterVoices).slice(0, 4).map(([name, voice]) => (
+              <div key={name} className="text-xs text-[var(--color-text-secondary)] bg-[var(--color-bg-surface)] rounded-[var(--radius-sm)] px-2 py-1.5">
+                <span className="font-medium">{name}</span>: {voice.speechStyle}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

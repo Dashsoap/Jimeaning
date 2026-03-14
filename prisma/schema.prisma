@@ -524,13 +524,16 @@ model AgentProject {
   outputFormat   String? // "script" | "novel" | "same"
 
   // Workflow state
-  status      String  @default("created") // created | analyzing | planning | writing | reviewing | storyboarding | imaging | completed | failed
+  status      String  @default("created") // created | analyzing | planning | writing | reviewing | storyboarding | imaging | strategy-designed | strategy-confirmed | completed | failed
   currentStep String? // 当前执行的步骤
 
   // Agent outputs (JSON)
-  analysisData Json? @db.Json // novel-analyzer: 人物图谱/情节骨架/情绪曲线/改编评估
-  planningData Json? @db.Json // episode-architect: 分集大纲
-  styleData    Json? @db.Json // StyleFingerprint: 风格指纹
+  analysisData      Json? @db.Json // novel-analyzer: 人物图谱/情节骨架/情绪曲线/改编评估
+  planningData      Json? @db.Json // episode-architect: 分集大纲
+  styleData         Json? @db.Json // StyleFingerprint: 风格指纹
+  rewriteStrategy   Json? @db.Json // RewriteStrategy: 全局改写策略
+  strategyConfirmed Boolean @default(false)
+  chapterSummaries  Json? @db.Json // Record<epNum, {summary, tail}>: 跨集摘要累积
 
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   episodes AgentEpisode[]
@@ -557,6 +560,12 @@ model AgentEpisode {
   reviewScore   Int? // 快速访问总分 (/50)
   storyboard    String? @db.LongText // storyboard-director 产出的分镜脚本
   imagePrompts  String? @db.LongText // image-generator 产出的图片 Prompt
+
+  // Novel rewrite enhancements
+  chapterNotes   String? @db.Text // 策略中本集的改写要点
+  chapterSummary String? @db.Text // 写完后生成的章节摘要（给下一集用）
+  rewriteAttempt Int     @default(0) // 改写尝试次数
+  reflectionData Json?   @db.Json // 反思结果（得分+建议）
 
   // Per-episode status
   status String @default("pending") // pending | writing | reviewing | storyboarding | imaging | completed

@@ -21,3 +21,12 @@ export type { VisualStorytellerInput, VisualStorytellerResult } from "./visual-s
 
 export { imageGeneratorAgent } from "./image-generator";
 export type { ImageGeneratorInput, ImageGeneratorResult } from "./image-generator";
+
+export { rewriteStrategistAgent } from "./rewrite-strategist";
+export type { RewriteStrategyInput, RewriteStrategy } from "./rewrite-strategist";
+
+export { reflectAgent } from "./reflect";
+export type { ReflectInput, ReflectOutput } from "./reflect";
+
+export { improveAgent } from "./improve";
+export type { ImproveInput, ImproveOutput } from "./improve";
