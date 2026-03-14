@@ -313,6 +313,9 @@ function ProjectCard({
   isWorking: boolean; // this project has an active task
   globalBusy: boolean; // any project has an active task
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = pathname.split("/")[1] || "zh";
   const isNovelFormat = project.outputFormat === "novel" || project.outputFormat === "same";
   const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
   const isBusy = busyStatuses.includes(project.status);
@@ -361,6 +364,13 @@ function ProjectCard({
         </button>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Reader — show when any episode has script */}
+          {project.episodes?.some((ep) => ["drafted", "reviewed", "review-failed", "storyboarded", "completed"].includes(ep.status)) && (
+            <Button size="sm" variant="secondary"
+              onClick={() => router.push(`/${locale}/agents/${project.id}/reader`)}>
+              <BookOpen size={14} className="mr-1" /> {t("readFull")}
+            </Button>
+          )}
           {/* Publish to project — show when completed */}
           {project.status === "completed" && (
             <Button size="sm" disabled={isPublishing}
