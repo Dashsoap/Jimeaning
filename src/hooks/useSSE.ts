@@ -12,6 +12,8 @@ export function useSSE(projectId?: string) {
   const [events, setEvents] = useState<TaskProgress[]>([]);
   const [connected, setConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  // Accumulate textChunks in a ref to avoid losing chunks during React batching
+  const textAccRef = useRef<Record<string, string>>({});
 
   const connect = useCallback(() => {
     eventSourceRef.current?.close();
@@ -28,14 +30,22 @@ export function useSSE(projectId?: string) {
     es.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as TaskProgress;
+        // Accumulate text in ref (not affected by React batching)
+        if (data.textChunk) {
+          textAccRef.current[data.taskId] = (textAccRef.current[data.taskId] || "") + data.textChunk;
+        }
+        const enriched: TaskProgress = {
+          ...data,
+          accumulatedText: textAccRef.current[data.taskId] || undefined,
+        };
         setEvents((prev) => {
           const idx = prev.findIndex((e) => e.taskId === data.taskId);
           if (idx >= 0) {
             const next = [...prev];
-            next[idx] = data;
+            next[idx] = enriched;
             return next;
           }
-          return [...prev, data];
+          return [...prev, enriched];
         });
       } catch {
         // skip malformed messages

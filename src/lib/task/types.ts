@@ -54,4 +54,6 @@ export interface TaskProgress {
   message?: string;
   errorCode?: string;
   textChunk?: string;
+  /** Accumulated text (client-side only, built by useSSE) */
+  accumulatedText?: string;
 }

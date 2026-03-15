@@ -191,6 +191,7 @@ async function runPlanningPhase(
       analysisReport: project.analysisData,
       sourceText: project.sourceText,
       durationPerEp: project.durationPerEp ?? "2-5分钟",
+      outputFormat: project.outputFormat || "script",
     },
     progressRange,
   });

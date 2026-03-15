@@ -17,6 +17,7 @@ export const planningPipeline: PipelineDef = {
         analysisReport: ctx.initialData.analysisReport as AnalysisResult,
         sourceText: ctx.initialData.sourceText as string,
         durationPerEp: ctx.initialData.durationPerEp as string | undefined,
+        outputFormat: ctx.initialData.outputFormat as string | undefined,
       }),
     }),
   ],

@@ -1,6 +1,7 @@
 /**
- * Agent: episode-architect — 分集架构师
- * Breaks novel into short-video episodes with hooks, pacing, and paywall strategy.
+ * Agent: episode-architect — 分集/分章架构师
+ * Script mode: breaks novel into short-video episodes with hooks, pacing, and paywall strategy.
+ * Novel mode: breaks novel into chapters by content rhythm and plot turning points.
  */
 
 import type { AgentDef } from "../types";
@@ -9,7 +10,8 @@ import type { AnalysisResult } from "./novel-analyzer";
 export interface EpisodeArchitectInput {
   analysisReport: AnalysisResult;
   sourceText: string;
-  durationPerEp?: string; // e.g. "2-5分钟"
+  durationPerEp?: string; // e.g. "2-5分钟" (script mode only)
+  outputFormat?: string;  // "script" | "novel" | "same"
 }
 
 export interface EpisodeOutline {
@@ -33,13 +35,9 @@ export interface EpisodeOutline {
   };
 }
 
-export const episodeArchitectAgent: AgentDef<EpisodeArchitectInput, EpisodeOutline> = {
-  name: "episode-architect",
-  description: "将长篇故事拆分为短视频集数，设计每集钩子和节奏",
-  outputMode: "json",
-  temperature: 0.4,
+// ─── Script mode prompt (short video) ────────────────────────────
 
-  systemPrompt: () => `你是一位精通短视频节奏的分集策划，擅长将长篇故事拆解为独立成集又环环相扣的短视频单元。你深谙观众心理：3秒决定是否停留，30秒决定是否看完，结尾决定是否追下一集。
+const SCRIPT_SYSTEM = `你是一位精通短视频节奏的分集策划，擅长将长篇故事拆解为独立成集又环环相扣的短视频单元。你深谙观众心理：3秒决定是否停留，30秒决定是否看完，结尾决定是否追下一集。
 
 ## 分集原则
 
@@ -81,11 +79,77 @@ export const episodeArchitectAgent: AgentDef<EpisodeArchitectInput, EpisodeOutli
 
 输出 JSON 格式，包含：totalEpisodes, estimatedTotalMinutes, episodes[], paywallSuggestion。
 
-Respond ONLY with valid JSON.`,
+Respond ONLY with valid JSON.`;
+
+// ─── Novel mode prompt (chapter splitting) ───────────────────────
+
+const NOVEL_SYSTEM = `你是一位资深小说编辑，擅长分析长篇小说结构，将其拆分为节奏合理、结构完整的章节。
+
+## 分章原则
+
+### 字数控制
+- 每章目标：3000-6000 字
+- 根据内容自然节点灵活调整，不机械按字数切割
+- 如果原著已有明确章节划分，优先尊重原著结构
+
+### 分章依据（按优先级）
+1. **情节转折点** — 在重大事件发生前后分章
+2. **场景切换** — 时间/地点/视角发生明显变化
+3. **情绪节奏** — 高潮后适当留白，低谷后铺垫上升
+4. **悬念设置** — 每章结尾留一个让读者想继续的钩子
+
+### 每章结构
+- 开头：承接上章 + 建立本章核心冲突/问题
+- 中段：推进情节，制造张力
+- 结尾：悬念或情感高点，驱动读者继续
+
+### 钩子设计（对小说同样重要）
+| 类型 | 说明 | 适用场景 |
+|------|------|---------|
+| 冲突钩 | 角色间的对抗即将爆发 | 对手戏、争吵前 |
+| 反转钩 | 揭露一个出人意料的事实 | 身份揭秘、真相浮出 |
+| 危机钩 | 主角陷入危险/困境 | 生死关头、选择困境 |
+| 情感钩 | 关系出现重大变化 | 告白/分手/背叛 |
+| 悬念钩 | 留下一个未解问题 | 神秘人物、未知威胁 |
+
+### 节奏把控
+- 前 3 章：建立期 — 介绍人物/世界观/核心冲突
+- 中段：上升 → 高潮交替，保持阅读紧迫感
+- 关键转折章：适当加长，给足空间
+
+输出 JSON 格式，包含：totalEpisodes, estimatedTotalMinutes (设为0), episodes[], paywallSuggestion。
+
+Respond ONLY with valid JSON.`;
+
+export const episodeArchitectAgent: AgentDef<EpisodeArchitectInput, EpisodeOutline> = {
+  name: "episode-architect",
+  description: "将长篇故事拆分为集数/章节，设计结构和节奏",
+  outputMode: "json",
+  temperature: 0.4,
+
+  systemPrompt: (input) => {
+    const fmt = input.outputFormat || "script";
+    if (fmt === "novel" || fmt === "same") {
+      return NOVEL_SYSTEM;
+    }
+    return SCRIPT_SYSTEM;
+  },
 
   userPrompt: (input) => {
-    const duration = input.durationPerEp || "2-5分钟";
+    const fmt = input.outputFormat || "script";
     const analysis = JSON.stringify(input.analysisReport, null, 2);
+
+    if (fmt === "novel" || fmt === "same") {
+      return `基于以下分析报告和原著文本，将小说拆分为章节。根据内容节奏和情节节点自动决定章节数量和划分位置。
+
+## 分析报告
+${analysis}
+
+## 原著文本
+${input.sourceText}`;
+    }
+
+    const duration = input.durationPerEp || "2-5分钟";
     return `基于以下分析报告和原著文本，将故事拆分为短视频集数。每集时长目标：${duration}。
 
 ## 改编分析报告

@@ -30,23 +30,22 @@ export function AgentTerminal({
   collapsed = false,
   onToggleCollapse,
 }: AgentTerminalProps) {
-  const [accumulated, setAccumulated] = useState("");
   const [scrollLocked, setScrollLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const prevChunkRef = useRef<string>("");
   const endRef = useRef<HTMLDivElement>(null);
+  const [manualClear, setManualClear] = useState(false);
 
   // Find the event for our task
   const event = events.find((e) => e.taskId === taskId);
 
-  // ─── Accumulate textChunk ───────────────────────────────────────
+  // Read accumulated text directly from SSE (accumulated in useSSE ref, no chunks lost)
+  const accumulated = manualClear ? "" : (event?.accumulatedText ?? "");
+
+  // Reset manualClear when taskId changes
   useEffect(() => {
-    if (event?.textChunk && event.textChunk !== prevChunkRef.current) {
-      setAccumulated((prev) => prev + event.textChunk);
-      prevChunkRef.current = event.textChunk;
-    }
-  }, [event?.textChunk]);
+    setManualClear(false);
+  }, [taskId]);
 
   // ─── Auto-scroll ────────────────────────────────────────────────
   useEffect(() => {
@@ -83,8 +82,7 @@ export function AgentTerminal({
 
   // ─── Clear ─────────────────────────────────────────────────────
   const handleClear = () => {
-    setAccumulated("");
-    prevChunkRef.current = "";
+    setManualClear(true);
   };
 
   if (collapsed) {

@@ -894,13 +894,15 @@ function CreateProjectModal({
             {t(`formatHint_${outputFormat}` as Parameters<typeof t>[0])}
           </p>
         </div>
-        <Input
-          id="duration"
-          label={t("durationPerEp")}
-          value={durationPerEp}
-          onChange={(e) => setDurationPerEp(e.target.value)}
-          placeholder={t("durationHint")}
-        />
+        {outputFormat === "script" && (
+          <Input
+            id="duration"
+            label={t("durationPerEp")}
+            value={durationPerEp}
+            onChange={(e) => setDurationPerEp(e.target.value)}
+            placeholder={t("durationHint")}
+          />
+        )}
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
