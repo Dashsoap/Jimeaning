@@ -21,7 +21,7 @@ const logger = createScopedLogger({ module: "agent-runner" });
 
 // ─── Execute a single agent ─────────────────────────────────────────
 
-async function executeAgent<TInput, TOutput>(
+export async function executeAgent<TInput, TOutput>(
   agent: AgentDef<TInput, TOutput>,
   input: TInput,
   client: OpenAI,

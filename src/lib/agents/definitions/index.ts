@@ -25,8 +25,14 @@ export type { ImageGeneratorInput, ImageGeneratorResult } from "./image-generato
 export { rewriteStrategistAgent } from "./rewrite-strategist";
 export type { RewriteStrategyInput, RewriteStrategy } from "./rewrite-strategist";
 
-export { reflectAgent } from "./reflect";
+export { reflectAgent, buildReflectSystemPrompt, buildReflectUserPrompt } from "./reflect";
 export type { ReflectInput, ReflectOutput } from "./reflect";
 
-export { improveAgent } from "./improve";
+export { improveAgent, buildImproveSystemPrompt, buildImproveUserPrompt } from "./improve";
 export type { ImproveInput, ImproveOutput } from "./improve";
+
+export { styleAnalyzerAgent } from "./style-analyzer";
+export type { StyleAnalyzerInput } from "./style-analyzer";
+
+export { readerSimulatorAgent } from "./reader-simulator";
+export type { ReaderSimInput, ReaderSimOutput } from "./reader-simulator";

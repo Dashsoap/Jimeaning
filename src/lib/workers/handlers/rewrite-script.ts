@@ -11,13 +11,15 @@ import {
   REWRITE_SYSTEM,
   REWRITE_USER,
   REWRITE_CHUNK_USER,
-  REFLECT_SYSTEM,
-  REFLECT_USER,
-  IMPROVE_SYSTEM,
-  IMPROVE_USER,
   OutputFormat,
   StyleFingerprint,
 } from "@/lib/llm/prompts/rewrite-script";
+import {
+  buildReflectSystemPrompt,
+  buildReflectUserPrompt,
+  buildImproveSystemPrompt,
+  buildImproveUserPrompt,
+} from "@/lib/agents/definitions";
 import { resolveLlmConfig, resolveProviderConfig } from "@/lib/providers/resolve";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
@@ -147,8 +149,9 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
   // 5. Reflect — diagnose AI traces and quality issues
   ctx.publishText("\n\n🔍 质量检查...\n");
   let reflectionText = "";
-  let totalScore = 50; // default if reflection fails
+  let totalScore = 80; // default if reflection fails
   try {
+    const reflectInput = { originalText: content, rewrittenText: result };
     const reflection = await chatCompletionJson<{
       scores: Record<string, { score: number; issue: string }>;
       totalScore: number;
@@ -156,8 +159,8 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
       suggestions: string[];
     }>(client, {
       model: llmCfg.model,
-      systemPrompt: REFLECT_SYSTEM,
-      userPrompt: REFLECT_USER(content, result),
+      systemPrompt: buildReflectSystemPrompt(reflectInput),
+      userPrompt: buildReflectUserPrompt(reflectInput),
       temperature: 0.3,
     });
 
@@ -167,8 +170,8 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
       : "无明显AI痕迹";
     const suggestionList = reflection.suggestions.map((s) => `- ${s}`).join("\n");
 
-    reflectionText = `质量评分: ${totalScore}/50\nAI痕迹:\n${patternList}\n改进建议:\n${suggestionList}`;
-    ctx.publishText(`\n评分: ${totalScore}/50\n`);
+    reflectionText = `质量评分: ${totalScore}/80\nAI痕迹:\n${patternList}\n改进建议:\n${suggestionList}`;
+    ctx.publishText(`\n评分: ${totalScore}/80\n`);
   } catch {
     ctx.publishText("\n⚠️ 质量检查跳过\n");
   }
@@ -176,12 +179,13 @@ export const handleRewriteScript = withTaskLifecycle(async (payload: TaskPayload
   await ctx.reportProgress(75);
 
   // 6. Improve — if score is below threshold, apply reflection feedback
-  if (totalScore < 40 && reflectionText) {
+  if (totalScore < 56 && reflectionText) {
     ctx.publishText("\n✨ 润色改进中...\n\n");
+    const improveInput = { rewrittenText: result, reflectionFeedback: reflectionText };
     const improved = await chatCompletionStream(client, {
       model: llmCfg.model,
-      systemPrompt: IMPROVE_SYSTEM,
-      userPrompt: IMPROVE_USER(result, reflectionText),
+      systemPrompt: buildImproveSystemPrompt(improveInput),
+      userPrompt: buildImproveUserPrompt(improveInput),
       temperature: 0.6,
       onChunk: (delta) => ctx.publishText(delta),
     });

@@ -58,3 +58,13 @@ ${input.reflectionFeedback}
 
   parseOutput: (raw) => ({ script: raw }),
 };
+
+/** Build improve system prompt. Exported for reuse by legacy batch-rewrite handler. */
+export function buildImproveSystemPrompt(input: ImproveInput): string {
+  return improveAgent.systemPrompt(input);
+}
+
+/** Build improve user prompt. Exported for reuse by legacy batch-rewrite handler. */
+export function buildImproveUserPrompt(input: ImproveInput): string {
+  return improveAgent.userPrompt(input);
+}
