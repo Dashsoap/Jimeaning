@@ -565,7 +565,7 @@ function EpisodeRow({
         </Badge>
         {ep.reviewScore !== null && (
           <span className="text-xs text-[var(--color-text-tertiary)]">
-            {t("score")}: {ep.reviewScore}/50
+            {t("score")}: {ep.reviewScore}/70
           </span>
         )}
         {!!ep.rewriteAttempt && ep.rewriteAttempt > 0 && (
@@ -575,7 +575,7 @@ function EpisodeRow({
         )}
         {!!(ep.reflectionData as { totalScore?: number } | null)?.totalScore && (
           <span className="text-xs text-[var(--color-text-tertiary)]">
-            {t("reflectScore")}: {(ep.reflectionData as { totalScore: number }).totalScore}/50
+            {t("reflectScore")}: {(ep.reflectionData as { totalScore: number }).totalScore}/80
           </span>
         )}
 
