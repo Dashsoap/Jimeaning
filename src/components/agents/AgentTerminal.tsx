@@ -9,6 +9,7 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  X,
 } from "lucide-react";
 import type { TaskProgress } from "@/lib/task/types";
 
@@ -20,6 +21,8 @@ interface AgentTerminalProps {
   /** Collapsed / expanded state managed by parent */
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  /** Called when user dismisses a completed/failed terminal */
+  onDismiss?: () => void;
 }
 
 // ─── Component ─────────────────────────────────────────────────────
@@ -29,6 +32,7 @@ export function AgentTerminal({
   events,
   collapsed = false,
   onToggleCollapse,
+  onDismiss,
 }: AgentTerminalProps) {
   const [scrollLocked, setScrollLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -47,10 +51,10 @@ export function AgentTerminal({
     setManualClear(false);
   }, [taskId]);
 
-  // ─── Auto-scroll ────────────────────────────────────────────────
+  // ─── Auto-scroll (only within terminal, not the whole page) ────
   useEffect(() => {
-    if (!scrollLocked && endRef.current) {
-      endRef.current.scrollIntoView({ behavior: "smooth" });
+    if (!scrollLocked && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [accumulated, scrollLocked]);
 
@@ -186,6 +190,15 @@ export function AgentTerminal({
           >
             {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           </button>
+          {!isRunning && onDismiss && (
+            <button
+              onClick={onDismiss}
+              className="p-1 text-[#00ff41]/40 hover:text-[#00ff41] transition-colors cursor-pointer"
+              title="Close"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 

@@ -131,12 +131,13 @@ export default function AgentsPage() {
 
   useTaskPolling(activeTaskId, {
     onComplete: () => {
-      setActiveTaskId(null);
+      // Don't clear activeTaskId — keep terminal visible so user can review output.
+      // Terminal shows "COMPLETED" state; user dismisses manually.
       setActiveProjectId(null);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
     },
     onFailed: () => {
-      setActiveTaskId(null);
+      // Same: keep terminal visible for error review
       setActiveProjectId(null);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
     },
@@ -217,6 +218,10 @@ export default function AgentsPage() {
             events={sseEvents}
             collapsed={terminalCollapsed}
             onToggleCollapse={() => setTerminalCollapsed((c) => !c)}
+            onDismiss={() => {
+              setActiveTaskId(null);
+              setActiveProjectId(null);
+            }}
           />
         )}
 
