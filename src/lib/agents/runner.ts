@@ -19,6 +19,43 @@ import { isParallelGroup } from "./types";
 
 const logger = createScopedLogger({ module: "agent-runner" });
 
+/** Build a short summary from parsed result for terminal display (max 500 chars) */
+function buildResultSummary(parsed: unknown): string {
+  if (!parsed || typeof parsed !== "object") return "";
+
+  const obj = parsed as Record<string, unknown>;
+  const parts: string[] = [];
+
+  // Common patterns in our agents' outputs
+  if (obj.characters && Array.isArray(obj.characters)) {
+    const names = obj.characters.map((c: Record<string, unknown>) => c.name || c.characterName).filter(Boolean);
+    if (names.length > 0) parts.push(`角色: ${names.join(", ")}`);
+  }
+  if (obj.themes && Array.isArray(obj.themes)) {
+    parts.push(`主题: ${(obj.themes as string[]).slice(0, 3).join(", ")}`);
+  }
+  if (obj.totalEpisodes) {
+    parts.push(`集数: ${obj.totalEpisodes}`);
+  }
+  if (obj.episodes && Array.isArray(obj.episodes)) {
+    const titles = obj.episodes.map((e: Record<string, unknown>) => e.title).filter(Boolean).slice(0, 5);
+    if (titles.length > 0) parts.push(`集: ${titles.join(" / ")}`);
+  }
+  if (obj.totalScore !== undefined) {
+    parts.push(`评分: ${obj.totalScore}`);
+  }
+  if (obj.passed !== undefined) {
+    parts.push(obj.passed ? "✓ 通过" : "✗ 未通过");
+  }
+  if (obj.panels && Array.isArray(obj.panels)) {
+    parts.push(`分镜: ${obj.panels.length}个`);
+  }
+
+  if (parts.length === 0) return "";
+  const summary = parts.join(" | ");
+  return `\n   ${summary.slice(0, 500)}`;
+}
+
 // ─── Execute a single agent ─────────────────────────────────────────
 
 export async function executeAgent<TInput, TOutput>(
@@ -93,6 +130,9 @@ async function executeStep(
 
   logger.info(`Step "${step.id}" starting (agent: ${step.agent.name})`);
 
+  // Announce step start to terminal
+  taskCtx.publishText(`\n🤖 ${step.agent.description}...\n`);
+
   try {
     const input = step.prepareInput(pipelineCtx);
     const { raw, parsed } = await executeAgent(
@@ -106,7 +146,16 @@ async function executeStep(
     pipelineCtx.results[step.id] = parsed;
 
     const durationMs = Date.now() - startedAt;
+    const durationSec = (durationMs / 1000).toFixed(1);
     logger.info(`Step "${step.id}" completed in ${durationMs}ms (${raw.length} chars)`);
+
+    // Announce step completion (skip for stream mode — already streamed content)
+    if (step.agent.outputMode !== "stream") {
+      const summary = buildResultSummary(parsed);
+      taskCtx.publishText(`✅ ${step.agent.name} 完成 (${raw.length}字, ${durationSec}s)${summary}\n`);
+    } else {
+      taskCtx.publishText(`\n✅ ${step.agent.name} 完成 (${raw.length}字, ${durationSec}s)\n`);
+    }
 
     return {
       stepId: step.id,
@@ -116,13 +165,16 @@ async function executeStep(
       status: "success",
     };
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    taskCtx.publishText(`❌ ${step.agent.name} 失败: ${errMsg.slice(0, 200)}\n`);
+
     const metric: StepMetric = {
       stepId: step.id,
       agentName: step.agent.name,
       durationMs: Date.now() - startedAt,
       outputLength: 0,
       status: "error",
-      error: error instanceof Error ? error.message : String(error),
+      error: errMsg,
     };
     pipelineCtx.stepMetrics.push(metric);
     throw error; // Propagate to withTaskLifecycle
@@ -145,6 +197,7 @@ export async function runPipeline(
   };
 
   logger.info(`Pipeline "${pipeline.name}" starting (${pipeline.steps.length} entries)`);
+  taskCtx.publishText(`\n━━━ ${pipeline.name} ━━━\n`);
 
   const totalEntries = pipeline.steps.length;
 

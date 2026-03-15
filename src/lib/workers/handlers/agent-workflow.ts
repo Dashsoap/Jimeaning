@@ -465,7 +465,18 @@ export const handleAgentAnalyze = withTaskLifecycle(async (payload: TaskPayload,
   const project = await getAgentProject(agentProjectId);
   const llm = await setupLLM(userId);
 
+  ctx.publishText("\n📊 开始分析原文...\n");
   const result = await runAnalysisPhase(agentProjectId, project.sourceText, llm, ctx, [5, 90]);
+
+  // Summarize analysis results
+  const analysisObj = result.analysisData as { characters?: Array<{ name: string }>; themes?: string[] } | undefined;
+  if (analysisObj) {
+    const charNames = analysisObj.characters?.map((c) => c.name).join(", ") ?? "";
+    const themes = analysisObj.themes?.slice(0, 3).join(", ") ?? "";
+    if (charNames) ctx.publishText(`👥 发现角色: ${charNames}\n`);
+    if (themes) ctx.publishText(`🎭 主题: ${themes}\n`);
+  }
+
   await prisma.agentProject.update({
     where: { id: agentProjectId },
     data: { status: "analyzed", currentStep: null },
@@ -485,7 +496,20 @@ export const handleAgentPlan = withTaskLifecycle(async (payload: TaskPayload, ct
   if (!project.analysisData) throw new Error("Analysis must be completed before planning");
   const llm = await setupLLM(userId);
 
+  ctx.publishText("\n📋 开始规划集数...\n");
   const result = await runPlanningPhase(agentProjectId, project, llm, ctx, [5, 85]);
+
+  // Summarize planning results
+  const planData = result.planningData as { totalEpisodes?: number; episodes?: Array<{ title?: string }> } | undefined;
+  if (planData) {
+    ctx.publishText(`📺 共 ${planData.totalEpisodes ?? planData.episodes?.length ?? 0} 集\n`);
+    if (planData.episodes) {
+      planData.episodes.forEach((ep, i) => {
+        ctx.publishText(`   ${i + 1}. ${ep.title ?? `第${i + 1}集`}\n`);
+      });
+    }
+  }
+
   await prisma.agentProject.update({
     where: { id: agentProjectId },
     data: { status: "planned", currentStep: null },
@@ -507,7 +531,14 @@ export const handleAgentRewriteStrategy = withTaskLifecycle(async (payload: Task
   if (!project.styleData) throw new Error("Style analysis must be completed before strategy design");
   const llm = await setupLLM(userId);
 
+  ctx.publishText("\n📐 设计改写策略...\n");
   const result = await runStrategyPhase(agentProjectId, project, llm, ctx, [5, 90]);
+
+  const strategy = result.strategy;
+  if (strategy.humanReadableSummary) {
+    ctx.publishText(`\n📄 ${strategy.humanReadableSummary.slice(0, 300)}\n`);
+  }
+
   await updateProjectStatus(agentProjectId, "strategy-designed", undefined);
   return result;
 });
@@ -525,6 +556,8 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
   if (!episode) throw new Error(`Episode ${episodeNumber} not found`);
   const llm = await setupLLM(userId);
 
+  ctx.publishText(`\n📝 第${episodeNumber}集: ${episode.title ?? "无标题"}\n`);
+
   const result = await runEpisodeWritePhase({
     agentProjectId,
     episode,
@@ -535,6 +568,8 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
     rewriteStrategy: project.rewriteStrategy as unknown as RewriteStrategy | null,
     chapterSummaries: project.chapterSummaries as Record<string, { summary: string; tail: string }> | null,
   }, llm, ctx, [5, 90]);
+
+  ctx.publishText(`\n✅ 第${episodeNumber}集写作完成 (${result.script.length}字)${result.reflectResult ? ` 反思评分: ${result.reflectResult.totalScore}/80` : ""}${result.improved ? " [已改进]" : ""}\n`);
 
   await updateProjectStatus(agentProjectId, project.strategyConfirmed ? "strategy-confirmed" : "planned", undefined);
 
@@ -562,6 +597,8 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
   if (!episode?.script) throw new Error(`Episode ${episodeNumber} has no script to review`);
 
   const { client, model } = await setupLLM(userId);
+
+  ctx.publishText(`\n🔍 审核第${episodeNumber}集...\n`);
 
   const pipelineCtx = await runPipeline(reviewPipeline, {
     client,
@@ -605,6 +642,8 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
     },
   });
 
+  ctx.publishText(`\n${passed ? "✅" : "❌"} 第${episodeNumber}集审核: ${reviewResult.totalScore}分 — ${passed ? "通过" : "未通过"}\n`);
+
   await updateProjectStatus(agentProjectId, "planned", undefined);
 
   return { episodeNumber, score: reviewResult.totalScore, passed };
@@ -626,6 +665,8 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
 
   const { client, model } = await setupLLM(userId);
 
+  ctx.publishText(`\n🎬 分镜第${episodeNumber}集...\n`);
+
   const pipelineCtx = await runPipeline(storyboardPipeline, {
     client,
     model,
@@ -642,6 +683,8 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
   // Combine storyboard + visual narrative annotations
   const storyboardData = pipelineCtx.results["storyboard"];
   const visualData = pipelineCtx.results["visual-narrative"];
+  const panelCount = Array.isArray(storyboardData) ? storyboardData.length : (storyboardData as { panels?: unknown[] })?.panels?.length ?? "?";
+  ctx.publishText(`✅ 分镜完成: ${panelCount}个镜头\n`);
 
   await prisma.agentEpisode.update({
     where: {
@@ -684,6 +727,8 @@ export const handleAgentImagePrompts = withTaskLifecycle(async (payload: TaskPay
 
   const { client, model } = await setupLLM(userId);
 
+  ctx.publishText(`\n🖼️ 生成图片提示词 第${episodeNumber}集...\n`);
+
   const pipelineCtx = await runPipeline(imagePromptsPipeline, {
     client,
     model,
@@ -698,6 +743,7 @@ export const handleAgentImagePrompts = withTaskLifecycle(async (payload: TaskPay
   });
 
   const imageResult = pipelineCtx.results["image-prompts"];
+  ctx.publishText(`✅ 图片提示词生成完成\n`);
 
   await prisma.agentEpisode.update({
     where: {
@@ -727,18 +773,39 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   const isVisual = needsVisualPipeline(outputFormat);
   const isNovel = isNovelMode(outputFormat);
 
+  ctx.publishText("\n🚀 开始自动执行全流程\n");
+
   // Phase 1: Analysis (0-15%)
   if (!project.analysisData) {
+    ctx.publishText("\n📊 阶段1: 分析原文...\n");
     await updateProjectStatus(agentProjectId, "analyzing", "analyze");
-    await runAnalysisPhase(agentProjectId, project.sourceText, llm, ctx, [0, 15]);
+    const { analysisData: autoAnalysis } = await runAnalysisPhase(agentProjectId, project.sourceText, llm, ctx, [0, 15]);
+    const autoAnalysisObj = autoAnalysis as { characters?: Array<{ name: string }>; themes?: string[] } | undefined;
+    if (autoAnalysisObj?.characters) {
+      ctx.publishText(`👥 角色: ${autoAnalysisObj.characters.map((c) => c.name).join(", ")}\n`);
+    }
+    if (autoAnalysisObj?.themes) {
+      ctx.publishText(`🎭 主题: ${autoAnalysisObj.themes.slice(0, 3).join(", ")}\n`);
+    }
+  } else {
+    ctx.publishText("\n📊 阶段1: 分析 — 已完成，跳过\n");
   }
   await ctx.reportProgress(15);
 
   // Phase 2: Planning (15-28%)
   const freshProject = await getAgentProject(agentProjectId);
   if (!freshProject.planningData) {
+    ctx.publishText("\n📋 阶段2: 规划集数...\n");
     await updateProjectStatus(agentProjectId, "planning", "plan");
-    await runPlanningPhase(agentProjectId, freshProject, llm, ctx, [15, 28]);
+    const { planningData: autoPlan } = await runPlanningPhase(agentProjectId, freshProject, llm, ctx, [15, 28]);
+    ctx.publishText(`📺 共 ${autoPlan.totalEpisodes} 集\n`);
+    if (autoPlan.episodes) {
+      autoPlan.episodes.forEach((ep: Record<string, unknown>, i: number) => {
+        ctx.publishText(`   ${i + 1}. ${(ep.title as string) ?? `第${i + 1}集`}\n`);
+      });
+    }
+  } else {
+    ctx.publishText("\n📋 阶段2: 规划 — 已完成，跳过\n");
   }
   await ctx.reportProgress(28);
 
@@ -804,9 +871,12 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     const epNum = freshEp.episodeNumber;
     const baseProgress = 38 + i * perEpisodeProgress;
 
+    ctx.publishText(`\n📝 第${epNum}集: ${freshEp.title ?? "无标题"}\n`);
+
     // Write — skip if already has script
     let script = freshEp.script ?? "";
     if (!script) {
+      ctx.publishText(`   ✍️ 写作中...\n`);
       await updateProjectStatus(agentProjectId, "writing", `write-ep${epNum}`);
       const writeResult = await runEpisodeWritePhase({
         agentProjectId,
@@ -819,10 +889,14 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         chapterSummaries,
       }, llm, ctx, [baseProgress, baseProgress + perEpisodeProgress * (isNovel ? 0.7 : 0.3)]);
       script = writeResult.script;
+      ctx.publishText(`   ✅ 写作完成 (${script.length}字)\n`);
+    } else {
+      ctx.publishText(`   ✍️ 写作 — 已完成，跳过\n`);
     }
 
     // Review — skip if already reviewed
     if (!freshEp.reviewScore) {
+      ctx.publishText(`   🔍 审核中...\n`);
       await updateProjectStatus(agentProjectId, "reviewing", `review-ep${epNum}`);
       const reviewCtx = await runPipeline(reviewPipeline, {
         ...llm, taskCtx: ctx,
@@ -836,6 +910,10 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         progressRange: [baseProgress + perEpisodeProgress * (isNovel ? 0.7 : 0.3), baseProgress + perEpisodeProgress * (isNovel ? 0.9 : 0.5)],
       });
       const reviewResult = reviewCtx.results["review"] as { totalScore: number; passed: boolean };
+
+      const PASS_THRESHOLD_AUTO = 49;
+      const passedAuto = reviewResult.totalScore >= PASS_THRESHOLD_AUTO;
+      ctx.publishText(`   ${passedAuto ? "✅" : "❌"} 审核: ${reviewResult.totalScore}分 — ${passedAuto ? "通过" : "未通过"}\n`);
 
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
@@ -854,6 +932,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
     // Storyboard
     let storyboardData: unknown = null;
     if (!freshEp.storyboard) {
+      ctx.publishText(`   🎬 分镜中...\n`);
       await updateProjectStatus(agentProjectId, "storyboarding", `storyboard-ep${epNum}`);
       const sbCtx = await runPipeline(storyboardPipeline, {
         ...llm, taskCtx: ctx,
@@ -861,17 +940,21 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         progressRange: [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.75],
       });
       storyboardData = sbCtx.results["storyboard"];
+      const sbPanelCount = Array.isArray(storyboardData) ? storyboardData.length : "?";
+      ctx.publishText(`   ✅ 分镜完成: ${sbPanelCount}个镜头\n`);
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
         data: { storyboard: JSON.stringify({ storyboard: storyboardData, visualNarrative: sbCtx.results["visual-narrative"] }) },
       });
     } else {
+      ctx.publishText(`   🎬 分镜 — 已完成，跳过\n`);
       const parsed = JSON.parse(freshEp.storyboard);
       storyboardData = parsed.storyboard ?? parsed;
     }
 
     // Image prompts
     if (!freshEp.imagePrompts) {
+      ctx.publishText(`   🖼️ 生成图片提示词...\n`);
       await updateProjectStatus(agentProjectId, "imaging", `images-ep${epNum}`);
       const characterCards = (analysis?.characters ?? []).map((c) => ({ name: c.name, promptDescription: c.appearance }));
       const imgCtx = await runPipeline(imagePromptsPipeline, {
@@ -879,17 +962,21 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         initialData: { episodeNumber: epNum, storyboard: storyboardData, characterCards, outputFormat },
         progressRange: [baseProgress + perEpisodeProgress * 0.75, baseProgress + perEpisodeProgress],
       });
+      ctx.publishText(`   ✅ 图片提示词完成\n`);
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
         data: { imagePrompts: JSON.stringify(imgCtx.results["image-prompts"]), status: "completed" },
       });
     } else {
+      ctx.publishText(`   🖼️ 图片提示词 — 已完成，跳过\n`);
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
         data: { status: "completed" },
       });
     }
   }
+
+  ctx.publishText(`\n🎉 全部完成! 共 ${episodes.length} 集\n`);
 
   await prisma.agentProject.update({
     where: { id: agentProjectId },
