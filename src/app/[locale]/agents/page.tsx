@@ -30,7 +30,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { useTaskPolling } from "@/hooks/useTaskPolling";
+import { useSSE } from "@/hooks/useSSE";
 import { ContentRenderer, type ContentType } from "@/components/agents/ContentRenderer";
+import { AgentTerminal } from "@/components/agents/AgentTerminal";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -103,6 +105,10 @@ export default function AgentsPage() {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [viewContent, setViewContent] = useState<{ title: string; content: string; type: ContentType } | null>(null);
+  const [terminalCollapsed, setTerminalCollapsed] = useState(false);
+
+  // ─── SSE for real-time terminal ────────────────────────────────
+  const { events: sseEvents } = useSSE();
 
   // ─── Queries ─────────────────────────────────────────────────────
 
@@ -148,6 +154,7 @@ export default function AgentsPage() {
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       setActiveTaskId(data.taskId);
+      setTerminalCollapsed(false); // expand terminal for new task
       // Extract project ID from URL: /api/agent-projects/{id}/...
       const match = url.match(/\/agent-projects\/([^/]+)/);
       if (match) setActiveProjectId(match[1]);
@@ -203,12 +210,14 @@ export default function AgentsPage() {
           </Button>
         </div>
 
-        {/* Active task indicator */}
+        {/* Real-time terminal */}
         {activeTaskId && (
-          <div className="flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-accent-bg)] px-4 py-2.5 text-sm text-[var(--color-accent)]">
-            <Loader2 size={16} className="animate-spin" />
-            {t("taskStarted")}...
-          </div>
+          <AgentTerminal
+            taskId={activeTaskId}
+            events={sseEvents}
+            collapsed={terminalCollapsed}
+            onToggleCollapse={() => setTerminalCollapsed((c) => !c)}
+          />
         )}
 
         {/* Project list */}
