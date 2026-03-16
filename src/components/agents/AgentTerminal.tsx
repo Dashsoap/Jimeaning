@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Square,
 } from "lucide-react";
 import type { TaskProgress } from "@/lib/task/types";
 
@@ -36,6 +37,7 @@ export function AgentTerminal({
 }: AgentTerminalProps) {
   const [scrollLocked, setScrollLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const [manualClear, setManualClear] = useState(false);
@@ -83,6 +85,19 @@ export function AgentTerminal({
       : isRunning
         ? event?.message || "RUNNING"
         : "CONNECTING...";
+
+  // ─── Cancel task ───────────────────────────────────────────────
+  const handleCancel = useCallback(async () => {
+    if (cancelling) return;
+    setCancelling(true);
+    try {
+      await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+    } catch {
+      // ignore
+    } finally {
+      setCancelling(false);
+    }
+  }, [taskId, cancelling]);
 
   // ─── Clear ─────────────────────────────────────────────────────
   const handleClear = () => {
@@ -174,6 +189,17 @@ export function AgentTerminal({
         )}
 
         <div className="ml-auto flex items-center gap-1">
+          {isRunning && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="flex items-center gap-1 rounded px-2 py-0.5 text-xs font-mono text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer disabled:opacity-50"
+              title="停止生成"
+            >
+              <Square size={10} fill="currentColor" />
+              {cancelling ? "停止中..." : "停止"}
+            </button>
+          )}
           {onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
