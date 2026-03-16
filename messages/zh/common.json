@@ -419,6 +419,8 @@
     "publish": "导入到项目",
     "publishSuccess": "已成功导入，正在跳转...",
     "noContent": "暂无内容",
+    "feedbackPlaceholder": "对这集有什么意见？如：太平淡了，加点冲突...",
+    "rewriteWithFeedback": "根据意见重写",
     "strategyTitle": "改写策略",
     "strategySummary": "策略概述",
     "strategyStyle": "全局风格",

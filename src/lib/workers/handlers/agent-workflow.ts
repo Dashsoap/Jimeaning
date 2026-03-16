@@ -279,6 +279,7 @@ interface EpisodeWriteParams {
   styleFingerprint: StyleFingerprint | null;
   rewriteStrategy: RewriteStrategy | null;
   chapterSummaries: Record<string, { summary: string; tail: string }> | null;
+  userFeedback?: string;
 }
 
 /** Run write pipeline for a single episode and save results. Returns final script. */
@@ -288,7 +289,7 @@ async function runEpisodeWritePhase(
   ctx: TaskCtx,
   progressRange: [number, number],
 ): Promise<{ script: string; reflectResult?: ReflectOutput; improved: boolean }> {
-  const { agentProjectId, episode, sourceText, outputFormat, analysis, styleFingerprint, rewriteStrategy, chapterSummaries } = params;
+  const { agentProjectId, episode, sourceText, outputFormat, analysis, styleFingerprint, rewriteStrategy, chapterSummaries, userFeedback } = params;
   const epNum = episode.episodeNumber;
   const useNovelMode = isNovelMode(outputFormat) && !!rewriteStrategy;
 
@@ -300,6 +301,16 @@ async function runEpisodeWritePhase(
       })
     : null;
 
+  // If user gave feedback, fetch current script for context
+  let existingScript: string | undefined;
+  if (userFeedback) {
+    const currentEp = await prisma.agentEpisode.findUnique({
+      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+      select: { script: true },
+    });
+    existingScript = currentEp?.script ?? undefined;
+  }
+
   const initialData: Record<string, unknown> = {
     episodeNumber: epNum,
     episodeTitle: episode.title ?? `第${epNum}集`,
@@ -309,6 +320,7 @@ async function runEpisodeWritePhase(
     characters: analysis?.characters ?? [],
     outputFormat,
     styleFingerprint: styleFingerprint ?? undefined,
+    ...(userFeedback ? { userFeedback, currentScript: existingScript } : {}),
   };
 
   if (useNovelMode) {
@@ -557,7 +569,11 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
   if (!episode) throw new Error(`Episode ${episodeNumber} not found`);
   const llm = await setupLLM(userId);
 
-  ctx.publishText(`\n📝 第${episodeNumber}集: ${episode.title ?? "无标题"}\n`);
+  const userFeedback = data.userFeedback as string | undefined;
+  ctx.publishText(`\n📝 第${episodeNumber}集: ${episode.title ?? "无标题"}${userFeedback ? " (根据意见重写)" : ""}\n`);
+  if (userFeedback) {
+    ctx.publishText(`💬 用户意见: ${userFeedback}\n`);
+  }
 
   const result = await runEpisodeWritePhase({
     agentProjectId,
@@ -568,6 +584,7 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
     styleFingerprint: project.styleData as unknown as StyleFingerprint | null,
     rewriteStrategy: project.rewriteStrategy as unknown as RewriteStrategy | null,
     chapterSummaries: project.chapterSummaries as Record<string, { summary: string; tail: string }> | null,
+    userFeedback,
   }, llm, ctx, [5, 90]);
 
   ctx.publishText(`\n✅ 第${episodeNumber}集写作完成 (${result.script.length}字)${result.reflectResult ? ` 反思评分: ${result.reflectResult.totalScore}/80` : ""}${result.improved ? " [已改进]" : ""}\n`);

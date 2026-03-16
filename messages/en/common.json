@@ -419,6 +419,8 @@
     "publish": "Import to Project",
     "publishSuccess": "Imported successfully, redirecting...",
     "noContent": "No content yet",
+    "feedbackPlaceholder": "Any feedback? e.g. Too flat, add more conflict...",
+    "rewriteWithFeedback": "Rewrite with feedback",
     "strategyTitle": "Rewrite Strategy",
     "strategySummary": "Summary",
     "strategyStyle": "Global Style",

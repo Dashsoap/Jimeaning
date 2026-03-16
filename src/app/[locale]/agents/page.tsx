@@ -513,7 +513,7 @@ function EpisodeRow({
 }: {
   project: AgentProject;
   episode: AgentEpisode;
-  onTrigger: (url: string) => Promise<unknown>;
+  onTrigger: (url: string, body?: object) => Promise<unknown>;
   onViewContent: (v: { title: string; content: string; type: ContentType }) => void;
   t: ReturnType<typeof useTranslations<"agents">>;
   isWorking: boolean;
@@ -523,6 +523,7 @@ function EpisodeRow({
   const [expanded, setExpanded] = useState(false);
   const [detail, setDetail] = useState<EpisodeDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   // Determine which content types exist based on status progression
   const hasScript = ["drafted", "reviewed", "review-failed", "storyboarded", "completed"].includes(ep.status);
@@ -630,44 +631,73 @@ function EpisodeRow({
               <Loader2 size={14} className="animate-spin" /> {t("loadingDetail")}
             </div>
           ) : detail ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {detail.script && (
+                  <button
+                    onClick={() => viewSection(t("viewScript"), detail.script!, "script")}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                  >
+                    <FileText size={14} /> {t("viewScript")}
+                    <span className="text-xs text-[var(--color-text-tertiary)]">
+                      {detail.script.length.toLocaleString()}字
+                    </span>
+                  </button>
+                )}
+                {!!detail.reviewData && (
+                  <button
+                    onClick={() => viewSection(t("viewReview"), JSON.stringify(detail.reviewData), "review")}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                  >
+                    <Eye size={14} /> {t("viewReview")}
+                  </button>
+                )}
+                {isVisualFormat && detail.storyboard && (
+                  <button
+                    onClick={() => viewSection(t("viewStoryboard"), detail.storyboard!, "storyboard")}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                  >
+                    <Film size={14} /> {t("viewStoryboard")}
+                  </button>
+                )}
+                {isVisualFormat && detail.imagePrompts && (
+                  <button
+                    onClick={() => viewSection(t("viewImagePrompts"), detail.imagePrompts!, "imagePrompts")}
+                    className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
+                  >
+                    <ImageIcon size={14} /> {t("viewImagePrompts")}
+                  </button>
+                )}
+                {!detail.script && !detail.reviewData && !detail.storyboard && !detail.imagePrompts && (
+                  <span className="text-sm text-[var(--color-text-tertiary)]">{t("noContent")}</span>
+                )}
+              </div>
               {detail.script && (
-                <button
-                  onClick={() => viewSection(t("viewScript"), detail.script!, "script")}
-                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
-                >
-                  <FileText size={14} /> {t("viewScript")}
-                  <span className="text-xs text-[var(--color-text-tertiary)]">
-                    {detail.script.length.toLocaleString()}字
-                  </span>
-                </button>
-              )}
-              {!!detail.reviewData && (
-                <button
-                  onClick={() => viewSection(t("viewReview"), JSON.stringify(detail.reviewData), "review")}
-                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
-                >
-                  <Eye size={14} /> {t("viewReview")}
-                </button>
-              )}
-              {isVisualFormat && detail.storyboard && (
-                <button
-                  onClick={() => viewSection(t("viewStoryboard"), detail.storyboard!, "storyboard")}
-                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
-                >
-                  <Film size={14} /> {t("viewStoryboard")}
-                </button>
-              )}
-              {isVisualFormat && detail.imagePrompts && (
-                <button
-                  onClick={() => viewSection(t("viewImagePrompts"), detail.imagePrompts!, "imagePrompts")}
-                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-bg)] transition-colors cursor-pointer"
-                >
-                  <ImageIcon size={14} /> {t("viewImagePrompts")}
-                </button>
-              )}
-              {!detail.script && !detail.reviewData && !detail.storyboard && !detail.imagePrompts && (
-                <span className="text-sm text-[var(--color-text-tertiary)]">{t("noContent")}</span>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder={t("feedbackPlaceholder")}
+                    className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-1.5 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[rgba(245,166,35,0.3)]"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && feedback.trim() && !isWorking) {
+                        onTrigger(`${base}/write`, { feedback: feedback.trim() });
+                        setFeedback("");
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    disabled={isWorking || !feedback.trim()}
+                    onClick={() => {
+                      onTrigger(`${base}/write`, { feedback: feedback.trim() });
+                      setFeedback("");
+                    }}
+                  >
+                    {t("rewriteWithFeedback")}
+                  </Button>
+                </div>
               )}
             </div>
           ) : null}

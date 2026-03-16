@@ -27,6 +27,8 @@ export const writingPipeline: PipelineDef = {
         }>,
         outputFormat: (ctx.initialData.outputFormat as OutputFormat) || "script",
         styleFingerprint: ctx.initialData.styleFingerprint as StyleFingerprint | undefined,
+        userFeedback: ctx.initialData.userFeedback as string | undefined,
+        currentScript: ctx.initialData.currentScript as string | undefined,
       }),
     }),
   ],
