@@ -53,6 +53,33 @@ async function updateProjectStatus(id: string, status: string, currentStep?: str
   });
 }
 
+/** Derive project status from episode states instead of hardcoding */
+async function deriveAndUpdateProjectStatus(agentProjectId: string) {
+  const project = await prisma.agentProject.findUniqueOrThrow({
+    where: { id: agentProjectId },
+    include: { episodes: { select: { status: true } } },
+  });
+  const episodes = project.episodes;
+  let derivedStatus: string;
+
+  if (episodes.length > 0 && episodes.every((e) => e.status === "completed")) {
+    derivedStatus = "completed";
+  } else if (project.strategyConfirmed) {
+    derivedStatus = "strategy-confirmed";
+  } else if (project.planningData) {
+    derivedStatus = "planned";
+  } else if (project.analysisData) {
+    derivedStatus = "analyzed";
+  } else {
+    derivedStatus = "created";
+  }
+
+  await prisma.agentProject.update({
+    where: { id: agentProjectId },
+    data: { status: derivedStatus, currentStep: null },
+  });
+}
+
 /** Check if this project uses visual pipeline (storyboard + image prompts) */
 function needsVisualPipeline(outputFormat: string | null | undefined): boolean {
   return !outputFormat || outputFormat === "script";
@@ -589,7 +616,7 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
 
   ctx.publishText(`\n✅ 第${episodeNumber}集写作完成 (${result.script.length}字)${result.reflectResult ? ` 反思评分: ${result.reflectResult.totalScore}/80` : ""}${result.improved ? " [已改进]" : ""}\n`);
 
-  await updateProjectStatus(agentProjectId, project.strategyConfirmed ? "strategy-confirmed" : "planned", undefined);
+  await deriveAndUpdateProjectStatus(agentProjectId);
 
   return {
     episodeNumber,
@@ -662,7 +689,7 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
 
   ctx.publishText(`\n${passed ? "✅" : "❌"} 第${episodeNumber}集审核: ${reviewResult.totalScore}分 — ${passed ? "通过" : "未通过"}\n`);
 
-  await updateProjectStatus(agentProjectId, "planned", undefined);
+  await deriveAndUpdateProjectStatus(agentProjectId);
 
   return { episodeNumber, score: reviewResult.totalScore, passed };
 });
@@ -714,7 +741,7 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
     },
   });
 
-  await updateProjectStatus(agentProjectId, "planned", undefined);
+  await deriveAndUpdateProjectStatus(agentProjectId);
 
   return { episodeNumber, storyboard: storyboardData };
 });
@@ -773,7 +800,7 @@ export const handleAgentImagePrompts = withTaskLifecycle(async (payload: TaskPay
     },
   });
 
-  await updateProjectStatus(agentProjectId, "planned", undefined);
+  await deriveAndUpdateProjectStatus(agentProjectId);
 
   return { episodeNumber, imagePrompts: imageResult };
 });
@@ -914,6 +941,12 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
 
     // Review — skip if already reviewed
     if (!freshEp.reviewScore) {
+      const PASS_THRESHOLD_AUTO = 49;
+      const MAX_SCRIPT_FIX_ROUNDS = 2;
+      let passedAuto = false;
+      let latestReviewResult: { totalScore: number; issues?: Array<{ description?: string }> } | null = null;
+
+      // Initial review
       ctx.publishText(`   🔍 审核中...\n`);
       await updateProjectStatus(agentProjectId, "reviewing", `review-ep${epNum}`);
       const reviewCtx = await runPipeline(reviewPipeline, {
@@ -927,17 +960,61 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         },
         progressRange: [baseProgress + perEpisodeProgress * (isNovel ? 0.7 : 0.3), baseProgress + perEpisodeProgress * (isNovel ? 0.9 : 0.5)],
       });
-      const reviewResult = reviewCtx.results["review"] as { totalScore: number; passed: boolean };
+      latestReviewResult = reviewCtx.results["review"] as { totalScore: number; issues?: Array<{ description?: string }> };
+      passedAuto = latestReviewResult.totalScore >= PASS_THRESHOLD_AUTO;
+      ctx.publishText(`   ${passedAuto ? "✅" : "❌"} 审核: ${latestReviewResult.totalScore}分 — ${passedAuto ? "通过" : "未通过"}\n`);
 
-      const PASS_THRESHOLD_AUTO = 49;
-      const passedAuto = reviewResult.totalScore >= PASS_THRESHOLD_AUTO;
-      ctx.publishText(`   ${passedAuto ? "✅" : "❌"} 审核: ${reviewResult.totalScore}分 — ${passedAuto ? "通过" : "未通过"}\n`);
+      // Script mode auto-fix loop: rewrite incorporating review feedback (max 2 rounds)
+      if (!passedAuto && !isNovel && isVisual) {
+        for (let fixRound = 1; fixRound <= MAX_SCRIPT_FIX_ROUNDS && !passedAuto; fixRound++) {
+          // Summarize review issues as feedback
+          const issuesSummary = (latestReviewResult?.issues ?? [])
+            .map((iss) => (typeof iss === "string" ? iss : iss.description ?? ""))
+            .filter(Boolean)
+            .join("; ");
+          const feedbackText = `审核未通过(${latestReviewResult?.totalScore}分)，请根据以下问题修改: ${issuesSummary}`;
+
+          ctx.publishText(`   🔧 自动修改第${fixRound}轮...\n`);
+          await updateProjectStatus(agentProjectId, "writing", `fix-ep${epNum}-r${fixRound}`);
+          const fixResult = await runEpisodeWritePhase({
+            agentProjectId,
+            episode: freshEp,
+            sourceText: finalProject.sourceText,
+            outputFormat,
+            analysis,
+            styleFingerprint,
+            rewriteStrategy,
+            chapterSummaries,
+            userFeedback: feedbackText,
+          }, llm, ctx, [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.6]);
+          script = fixResult.script;
+          ctx.publishText(`   ✅ 修改完成 (${script.length}字)\n`);
+
+          // Re-review
+          ctx.publishText(`   🔍 重新审核...\n`);
+          await updateProjectStatus(agentProjectId, "reviewing", `review-ep${epNum}-r${fixRound}`);
+          const reReviewCtx = await runPipeline(reviewPipeline, {
+            ...llm, taskCtx: ctx,
+            initialData: {
+              episodeNumber: epNum,
+              script,
+              sourceText: finalProject.sourceText,
+              outputFormat,
+              contentType: (styleFingerprint as { contentType?: string } | null)?.contentType,
+            },
+            progressRange: [baseProgress + perEpisodeProgress * 0.6, baseProgress + perEpisodeProgress * 0.7],
+          });
+          latestReviewResult = reReviewCtx.results["review"] as { totalScore: number; issues?: Array<{ description?: string }> };
+          passedAuto = latestReviewResult.totalScore >= PASS_THRESHOLD_AUTO;
+          ctx.publishText(`   ${passedAuto ? "✅" : "⚠️"} 重审: ${latestReviewResult.totalScore}分 — ${passedAuto ? "通过" : `未通过(第${fixRound}轮)`}\n`);
+        }
+      }
 
       await prisma.agentEpisode.update({
         where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
         data: {
-          reviewData: reviewCtx.results["review"] as object,
-          reviewScore: reviewResult.totalScore,
+          reviewData: latestReviewResult as object,
+          reviewScore: latestReviewResult!.totalScore,
           ...(!isVisual ? { status: "completed" } : {}),
         },
       });

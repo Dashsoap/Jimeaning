@@ -2,40 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-errors";
 import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import type { StoryboardResult } from "@/lib/agents/definitions/storyboard-director";
+import type { ImageGeneratorResult } from "@/lib/agents/definitions/image-generator";
 
 type Params = { params: Promise<{ id: string }> };
-
-interface StoryboardShot {
-  shotNumber: number;
-  scene: string;
-  shotSize: string;
-  angle: string;
-  cameraMove: string;
-  description: string;
-  dialogue?: string;
-  duration: string;
-  colorTone?: string;
-  composition?: string;
-  visualNarrative?: string;
-}
-
-interface StoryboardScene {
-  sceneHeader: string;
-  shots: StoryboardShot[];
-}
-
-interface StoryboardResult {
-  scenes: StoryboardScene[];
-}
-
-interface ImagePromptEntry {
-  shotNumber: number;
-  prompt: string;
-}
-
-interface ImageGeneratorResult {
-  prompts: ImagePromptEntry[];
-}
 
 interface AnalysisCharacter {
   name: string;
@@ -51,10 +21,21 @@ function parseDurationMs(duration: string): number {
 }
 
 /** POST /api/agent-projects/:id/publish — import agent project into main project */
-export const POST = apiHandler(async (_req: NextRequest, { params }: Params) => {
+export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
   const auth = await requireAuth();
   if (isErrorResponse(auth)) return auth;
   const { id } = await params;
+
+  // Parse optional episode filter
+  let episodeFilter: number[] | undefined;
+  try {
+    const body = await req.json();
+    if (body.episodeNumbers && Array.isArray(body.episodeNumbers)) {
+      episodeFilter = body.episodeNumbers;
+    }
+  } catch {
+    // No body or invalid JSON — publish all
+  }
 
   // 1. Load AgentProject with all episodes
   const agentProject = await prisma.agentProject.findFirst({
@@ -101,10 +82,13 @@ export const POST = apiHandler(async (_req: NextRequest, { params }: Params) => 
       characterNameMap.set(char.name, created.id);
     }
 
-    // Process each completed episode
-    for (const agentEp of agentProject.episodes) {
-      if (!agentEp.storyboard) continue;
+    // Filter episodes
+    const episodesToPublish = episodeFilter
+      ? agentProject.episodes.filter((ep) => episodeFilter!.includes(ep.episodeNumber))
+      : agentProject.episodes.filter((ep) => ep.status === "completed");
 
+    // Process each episode
+    for (const agentEp of episodesToPublish) {
       // Create Episode
       const episode = await tx.episode.create({
         data: {
@@ -112,9 +96,12 @@ export const POST = apiHandler(async (_req: NextRequest, { params }: Params) => 
           title: agentEp.title || `第${agentEp.episodeNumber}集`,
           synopsis: agentEp.outline || "",
           sortOrder: agentEp.episodeNumber - 1,
-          status: "storyboarded",
+          status: agentEp.storyboard ? "storyboarded" : "scripted",
         },
       });
+
+      // Novel mode (no storyboard) — skip clip/panel creation
+      if (!agentEp.storyboard) continue;
 
       // Parse storyboard JSON
       let storyboard: StoryboardResult;

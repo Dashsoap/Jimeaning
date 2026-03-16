@@ -3,10 +3,11 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Copy, Check, ChevronDown, ChevronRight } from "lucide-react";
+import { ComparisonView } from "./ComparisonView";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
-export type ContentType = "script" | "review" | "storyboard" | "imagePrompts" | "raw";
+export type ContentType = "script" | "review" | "storyboard" | "imagePrompts" | "comparison" | "raw";
 
 interface ContentRendererProps {
   content: string;
@@ -25,6 +26,14 @@ export function ContentRenderer({ content, type }: ContentRendererProps) {
       return <StoryboardRenderer content={content} />;
     case "imagePrompts":
       return <ImagePromptsRenderer content={content} />;
+    case "comparison": {
+      try {
+        const { original, rewritten } = JSON.parse(content) as { original: string; rewritten: string };
+        return <ComparisonView originalText={original} rewrittenText={rewritten} />;
+      } catch {
+        return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
+      }
+    }
     default:
       return (
         <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)] leading-relaxed">
@@ -111,11 +120,26 @@ interface ReviewData {
 }
 
 const DIMENSION_LABELS: Record<string, string> = {
+  // Review dimensions (screenplay)
   faithfulness: "忠实度",
   cinematicQuality: "影视感",
   pacing: "节奏感",
   humanness: "人味度",
   formatCompliance: "格式分",
+  hookAndPaywall: "钩子与付费点",
+  characterConsistency: "角色一致性",
+  // Review dimensions (novel)
+  proseQuality: "文笔质量",
+  styleConsistency: "风格一致性",
+  // Reflect dimensions
+  directness: "直接性",
+  rhythm: "节奏",
+  authenticity: "真实感",
+  styleMatch: "风格匹配",
+  conciseness: "简洁性",
+  hookDensity: "钩子密度",
+  characterVoice: "角色声纹",
+  readerRetention: "读者留存",
 };
 
 const COMPLIANCE_LABELS: Record<string, string> = {
@@ -137,14 +161,17 @@ function ReviewRenderer({ content }: { content: string }) {
     return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{JSON.stringify(data, null, 2)}</pre>;
   }
 
-  const scoreColor = (data.totalScore ?? 0) >= 35 ? "var(--color-success)" : "var(--color-error)";
+  const dimCount = Object.keys(data.dimensions).length;
+  const maxScore = dimCount * 10;
+  const passThreshold = Math.round(maxScore * 0.7);
+  const scoreColor = (data.totalScore ?? 0) >= passThreshold ? "var(--color-success)" : "var(--color-error)";
 
   return (
     <div className="space-y-5">
       {/* Total score header */}
       <div className="flex items-center gap-4">
         <div className="text-4xl font-bold" style={{ color: scoreColor }}>
-          {data.totalScore}<span className="text-lg font-normal text-[var(--color-text-tertiary)]">/50</span>
+          {data.totalScore}<span className="text-lg font-normal text-[var(--color-text-tertiary)]">/{maxScore}</span>
         </div>
         <span
           className="rounded-full px-3 py-1 text-sm font-medium"
