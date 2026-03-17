@@ -52,17 +52,22 @@ export const NOVEL_REWRITE_RULES = `## 小说洗稿规则
 1. **保留故事骨架**：情节线、人物关系、因果链不能改动
 2. **重写表达层**：叙述方式、描写手法、节奏编排全部重构
 3. **保持原文气质**：严格参考风格指纹，不要改变叙事基调
+4. **字数保真**：改写后字数应与原文相当（±10%），不得大幅删减
+5. **专有名词替换**：必须使用策略指定的新名替换所有原名（如已提供 nameMapping）
 
 ### 重写手法
 - **叙述重构**：同一事件用不同叙事角度、时间顺序重新呈现
 - **描写替换**：环境/外貌/动作描写全部重新创作，不复用原文修辞
 - **对话重写**：保留对话意图和信息量，改变措辞和节奏
 - **结构微调**：段落长度、场景衔接方式可以调整
+- **内容完整**：原文中的每个情节点、对话、场景描写都必须保留并改写，不得跳过或省略
 
 ### 禁止
 - 不要改变人物性格和行为逻辑
 - 不要增删情节事件
-- 不要改变时代背景和世界观设定`;
+- 不要改变时代背景和世界观设定
+- 不要大幅缩减内容（改写后字数不得低于原文80%）
+- 不要保留原文中的专有名词（人名/地名/组织名必须按映射替换）`;
 
 const SCRIPT_REWRITE_RULES = `## 剧本洗稿规则
 
@@ -233,55 +238,10 @@ ${prompt}
 请直接输出改写后的内容，不要添加标题、段号或额外说明。`;
 };
 
-// ─── Reflect Prompt ─────────────────────────────────────────────────────
-
-export const REFLECT_SYSTEM = `你是一位严苛的文学编辑，专门检测AI生成痕迹和写作质量问题。
-
-对改写结果进行诊断，按5个维度评分（每项10分）并给出具体修改意见。
-输出严格JSON格式。`;
-
-export const REFLECT_USER = (original: string, rewritten: string) =>
-  `对比原文和改写稿，诊断改写质量。
-
-【原文片段】
-${original.slice(0, 3000)}
-
-【改写稿】
-${rewritten.slice(0, 5000)}
-
-输出JSON：
-{
-  "scores": {
-    "directness": { "score": 0, "issue": "问题描述" },
-    "rhythm": { "score": 0, "issue": "问题描述" },
-    "authenticity": { "score": 0, "issue": "问题描述" },
-    "styleMatch": { "score": 0, "issue": "问题描述" },
-    "conciseness": { "score": 0, "issue": "问题描述" }
-  },
-  "totalScore": 0,
-  "aiPatterns": ["检测到的具体AI模式，如：连续使用了3个四字成语"],
-  "suggestions": ["具体的修改建议，精确到某段某句"]
-}`;
-
-// ─── Improve Prompt ─────────────────────────────────────────────────────
-
-export const IMPROVE_SYSTEM = `你是一位资深改写专家。根据编辑反馈，对改写稿进行最终润色修改。
-
-规则：
-1. 只修改编辑指出的问题，不要大面积重写
-2. 保持改写稿已有的好的部分
-3. 直接输出修改后的完整文本，不要添加说明`;
-
-export const IMPROVE_USER = (rewritten: string, reflection: string) =>
-  `根据编辑反馈修改以下改写稿：
-
-【改写稿】
-${rewritten}
-
-【编辑反馈】
-${reflection}
-
-请直接输出修改后的完整内容。`;
+// ─── Reflect / Improve Prompts ──────────────────────────────────────────
+// MOVED: Reflect and Improve prompts are now defined in agent definitions:
+//   - src/lib/agents/definitions/reflect.ts (buildReflectSystemPrompt, buildReflectUserPrompt)
+//   - src/lib/agents/definitions/improve.ts (buildImproveSystemPrompt, buildImproveUserPrompt)
 
 // ─── Batch Rewrite (cross-chapter context) ──────────────────────────────
 

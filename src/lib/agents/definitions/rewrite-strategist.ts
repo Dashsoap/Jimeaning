@@ -31,6 +31,12 @@ export interface RewriteStrategyInput {
   totalEpisodes: number;
 }
 
+export interface NameMapping {
+  characters: Record<string, string>;   // 原人名 → 新人名
+  locations: Record<string, string>;    // 原地名 → 新地名
+  organizations: Record<string, string>; // 原组织名 → 新组织名
+}
+
 export interface RewriteStrategy {
   globalStyle: {
     narrativeVoice: string;
@@ -39,6 +45,7 @@ export interface RewriteStrategy {
     dialogueApproach: string;
     tabooPatterns: string[];
   };
+  nameMapping: NameMapping;
   characterVoices: Record<string, {
     speechStyle: string;
     innerWorld: string;
@@ -74,6 +81,7 @@ export const rewriteStrategistAgent: AgentDef<RewriteStrategyInput, RewriteStrat
 2. 角色语气一致 — 每个角色有固定的说话方式
 3. 跨集连贯 — 前后集的情节、伏笔、情感弧互相呼应
 4. 去AI化 — 明确标记要避免的AI写作模式
+5. 专有名词全部替换 — 人名、地名、组织名全部设计新名
 
 ## 策略设计原则
 
@@ -82,6 +90,26 @@ export const rewriteStrategistAgent: AgentDef<RewriteStrategyInput, RewriteStrat
 - **每集要有焦点** — 明确本集改写的重点（哪个场景要精写、哪个可以略写）
 - **集与集之间要有过渡设计** — 上集末尾和下集开头怎么衔接
 - **禁忌模式要具体** — 不是泛泛地说"不要AI味"，而是列出具体要避免的词汇和句式
+
+## 专有名词替换策略（必须输出 nameMapping）
+
+为所有专有名词设计替换方案：
+
+【人名】
+- 姓氏不同，名字不同
+- 保持性别、文化背景一致
+- 新名字自然、不生硬
+- 必须覆盖所有出场角色（主要+次要）
+
+【地名】
+- 保持地理特征一致（沿海城市→另一个沿海城市或虚构沿海城市）
+- 山城→山城，南方→南方
+- 可以捏造一个符合特征的虚构地名
+- 真实且知名的地名（如北京、上海）可保留，但作品特定的地名必须替换
+
+【组织名】
+- 门派/公司/帮会等全部替换
+- 保持气质相近（武侠门派名仍有武侠味，现代公司名仍有商业感）
 
 输出严格JSON格式。`,
 
@@ -124,8 +152,13 @@ ${input.sourceTextSample}
     "dialogueApproach": "对话改写方针",
     "tabooPatterns": ["要避免的具体AI模式词汇/句式"]
   },
+  "nameMapping": {
+    "characters": { "原人名": "新人名" },
+    "locations": { "原地名": "新地名" },
+    "organizations": { "原组织名": "新组织名" }
+  },
   "characterVoices": {
-    "角色名": {
+    "新角色名（使用nameMapping替换后的名字）": {
       "speechStyle": "说话方式",
       "innerWorld": "内心世界表达方式",
       "uniqueMarkers": "这个角色独有的语言标记"

@@ -37,6 +37,7 @@ export interface ReflectOutput {
     hookDensity: { score: number; issue: string };
     characterVoice: { score: number; issue: string };
     readerRetention: { score: number; issue: string };
+    originality: { score: number; issue: string };
   };
   totalScore: number;
   aiPatterns: string[];
@@ -75,7 +76,7 @@ ${input.strategyContext.chapterNotes
 
     return `你是一位严苛的文学编辑，专门检测AI生成痕迹和写作质量问题。
 
-对改写结果进行诊断，按8个维度评分（每项10分，满分80）并给出具体修改意见。
+对改写结果进行诊断，按9个维度评分（每项10分，满分90）并给出具体修改意见。
 
 ### 1. 直接性（directness）— 满分10
 是否用最直接的方式表达，没有绕弯子、铺垫过长。
@@ -109,6 +110,13 @@ ${input.strategyContext.chapterNotes
 | 7-8 | 偶有拖沓但能快速回拉 |
 | 5-6 | 有明显的"弃读风险"段落 |
 | 3-4 | 多处让人失去阅读兴趣 |
+
+### 9. 原创性/差异度（originality）— 满分10
+| 9-10 | 完全看不出原文痕迹，像另一个人写的全新作品 |
+| 7-8 | 大部分内容已重写，偶有原文残留表述 |
+| 5-6 | 部分段落明显保留原文句式或措辞 |
+| 3-4 | 大量直接复用原文，仅换了个别词语 |
+| 1-2 | 几乎是原文照抄 |
 ${strategySection}
 
 输出严格JSON格式。`;
@@ -117,13 +125,13 @@ ${strategySection}
   userPrompt: (input) =>
     `对比原文和改写稿，诊断改写质量。
 
-【原文片段】
-${input.originalText.slice(0, 3000)}
+【原文】
+${input.originalText}
 
 【改写稿】
-${input.rewrittenText.slice(0, 5000)}
+${input.rewrittenText}
 
-输出JSON（8维评分，满分80）：
+输出JSON（9维评分，满分90）：
 {
   "scores": {
     "directness": { "score": 0, "issue": "问题描述" },
@@ -133,7 +141,8 @@ ${input.rewrittenText.slice(0, 5000)}
     "conciseness": { "score": 0, "issue": "问题描述" },
     "hookDensity": { "score": 0, "issue": "问题描述" },
     "characterVoice": { "score": 0, "issue": "问题描述" },
-    "readerRetention": { "score": 0, "issue": "问题描述" }
+    "readerRetention": { "score": 0, "issue": "问题描述" },
+    "originality": { "score": 0, "issue": "问题描述" }
   },
   "totalScore": 0,
   "aiPatterns": ["检测到的具体AI模式"],

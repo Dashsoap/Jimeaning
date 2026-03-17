@@ -561,14 +561,19 @@ model AgentEpisode {
   storyboard    String? @db.LongText // storyboard-director 产出的分镜脚本
   imagePrompts  String? @db.LongText // image-generator 产出的图片 Prompt
 
+  // Source text range (character offsets in original text)
+  sourceStart Int? // 原文起始字符偏移
+  sourceEnd   Int? // 原文结束字符偏移
+
   // Novel rewrite enhancements
   chapterNotes   String? @db.Text // 策略中本集的改写要点
   chapterSummary String? @db.Text // 写完后生成的章节摘要（给下一集用）
   rewriteAttempt Int     @default(0) // 改写尝试次数
   reflectionData Json?   @db.Json // 反思结果（得分+建议）
+  similarityScore Float? // 与原文的雷同度（0-1）
 
   // Per-episode status
-  status String @default("pending") // pending | writing | reviewing | storyboarding | imaging | completed
+  status String @default("pending") // pending | writing | reviewing | storyboarding | imaging | completed | similarity-failed
 
   agentProject AgentProject @relation(fields: [agentProjectId], references: [id], onDelete: Cascade)
 

@@ -93,6 +93,12 @@ const CROSS_EPISODE_CONTINUITY = `### 跨集连贯性（最重要）
 - 叙事节奏、人称视角、时态必须与前一集保持一致
 - 如果前一集结尾某个角色在说话/行动，本集直接延续那个场景`;
 
+interface NameMapping {
+  characters?: Record<string, string>;
+  locations?: Record<string, string>;
+  organizations?: Record<string, string>;
+}
+
 interface RewriteStrategyStyle {
   globalStyle: {
     narrativeVoice: string;
@@ -106,6 +112,7 @@ interface RewriteStrategyStyle {
     innerWorld: string;
     uniqueMarkers: string;
   }>;
+  nameMapping?: NameMapping;
 }
 
 function buildStrategyContext(strategy?: unknown): string {
@@ -125,6 +132,31 @@ function buildStrategyContext(strategy?: unknown): string {
     for (const [name, voice] of Object.entries(s.characterVoices)) {
       ctx += `\n- ${name}: 说话方式[${voice.speechStyle}]，内心表达[${voice.innerWorld}]，语言标记[${voice.uniqueMarkers}]`;
     }
+  }
+
+  // Name mapping (换名指令)
+  if (s.nameMapping) {
+    ctx += "\n\n### ⚠️ 专有名词替换（必须严格执行）";
+    ctx += "\n以下所有原名必须替换为新名，不得遗漏任何一处：";
+    if (s.nameMapping.characters && Object.keys(s.nameMapping.characters).length > 0) {
+      ctx += "\n\n**人名替换：**";
+      for (const [orig, replacement] of Object.entries(s.nameMapping.characters)) {
+        ctx += `\n- "${orig}" → "${replacement}"`;
+      }
+    }
+    if (s.nameMapping.locations && Object.keys(s.nameMapping.locations).length > 0) {
+      ctx += "\n\n**地名替换：**";
+      for (const [orig, replacement] of Object.entries(s.nameMapping.locations)) {
+        ctx += `\n- "${orig}" → "${replacement}"`;
+      }
+    }
+    if (s.nameMapping.organizations && Object.keys(s.nameMapping.organizations).length > 0) {
+      ctx += "\n\n**组织名替换：**";
+      for (const [orig, replacement] of Object.entries(s.nameMapping.organizations)) {
+        ctx += `\n- "${orig}" → "${replacement}"`;
+      }
+    }
+    ctx += "\n\n**重要：每一处出现的原名都必须替换，包括对话中、叙述中、心理描写中的所有出现。**";
   }
 
   return ctx;
@@ -199,8 +231,17 @@ export const scriptWriterAgent: AgentDef<ScriptWriterInput, ScriptWriterOutput> 
         ? `\n\n## 衔接指令\n${input.transitionInstructions}`
         : "";
 
+      // Word count anchoring
+      const sourceLen = input.sourceText.length;
+      const minTarget = Math.round(sourceLen * 0.9);
+      const maxTarget = Math.round(sourceLen * 1.1);
+      const wordCountAnchor = `\n\n## ⚠️ 字数要求（严格遵守）
+原文本段约 ${sourceLen} 字，改写后字数目标：${minTarget} - ${maxTarget} 字。
+严禁大幅缩减内容，每个情节点、对话、场景都必须保留并改写。
+如果发现改写后字数远少于原文，说明遗漏了内容，必须补齐。`;
+
       return `${feedbackSection ? feedbackSection : ""}改写第 ${input.episodeNumber} 集（共 ${input.characters.length > 0 ? "多" : ""}集连载）：${input.episodeTitle}
-${prevContext}${summariesSection}${chapterNotesSection}${transitionSection}
+${prevContext}${summariesSection}${chapterNotesSection}${transitionSection}${wordCountAnchor}
 
 ## 本集大纲
 ${input.episodeOutline}
@@ -208,7 +249,7 @@ ${input.episodeOutline}
 ## 原文内容
 ${input.sourceText}
 
-${feedbackSection ? "请根据用户意见重写，同时遵循以下改写规则。" : "请按照改写规则，完整改写以上内容。"}保留所有情节和对话意图，彻底重写表达方式。
+${feedbackSection ? "请根据用户意见重写，同时遵循以下改写规则。" : "请按照改写规则，完整改写以上内容。"}保留所有情节和对话意图，彻底重写表达方式。字数必须与原文相当（±10%）。
 ${input.previousEpisodeEnding ? "【关键要求】开头必须与前一集末尾自然衔接，像同一篇文章的下一段，不要有断裂感。" : ""}`;
     }
 

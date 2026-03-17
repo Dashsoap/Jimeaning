@@ -27,8 +27,10 @@ import {
 } from "@/lib/llm/prompts/rewrite-script";
 import type { StyleFingerprint } from "@/lib/llm/prompts/rewrite-script";
 import type { TaskPayload } from "@/lib/task/types";
-import type { RewriteStrategy } from "@/lib/agents/definitions/rewrite-strategist";
+import type { RewriteStrategy, NameMapping } from "@/lib/agents/definitions/rewrite-strategist";
 import type { ReflectOutput } from "@/lib/agents/definitions/reflect";
+import { checkSimilarity, findDuplicateSegments } from "@/lib/text/similarity";
+import { findOriginalNameResidues } from "@/lib/text/name-check";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -195,10 +197,29 @@ async function upsertEpisodesFromPlan(
   const episodeOps = episodes.map((ep, idx) => {
     const epNum = (ep.number ?? ep.episodeNumber ?? idx + 1) as number;
     const epTitle = (ep.title as string) ?? `第${epNum}集`;
+
+    // Extract source range offsets if available
+    const sourceRange = ep.sourceRange as { start: number; end: number } | string | undefined;
+    let sourceStart: number | undefined;
+    let sourceEnd: number | undefined;
+    if (sourceRange && typeof sourceRange === "object" && "start" in sourceRange) {
+      sourceStart = sourceRange.start;
+      sourceEnd = sourceRange.end;
+    }
+
     return prisma.agentEpisode.upsert({
       where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
-      create: { agentProjectId, episodeNumber: epNum, title: epTitle, outline: JSON.stringify(ep), status: "planned" },
-      update: { title: epTitle, outline: JSON.stringify(ep) },
+      create: {
+        agentProjectId, episodeNumber: epNum, title: epTitle,
+        outline: JSON.stringify(ep), status: "planned",
+        ...(sourceStart !== undefined ? { sourceStart } : {}),
+        ...(sourceEnd !== undefined ? { sourceEnd } : {}),
+      },
+      update: {
+        title: epTitle, outline: JSON.stringify(ep),
+        ...(sourceStart !== undefined ? { sourceStart } : {}),
+        ...(sourceEnd !== undefined ? { sourceEnd } : {}),
+      },
     });
   });
   await prisma.$transaction(episodeOps);
@@ -299,7 +320,7 @@ async function runStrategyPhase(
 
 interface EpisodeWriteParams {
   agentProjectId: string;
-  episode: { episodeNumber: number; title: string | null; outline: string | null; chapterNotes: string | null };
+  episode: { episodeNumber: number; title: string | null; outline: string | null; chapterNotes: string | null; sourceStart?: number | null; sourceEnd?: number | null };
   sourceText: string;
   outputFormat: string;
   analysis: { characters?: Array<{ name: string; personality: string[]; appearance: string }> } | null;
@@ -316,9 +337,14 @@ async function runEpisodeWritePhase(
   ctx: TaskCtx,
   progressRange: [number, number],
 ): Promise<{ script: string; reflectResult?: ReflectOutput; improved: boolean }> {
-  const { agentProjectId, episode, sourceText, outputFormat, analysis, styleFingerprint, rewriteStrategy, chapterSummaries, userFeedback } = params;
+  const { agentProjectId, episode, sourceText: fullSourceText, outputFormat, analysis, styleFingerprint, rewriteStrategy, chapterSummaries, userFeedback } = params;
   const epNum = episode.episodeNumber;
   const useNovelMode = isNovelMode(outputFormat) && !!rewriteStrategy;
+
+  // Slice source text by chapter offsets if available
+  const sourceText = (episode.sourceStart != null && episode.sourceEnd != null)
+    ? fullSourceText.slice(episode.sourceStart, episode.sourceEnd)
+    : fullSourceText;
 
   // Get previous episode ending for continuity
   const prevEp = epNum > 1
@@ -381,7 +407,7 @@ async function runEpisodeWritePhase(
   // Step 2: Multi-round reflect/improve loop (novel mode only)
   if (useNovelMode) {
     const MAX_ROUNDS = 3;
-    const PASS_THRESHOLD = 56; // 80 × 70%
+    const PASS_THRESHOLD = 63; // 90 × 70%
 
     const strategyCtx = initialData.strategyContext as {
       globalStyle: RewriteStrategy["globalStyle"];
@@ -401,7 +427,7 @@ async function runEpisodeWritePhase(
       }, llm.client, llm.model, ctx);
       lastReflect = reflectResult.parsed;
 
-      ctx.publishText(`反思得分: ${lastReflect.totalScore}/80\n`);
+      ctx.publishText(`反思得分: ${lastReflect.totalScore}/90\n`);
 
       if (lastReflect.totalScore >= PASS_THRESHOLD) {
         ctx.publishText(`✅ 质量达标 (${lastReflect.totalScore}分)\n`);
@@ -493,6 +519,69 @@ async function runEpisodeWritePhase(
   }
 
   return { script: finalScript, reflectResult: lastReflect, improved };
+}
+
+// ─── Post-Processing Validation ────────────────────────────────────────
+
+interface PostProcessResult {
+  similarityScore: number;
+  similarityPassed: boolean;
+  duplicateSegments: string[];
+  nameResidues: Array<{ original: string; category: string; count: number }>;
+  nameCheckPassed: boolean;
+  wordCountRatio: number;
+  wordCountPassed: boolean;
+}
+
+/** Run post-processing checks on a rewritten episode (novel mode) */
+async function runPostProcessChecks(
+  originalText: string,
+  rewrittenText: string,
+  nameMapping: NameMapping | undefined,
+  ctx: TaskCtx,
+): Promise<PostProcessResult> {
+  // 1. Similarity check
+  ctx.publishText(`   🔍 雷同度检测...\n`);
+  const simResult = checkSimilarity(originalText, rewrittenText);
+  const SIMILARITY_THRESHOLD = 0.05; // 5%
+  const similarityPassed = simResult.overallSimilarity < SIMILARITY_THRESHOLD;
+  ctx.publishText(`   📊 雷同度: ${(simResult.overallSimilarity * 100).toFixed(1)}% ${similarityPassed ? "✅" : "⚠️"}\n`);
+  if (simResult.duplicateSegments.length > 0) {
+    ctx.publishText(`   ⚠️ 发现${simResult.duplicateSegments.length}处重复片段\n`);
+  }
+
+  // 2. Name residue check
+  let nameResidues: PostProcessResult["nameResidues"] = [];
+  let nameCheckPassed = true;
+  if (nameMapping) {
+    ctx.publishText(`   🔍 原名残留检查...\n`);
+    const nameResult = findOriginalNameResidues(rewrittenText, nameMapping);
+    nameResidues = nameResult.residues;
+    nameCheckPassed = nameResult.passed;
+    if (!nameCheckPassed) {
+      ctx.publishText(`   ⚠️ 发现${nameResult.totalResidues}处原名残留:\n`);
+      for (const r of nameResult.residues.slice(0, 5)) {
+        ctx.publishText(`      "${r.original}" (${r.category}) × ${r.count}\n`);
+      }
+    } else {
+      ctx.publishText(`   ✅ 原名已全部替换\n`);
+    }
+  }
+
+  // 3. Word count check
+  const wordCountRatio = rewrittenText.length / Math.max(originalText.length, 1);
+  const wordCountPassed = wordCountRatio >= 0.8 && wordCountRatio <= 1.2;
+  ctx.publishText(`   📏 字数保真: ${(wordCountRatio * 100).toFixed(0)}% (原文${originalText.length}字 → 改写${rewrittenText.length}字) ${wordCountPassed ? "✅" : "⚠️"}\n`);
+
+  return {
+    similarityScore: simResult.overallSimilarity,
+    similarityPassed,
+    duplicateSegments: simResult.duplicateSegments,
+    nameResidues,
+    nameCheckPassed,
+    wordCountRatio,
+    wordCountPassed,
+  };
 }
 
 // ─── AGENT_ANALYZE ───────────────────────────────────────────────────
@@ -614,7 +703,28 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
     userFeedback,
   }, llm, ctx, [5, 90]);
 
-  ctx.publishText(`\n✅ 第${episodeNumber}集写作完成 (${result.script.length}字)${result.reflectResult ? ` 反思评分: ${result.reflectResult.totalScore}/80` : ""}${result.improved ? " [已改进]" : ""}\n`);
+  ctx.publishText(`\n✅ 第${episodeNumber}集写作完成 (${result.script.length}字)${result.reflectResult ? ` 反思评分: ${result.reflectResult.totalScore}/90` : ""}${result.improved ? " [已改进]" : ""}\n`);
+
+  // Post-processing checks for novel mode
+  let postProcess: PostProcessResult | undefined;
+  if (isNovelMode(project.outputFormat)) {
+    const epSourceText = (episode.sourceStart != null && episode.sourceEnd != null)
+      ? project.sourceText.slice(episode.sourceStart, episode.sourceEnd)
+      : project.sourceText;
+    const nameMapping = (project.rewriteStrategy as unknown as { nameMapping?: NameMapping })?.nameMapping;
+    postProcess = await runPostProcessChecks(epSourceText, result.script, nameMapping, ctx);
+
+    const existingReflection = result.reflectResult as Record<string, unknown> | undefined;
+    const updatedReflection = { ...(existingReflection ?? {}), postProcess };
+
+    await prisma.agentEpisode.update({
+      where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber } },
+      data: {
+        reflectionData: updatedReflection as object,
+        similarityScore: postProcess.similarityScore,
+      },
+    });
+  }
 
   await deriveAndUpdateProjectStatus(agentProjectId);
 
@@ -623,6 +733,11 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
     scriptLength: result.script.length,
     reflectScore: result.reflectResult?.totalScore,
     improved: result.improved,
+    ...(postProcess ? {
+      similarityScore: postProcess.similarityScore,
+      nameCheckPassed: postProcess.nameCheckPassed,
+      wordCountRatio: postProcess.wordCountRatio,
+    } : {}),
   };
 });
 
@@ -641,6 +756,11 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
   const episode = project.episodes.find((e) => e.episodeNumber === episodeNumber);
   if (!episode?.script) throw new Error(`Episode ${episodeNumber} has no script to review`);
 
+  // Use sliced source text if offsets available
+  const episodeSourceText = (episode.sourceStart != null && episode.sourceEnd != null)
+    ? project.sourceText.slice(episode.sourceStart, episode.sourceEnd)
+    : project.sourceText;
+
   const { client, model } = await setupLLM(userId);
 
   ctx.publishText(`\n🔍 审核第${episodeNumber}集...\n`);
@@ -652,7 +772,7 @@ export const handleAgentReview = withTaskLifecycle(async (payload: TaskPayload, 
     initialData: {
       episodeNumber,
       script: episode.script,
-      sourceText: project.sourceText,
+      sourceText: episodeSourceText,
       analysisCharacters: project.analysisData
         ? JSON.stringify((project.analysisData as { characters?: unknown }).characters)
         : undefined,
@@ -947,6 +1067,10 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
       let latestReviewResult: { totalScore: number; issues?: Array<{ description?: string }> } | null = null;
 
       // Initial review
+      // Use sliced source text for review
+      const reviewSourceText = (freshEp.sourceStart != null && freshEp.sourceEnd != null)
+        ? finalProject.sourceText.slice(freshEp.sourceStart, freshEp.sourceEnd)
+        : finalProject.sourceText;
       ctx.publishText(`   🔍 审核中...\n`);
       await updateProjectStatus(agentProjectId, "reviewing", `review-ep${epNum}`);
       const reviewCtx = await runPipeline(reviewPipeline, {
@@ -954,7 +1078,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         initialData: {
           episodeNumber: epNum,
           script,
-          sourceText: finalProject.sourceText,
+          sourceText: reviewSourceText,
           outputFormat,
           contentType: (styleFingerprint as { contentType?: string } | null)?.contentType,
         },
@@ -998,7 +1122,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
             initialData: {
               episodeNumber: epNum,
               script,
-              sourceText: finalProject.sourceText,
+              sourceText: reviewSourceText,
               outputFormat,
               contentType: (styleFingerprint as { contentType?: string } | null)?.contentType,
             },
@@ -1018,6 +1142,42 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           ...(!isVisual ? { status: "completed" } : {}),
         },
       });
+
+      // Post-processing checks for novel mode
+      if (isNovel && script) {
+        const epSourceText = (freshEp.sourceStart != null && freshEp.sourceEnd != null)
+          ? finalProject.sourceText.slice(freshEp.sourceStart, freshEp.sourceEnd)
+          : finalProject.sourceText;
+        const nameMapping = (rewriteStrategy as unknown as { nameMapping?: NameMapping })?.nameMapping;
+
+        const postResult = await runPostProcessChecks(epSourceText, script, nameMapping, ctx);
+
+        // Save post-processing results
+        const existingReflection = (await prisma.agentEpisode.findUnique({
+          where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+          select: { reflectionData: true },
+        }))?.reflectionData as Record<string, unknown> | null;
+
+        const updatedReflection = {
+          ...(existingReflection ?? {}),
+          postProcess: postResult,
+        };
+
+        let episodeStatus = "completed";
+        if (!postResult.similarityPassed) {
+          episodeStatus = "similarity-failed";
+          ctx.publishText(`   ⚠️ 第${epNum}集雷同度未通过 (${(postResult.similarityScore * 100).toFixed(1)}%)，标记为需人工处理\n`);
+        }
+
+        await prisma.agentEpisode.update({
+          where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+          data: {
+            reflectionData: updatedReflection as object,
+            similarityScore: postResult.similarityScore,
+            ...(!isVisual ? { status: episodeStatus } : {}),
+          },
+        });
+      }
 
       if (!isVisual) continue;
     }
