@@ -114,7 +114,7 @@ export function EpisodeRow({
         )}
         {!!(ep.reflectionData as { totalScore?: number } | null)?.totalScore && (
           <span className="text-xs text-[var(--color-text-tertiary)]">
-            {t("reflectScore")}: {(ep.reflectionData as { totalScore: number }).totalScore}/80
+            {t("reflectScore")}: {(ep.reflectionData as { totalScore: number }).totalScore}/90
           </span>
         )}
 

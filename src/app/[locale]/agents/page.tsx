@@ -53,10 +53,12 @@ export default function AgentsPage() {
   // ─── Task polling ────────────────────────────────────────────────
   useTaskPolling(activeTaskId, {
     onComplete: () => {
+      setActiveTaskId(null);
       setActiveProjectId(null);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
     },
     onFailed: () => {
+      setActiveTaskId(null);
       setActiveProjectId(null);
       queryClient.invalidateQueries({ queryKey: ["agent-projects"] });
     },
