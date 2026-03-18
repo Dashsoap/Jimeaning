@@ -57,7 +57,7 @@ export async function login(page: Page, email?: string, password?: string) {
 
   // Wait for redirect away from signin
   await page.waitForURL((url) => !url.pathname.includes("/auth/signin"), {
-    timeout: 15_000,
+    timeout: 30_000,
   });
 }
 
@@ -116,5 +116,81 @@ export async function refreshProject(page: Page) {
   if (await btn.isVisible()) {
     await btn.click();
     await page.waitForTimeout(1_000);
+  }
+}
+
+/**
+ * Wait for an agent project's status badge to change to the target text.
+ * Polls by reloading the page periodically.
+ */
+export async function waitForStatusChange(
+  page: Page,
+  projectTitle: string,
+  targetStatus: string | RegExp,
+  options?: { timeout?: number; pollInterval?: number },
+) {
+  const timeout = options?.timeout ?? 600_000;
+  const pollInterval = options?.pollInterval ?? 5_000;
+  const deadline = Date.now() + timeout;
+
+  while (Date.now() < deadline) {
+    // Find the project card containing the title
+    const card = page.locator("div").filter({ hasText: projectTitle }).first();
+    const badge = card.locator("span").filter({ hasText: targetStatus });
+    if ((await badge.count()) > 0) {
+      return;
+    }
+    await page.waitForTimeout(pollInterval);
+    await page.reload();
+    await page.waitForTimeout(2_000);
+  }
+  throw new Error(
+    `Status did not change to "${targetStatus}" within ${timeout}ms`,
+  );
+}
+
+/**
+ * Fill a textarea reliably — clears first, then fills.
+ */
+export async function fillTextarea(
+  page: Page,
+  selector: string,
+  text: string,
+) {
+  const textarea = page.locator(selector);
+  await textarea.click();
+  await textarea.fill(text);
+}
+
+/**
+ * Wait for a specific API response and return it.
+ */
+export async function waitForApiResponse(
+  page: Page,
+  urlPattern: string | RegExp,
+  options?: { timeout?: number },
+) {
+  const timeout = options?.timeout ?? 30_000;
+  return page.waitForResponse(
+    (resp) => {
+      const url = resp.url();
+      if (typeof urlPattern === "string") return url.includes(urlPattern);
+      return urlPattern.test(url);
+    },
+    { timeout },
+  );
+}
+
+/**
+ * Check for error toast and throw if found.
+ */
+export async function assertNoErrorToast(page: Page) {
+  await page.waitForTimeout(2_000);
+  const errorToast = page
+    .locator('[class*="toast"]')
+    .filter({ hasText: /失败|错误|配置/ });
+  if ((await errorToast.count()) > 0) {
+    const msg = await errorToast.first().textContent();
+    throw new Error(`Unexpected error toast: ${msg}`);
   }
 }

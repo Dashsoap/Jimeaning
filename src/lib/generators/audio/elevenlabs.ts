@@ -4,6 +4,7 @@ import type {
   GenerateResult,
   ProviderConfig,
 } from "../types";
+import { withRetry } from "@/lib/retry";
 
 export class ElevenLabsGenerator implements AudioGenerator {
   private apiKey: string;
@@ -18,33 +19,38 @@ export class ElevenLabsGenerator implements AudioGenerator {
     const voiceId = params.voiceId || "21m00Tcm4TlvDq8ikWAM"; // default Rachel
     const model = params.model || "eleven_multilingual_v2";
 
-    const response = await fetch(
-      `${this.baseUrl}/v1/text-to-speech/${voiceId}`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": this.apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: params.text,
-          model_id: model,
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
+    return withRetry(async () => {
+      const response = await fetch(
+        `${this.baseUrl}/v1/text-to-speech/${voiceId}`,
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": this.apiKey,
+            "Content-Type": "application/json",
           },
-        }),
+          body: JSON.stringify({
+            text: params.text,
+            model_id: model,
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const status = response.status;
+        const error = await response.text();
+        const err = new Error(`ElevenLabs TTS failed (${status}): ${error}`);
+        (err as unknown as Record<string, unknown>).status = status;
+        throw err;
       }
-    );
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`ElevenLabs TTS failed: ${error}`);
-    }
-
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return {
-      base64: buffer.toString("base64"),
-    };
+      const buffer = Buffer.from(await response.arrayBuffer());
+      return {
+        base64: buffer.toString("base64"),
+      };
+    }, { label: `elevenlabs-tts:${model}` });
   }
 }

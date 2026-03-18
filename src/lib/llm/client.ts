@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { withRetry } from "@/lib/retry";
 
 export interface LLMClientConfig {
   apiKey: string;
@@ -11,44 +12,6 @@ export function createLLMClient(config: LLMClientConfig) {
     apiKey: config.apiKey,
     baseURL: config.baseUrl,
   });
-}
-
-// ─── Retry helper for transient API errors (502, 503, rate limit, network) ──
-
-function isRetryableError(err: unknown): boolean {
-  if (err instanceof OpenAI.APIError) {
-    return [429, 500, 502, 503, 504].includes(err.status);
-  }
-  if (err instanceof Error) {
-    const msg = err.message.toLowerCase();
-    return msg.includes("econnreset") || msg.includes("etimedout") ||
-           msg.includes("socket hang up") || msg.includes("network");
-  }
-  return false;
-}
-
-const DEFAULT_MAX_RETRIES = 3;
-const RETRY_BASE_DELAY = 3000; // 3s, 6s, 12s
-
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  maxRetries = DEFAULT_MAX_RETRIES,
-): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastError = err;
-      if (attempt < maxRetries && isRetryableError(err)) {
-        const delay = RETRY_BASE_DELAY * Math.pow(2, attempt);
-        await new Promise((r) => setTimeout(r, delay));
-        continue;
-      }
-      throw err;
-    }
-  }
-  throw lastError;
 }
 
 export async function chatCompletion(
@@ -75,7 +38,7 @@ export async function chatCompletion(
     });
 
     return response.choices[0]?.message?.content ?? "";
-  });
+  }, { label: `LLM:${params.model}` });
 }
 
 /**
@@ -111,7 +74,7 @@ export async function chatCompletionStream(
       }
     }
     return full;
-  });
+  }, { label: `LLM-stream:${params.model}` });
 }
 
 /**

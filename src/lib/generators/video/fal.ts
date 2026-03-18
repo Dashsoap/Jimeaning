@@ -4,6 +4,7 @@ import type {
   GenerateResult,
   ProviderConfig,
 } from "../types";
+import { withRetry } from "@/lib/retry";
 
 export class FalVideoGenerator implements VideoGenerator {
   private apiKey: string;
@@ -17,27 +18,32 @@ export class FalVideoGenerator implements VideoGenerator {
   async generate(params: VideoGenerateParams): Promise<GenerateResult> {
     const model = params.model || this.defaultModel;
 
-    // Submit async job
-    const submitResponse = await fetch(`https://queue.fal.run/${model}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        image_url: params.imageUrl,
-        prompt: params.prompt || "",
-        duration: params.durationMs ? Math.round(params.durationMs / 1000) : 5,
-        ...(params.lastFrameImageUrl ? { tail_image_url: params.lastFrameImageUrl } : {}),
-      }),
-    });
+    // Submit async job (with retry for 429/5xx)
+    const submitData = await withRetry(async () => {
+      const submitResponse = await fetch(`https://queue.fal.run/${model}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Key ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_url: params.imageUrl,
+          prompt: params.prompt || "",
+          duration: params.durationMs ? Math.round(params.durationMs / 1000) : 5,
+          ...(params.lastFrameImageUrl ? { tail_image_url: params.lastFrameImageUrl } : {}),
+        }),
+      });
 
-    if (!submitResponse.ok) {
-      const error = await submitResponse.text();
-      throw new Error(`FAL video generation failed: ${error}`);
-    }
+      if (!submitResponse.ok) {
+        const status = submitResponse.status;
+        const error = await submitResponse.text();
+        const err = new Error(`FAL video generation failed (${status}): ${error}`);
+        (err as unknown as Record<string, unknown>).status = status;
+        throw err;
+      }
 
-    const submitData = await submitResponse.json();
+      return submitResponse.json();
+    }, { label: `fal-video-submit:${model}` });
 
     // Poll for result
     const requestId = submitData.request_id;

@@ -5,6 +5,7 @@ import type {
   GenerateResult,
   ProviderConfig,
 } from "../types";
+import { withRetry } from "@/lib/retry";
 
 export class GoogleVeoGenerator implements VideoGenerator {
   private apiKey: string;
@@ -25,33 +26,33 @@ export class GoogleVeoGenerator implements VideoGenerator {
       personGeneration: "allow_all" as const,
     };
 
-    // Submit async video generation
-    let operation;
+    // Submit async video generation (with retry for 429/5xx)
+    let operation = await withRetry(async () => {
+      if (params.imageUrl) {
+        // Image-to-video: download image and convert to base64
+        const imageRes = await fetch(params.imageUrl);
+        if (!imageRes.ok) throw new Error(`Failed to download image: ${imageRes.status}`);
+        const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
+        const imageBase64 = imageBuffer.toString("base64");
+        const mimeType = imageRes.headers.get("content-type") || "image/png";
 
-    if (params.imageUrl) {
-      // Image-to-video: download image and convert to base64
-      const imageRes = await fetch(params.imageUrl);
-      if (!imageRes.ok) throw new Error(`Failed to download image: ${imageRes.status}`);
-      const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
-      const imageBase64 = imageBuffer.toString("base64");
-      const mimeType = imageRes.headers.get("content-type") || "image/png";
-
-      operation = await ai.models.generateVideos({
-        model,
-        image: {
-          imageBytes: imageBase64,
-          mimeType,
-        },
-        prompt: params.prompt || "Animate this image with subtle, natural motion",
-        config,
-      });
-    } else {
-      operation = await ai.models.generateVideos({
-        model,
-        prompt: params.prompt || "Generate a cinematic video",
-        config,
-      });
-    }
+        return ai.models.generateVideos({
+          model,
+          image: {
+            imageBytes: imageBase64,
+            mimeType,
+          },
+          prompt: params.prompt || "Animate this image with subtle, natural motion",
+          config,
+        });
+      } else {
+        return ai.models.generateVideos({
+          model,
+          prompt: params.prompt || "Generate a cinematic video",
+          config,
+        });
+      }
+    }, { label: `veo-submit:${model}` });
 
     // Poll for completion (max 10 minutes, check every 10s)
     for (let i = 0; i < 60; i++) {

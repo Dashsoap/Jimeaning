@@ -4,6 +4,7 @@ import type {
   GenerateResult,
   ProviderConfig,
 } from "../types";
+import { withRetry } from "@/lib/retry";
 
 export class FalImageGenerator implements ImageGenerator {
   private apiKey: string;
@@ -17,30 +18,35 @@ export class FalImageGenerator implements ImageGenerator {
   async generate(params: ImageGenerateParams): Promise<GenerateResult> {
     const model = params.model || this.defaultModel;
 
-    const response = await fetch(`https://fal.run/${model}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: params.prompt,
-        image_size: {
-          width: params.width || 1024,
-          height: params.height || 1024,
+    return withRetry(async () => {
+      const response = await fetch(`https://fal.run/${model}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Key ${this.apiKey}`,
+          "Content-Type": "application/json",
         },
-        num_images: 1,
-      }),
-    });
+        body: JSON.stringify({
+          prompt: params.prompt,
+          image_size: {
+            width: params.width || 1024,
+            height: params.height || 1024,
+          },
+          num_images: 1,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`FAL image generation failed: ${error}`);
-    }
+      if (!response.ok) {
+        const status = response.status;
+        const error = await response.text();
+        const err = new Error(`FAL image generation failed (${status}): ${error}`);
+        (err as unknown as Record<string, unknown>).status = status;
+        throw err;
+      }
 
-    const data = await response.json();
-    return {
-      url: data.images?.[0]?.url,
-    };
+      const data = await response.json();
+      return {
+        url: data.images?.[0]?.url,
+      };
+    }, { label: `fal-image:${model}` });
   }
 }

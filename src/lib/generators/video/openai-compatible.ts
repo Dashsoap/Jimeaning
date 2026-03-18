@@ -5,6 +5,7 @@ import type {
   ProviderConfig,
 } from "../types";
 import { createScopedLogger } from "@/lib/logging";
+import { withRetry } from "@/lib/retry";
 
 const logger = createScopedLogger({ module: "openai-video-generator" });
 
@@ -60,31 +61,36 @@ export class OpenAIVideoGenerator implements VideoGenerator {
       text: params.prompt || "Animate this image with subtle motion",
     });
 
-    const response = await fetch(`${this.baseUrl}/v1/responses`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        input: [{ role: "user", content }],
-      }),
-    });
+    return withRetry(async () => {
+      const response = await fetch(`${this.baseUrl}/v1/responses`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          input: [{ role: "user", content }],
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI video generation failed: ${error}`);
-    }
+      if (!response.ok) {
+        const status = response.status;
+        const error = await response.text();
+        const err = new Error(`OpenAI video generation failed (${status}): ${error}`);
+        (err as unknown as Record<string, unknown>).status = status;
+        throw err;
+      }
 
-    const data = await response.json();
-    const videoOutput = data.output?.find(
-      (o: { type: string }) => o.type === "video_generation_call",
-    );
+      const data = await response.json();
+      const videoOutput = data.output?.find(
+        (o: { type: string }) => o.type === "video_generation_call",
+      );
 
-    return {
-      externalId: videoOutput?.id,
-    };
+      return {
+        externalId: videoOutput?.id,
+      };
+    }, { label: `sora-video:${model}` });
   }
 
   /**
@@ -135,30 +141,35 @@ export class OpenAIVideoGenerator implements VideoGenerator {
       promptLength: prompt.length,
     });
 
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+    return withRetry(async () => {
+      const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Video generation failed (${response.status}): ${error}`);
-    }
+      if (!response.ok) {
+        const status = response.status;
+        const error = await response.text();
+        const err = new Error(`Video generation failed (${status}): ${error}`);
+        (err as unknown as Record<string, unknown>).status = status;
+        throw err;
+      }
 
-    const data = await response.json();
+      const data = await response.json();
 
-    logger.info("Proxy video response received", {
-      model,
-      hasChoices: !!data.choices?.length,
-      hasData: !!data.data?.length,
-      responseKeys: Object.keys(data),
-    });
+      logger.info("Proxy video response received", {
+        model,
+        hasChoices: !!data.choices?.length,
+        hasData: !!data.data?.length,
+        responseKeys: Object.keys(data),
+      });
 
-    return this.extractVideoUrl(data);
+      return this.extractVideoUrl(data);
+    }, { label: `proxy-video:${model}` });
   }
 
   /**

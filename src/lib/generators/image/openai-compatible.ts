@@ -5,6 +5,7 @@ import type {
   GenerateResult,
   ProviderConfig,
 } from "../types";
+import { withRetry } from "@/lib/retry";
 
 export class OpenAIImageGenerator implements ImageGenerator {
   private client: OpenAI;
@@ -21,18 +22,20 @@ export class OpenAIImageGenerator implements ImageGenerator {
   async generate(params: ImageGenerateParams): Promise<GenerateResult> {
     const model = params.model || this.defaultModel;
 
-    const response = await this.client.images.generate({
-      model,
-      prompt: params.prompt,
-      n: 1,
-      size: this.getSize(params.width, params.height),
-    });
+    return withRetry(async () => {
+      const response = await this.client.images.generate({
+        model,
+        prompt: params.prompt,
+        n: 1,
+        size: this.getSize(params.width, params.height),
+      });
 
-    const data = response.data?.[0];
-    return {
-      url: data?.url ?? undefined,
-      base64: data?.b64_json ?? undefined,
-    };
+      const data = response.data?.[0];
+      return {
+        url: data?.url ?? undefined,
+        base64: data?.b64_json ?? undefined,
+      };
+    }, { label: `image:${model}` });
   }
 
   private getSize(
