@@ -24,6 +24,7 @@ export const PRESET_PROVIDERS: PresetProvider[] = [
   { id: "google", name: "Google AI Studio" },
   { id: "fish-audio", name: "Fish Audio" },
   { id: "elevenlabs", name: "ElevenLabs" },
+  { id: "liblib", name: "LiblibAI" },
 ];
 
 export const PRESET_MODELS: PresetModel[] = [
@@ -71,4 +72,11 @@ export const PRESET_MODELS: PresetModel[] = [
 
   // ElevenLabs
   { modelId: "eleven_multilingual_v2", name: "Multilingual v2", type: "audio", provider: "elevenlabs" },
+
+  // LiblibAI - Image
+  { modelId: "kontext-pro", name: "F.1 Kontext Pro", type: "image", provider: "liblib" },
+  { modelId: "kontext-max", name: "F.1 Kontext Max", type: "image", provider: "liblib" },
+  { modelId: "star3-alpha", name: "Star-3 Alpha", type: "image", provider: "liblib" },
+  { modelId: "libdream", name: "LibDream", type: "image", provider: "liblib" },
+  { modelId: "seedream-4", name: "Seedream 4.0", type: "image", provider: "liblib" },
 ];

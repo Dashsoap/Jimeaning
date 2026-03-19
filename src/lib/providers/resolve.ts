@@ -118,10 +118,11 @@ export async function resolveProviderConfig(
 // ─── Provider Type Mapping ────────────────────────────────────────────────
 // Maps config provider IDs to the generator factory type strings
 
-function mapToImageProvider(providerId: string): "openai" | "fal" | "google-gemini" {
+function mapToImageProvider(providerId: string): "openai" | "fal" | "google-gemini" | "liblib" {
   const key = getProviderKey(providerId);
   if (key === "fal") return "fal";
   if (key === "google") return "google-gemini";
+  if (key === "liblib") return "liblib";
   return "openai"; // openai-compatible and others
 }
 

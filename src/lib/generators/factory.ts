@@ -11,6 +11,7 @@ import type {
 import { OpenAIImageGenerator } from "./image/openai-compatible";
 import { FalImageGenerator } from "./image/fal";
 import { GeminiImageGenerator } from "./image/google-gemini";
+import { LiblibImageGenerator } from "./image/liblib";
 import { OpenAIVideoGenerator } from "./video/openai-compatible";
 import { FalVideoGenerator } from "./video/fal";
 import { GoogleVeoGenerator } from "./video/google-veo";
@@ -29,6 +30,8 @@ export function createImageGenerator(
       return new FalImageGenerator(config);
     case "google-gemini":
       return new GeminiImageGenerator(config);
+    case "liblib":
+      return new LiblibImageGenerator(config);
     default:
       throw new Error(`Unknown image provider: ${provider}`);
   }

@@ -63,6 +63,6 @@ export interface ProviderConfig {
   model?: string;
 }
 
-export type ImageProviderType = "openai" | "fal" | "google-gemini";
+export type ImageProviderType = "openai" | "fal" | "google-gemini" | "liblib";
 export type VideoProviderType = "openai" | "fal" | "google";
 export type AudioProviderType = "openai" | "fish-audio" | "elevenlabs";
