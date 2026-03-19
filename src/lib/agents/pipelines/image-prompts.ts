@@ -4,7 +4,7 @@
  */
 
 import type { PipelineDef, PipelineContext } from "../types";
-import { defineStep } from "../types";
+import { defineStep, shouldRunVisualPipeline } from "../types";
 import { imageGeneratorAgent } from "../definitions";
 import type { StoryboardResult } from "../definitions";
 
@@ -14,10 +14,7 @@ export const imagePromptsPipeline: PipelineDef = {
     defineStep({
       id: "image-prompts",
       agent: imageGeneratorAgent,
-      shouldRun: (ctx: PipelineContext) => {
-        const fmt = ctx.initialData.outputFormat as string | undefined;
-        return !fmt || fmt === "script";
-      },
+      shouldRun: shouldRunVisualPipeline,
       prepareInput: (ctx: PipelineContext) => ({
         episodeNumber: ctx.initialData.episodeNumber as number,
         storyboard: ctx.initialData.storyboard as StoryboardResult,

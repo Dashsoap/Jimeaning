@@ -124,23 +124,46 @@ Respond ONLY with valid JSON.`,
       .map((c) => `${c.name}: ${c.promptDescription}`)
       .join("\n");
 
-    const storyboardSummary = input.storyboard.scenes
-      .map((s) => {
-        const shotsText = s.shots
-          .map(
-            (shot) =>
-              `镜${shot.shotNumber} | ${shot.shotSize}·${shot.angle} | ${shot.cameraMove} | ${shot.description} | 色调: ${shot.colorTone}${shot.dialogue ? ` | 对话: ${shot.dialogue}` : ""}`,
-          )
-          .join("\n");
-        return `### ${s.sceneHeader}\n${shotsText}`;
-      })
-      .join("\n\n");
+    // Defensive: handle scenes[] vs shots[] vs other LLM output structures
+    const sb = input.storyboard as unknown as Record<string, unknown>;
+    let storyboardSummary: string;
+    if (Array.isArray(sb.scenes)) {
+      storyboardSummary = (sb.scenes as Array<Record<string, unknown>>)
+        .map((s) => {
+          const shots = (s.shots ?? s.shotList ?? []) as Array<Record<string, unknown>>;
+          const shotsText = shots
+            .map(
+              (shot) =>
+                `镜${shot.shotNumber ?? shot.number ?? "?"} | ${shot.shotSize ?? ""}·${shot.angle ?? ""} | ${shot.cameraMove ?? ""} | ${shot.description ?? ""} | 色调: ${shot.colorTone ?? ""}${shot.dialogue ? ` | 对话: ${shot.dialogue}` : ""}`,
+            )
+            .join("\n");
+          return `### ${s.sceneHeader ?? ""}\n${shotsText}`;
+        })
+        .join("\n\n");
+    } else if (Array.isArray(sb.shots)) {
+      storyboardSummary = (sb.shots as Array<Record<string, unknown>>)
+        .map(
+          (shot) =>
+            `镜${shot.shotNumber ?? shot.number ?? "?"} | ${shot.shotSize ?? ""}·${shot.angle ?? ""} | ${shot.cameraMove ?? ""} | ${shot.description ?? ""}`,
+        )
+        .join("\n");
+    } else {
+      storyboardSummary = JSON.stringify(sb, null, 2).slice(0, 3000);
+    }
 
     // Detect language from storyboard descriptions to inject cultural context
-    const sampleText = input.storyboard.scenes
-      .flatMap((s) => s.shots.map((sh) => sh.description))
-      .join(" ")
-      .slice(0, 500);
+    let sampleText = "";
+    if (Array.isArray(sb.scenes)) {
+      sampleText = (sb.scenes as Array<Record<string, unknown>>)
+        .flatMap((s) => ((s.shots ?? s.shotList ?? []) as Array<Record<string, unknown>>).map((sh) => ((sh.description ?? "") as string)))
+        .join(" ")
+        .slice(0, 500);
+    } else if (Array.isArray(sb.shots)) {
+      sampleText = (sb.shots as Array<Record<string, unknown>>)
+        .map((sh) => ((sh.description ?? "") as string))
+        .join(" ")
+        .slice(0, 500);
+    }
     const lang = detectLanguage(sampleText);
     const culturalCtx = getCulturalContext(lang);
 

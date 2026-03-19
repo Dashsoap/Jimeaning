@@ -126,10 +126,11 @@ function mapToImageProvider(providerId: string): "openai" | "fal" | "google-gemi
   return "openai"; // openai-compatible and others
 }
 
-export function mapToVideoProvider(providerId: string): "openai" | "fal" | "google" {
+export function mapToVideoProvider(providerId: string): "openai" | "fal" | "google" | "liblib" {
   const key = getProviderKey(providerId);
   if (key === "fal") return "fal";
   if (key === "google") return "google";
+  if (key === "liblib") return "liblib";
   return "openai";
 }
 

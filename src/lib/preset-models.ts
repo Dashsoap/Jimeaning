@@ -79,4 +79,10 @@ export const PRESET_MODELS: PresetModel[] = [
   { modelId: "star3-alpha", name: "Star-3 Alpha", type: "image", provider: "liblib" },
   { modelId: "libdream", name: "LibDream", type: "image", provider: "liblib" },
   { modelId: "seedream-4", name: "Seedream 4.0", type: "image", provider: "liblib" },
+
+  // LiblibAI - Video (Kling via LiblibAI)
+  { modelId: "kling-v2-1", name: "Kling 2.1", type: "video", provider: "liblib" },
+  { modelId: "kling-v2-5-turbo", name: "Kling 2.5 Turbo", type: "video", provider: "liblib" },
+  { modelId: "kling-v2-6", name: "Kling 2.6", type: "video", provider: "liblib" },
+  { modelId: "kling-v2-master", name: "Kling 2.0 Master", type: "video", provider: "liblib" },
 ];

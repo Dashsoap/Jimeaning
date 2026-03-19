@@ -38,7 +38,7 @@ export interface PipelineStep<TInput = unknown, TOutput = unknown> {
   shouldRun?: (ctx: PipelineContext) => boolean;
 }
 
-/** Multiple steps running in parallel */
+/** Multiple steps running in parallel (experimental — implemented but not yet used by any pipeline) */
 export interface ParallelStepGroup {
   id: string;
   execution: "parallel";
@@ -80,6 +80,14 @@ export interface StepMetric {
   outputLength: number;
   status: "success" | "skipped" | "error";
   error?: string;
+}
+
+// ─── Shared Helpers ─────────────────────────────────────────────────
+
+/** Visual pipeline (storyboard + image prompts) only runs for screenplay format */
+export function shouldRunVisualPipeline(ctx: PipelineContext): boolean {
+  const fmt = ctx.initialData.outputFormat as string | undefined;
+  return !fmt || fmt === "script";
 }
 
 // ─── Runner Options ──────────────────────────────────────────────────

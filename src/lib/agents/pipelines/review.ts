@@ -20,6 +20,7 @@ export const reviewPipeline: PipelineDef = {
         sourceText: ctx.initialData.sourceText as string,
         analysisCharacters: ctx.initialData.analysisCharacters as string | undefined,
         outputFormat: (ctx.initialData.outputFormat as OutputFormat) || "script",
+        contentType: ctx.initialData.contentType as string | undefined,
       }),
     }),
   ],

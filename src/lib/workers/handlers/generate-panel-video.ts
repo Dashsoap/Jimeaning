@@ -75,7 +75,7 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
   await ctx.reportProgress(20);
 
   const videoModelKey = data.videoModel as string | undefined;
-  let provider: "openai" | "fal" | "google";
+  let provider: "openai" | "fal" | "google" | "liblib";
   let config;
   if (videoModelKey) {
     const resolved = await resolveProviderConfig(userId, "video", videoModelKey);

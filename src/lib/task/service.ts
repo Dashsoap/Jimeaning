@@ -42,13 +42,15 @@ export async function createTask(params: {
   });
 
   const queue = getQueueByType(params.type);
+  // Long-running orchestrator tasks should not retry — partial completion makes retries wasteful
+  const jobOptions = params.type === "AGENT_AUTO" ? { attempts: 1 } : undefined;
   const job = await queue.add(params.type, {
     taskId: task.id,
     userId: params.userId,
     projectId: params.projectId,
     type: params.type,
     data: params.data,
-  } satisfies TaskPayload);
+  } satisfies TaskPayload, jobOptions);
 
   await prisma.task.update({
     where: { id: task.id },

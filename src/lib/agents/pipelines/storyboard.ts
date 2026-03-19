@@ -4,14 +4,9 @@
  */
 
 import type { PipelineDef, PipelineContext } from "../types";
-import { defineStep } from "../types";
+import { defineStep, shouldRunVisualPipeline } from "../types";
 import { storyboardDirectorAgent, visualStorytellerAgent } from "../definitions";
 import type { StoryboardResult } from "../definitions";
-
-const shouldRunVisualPipeline = (ctx: PipelineContext): boolean => {
-  const fmt = ctx.initialData.outputFormat as string | undefined;
-  return !fmt || fmt === "script";
-};
 
 export const storyboardPipeline: PipelineDef = {
   name: "storyboard",
