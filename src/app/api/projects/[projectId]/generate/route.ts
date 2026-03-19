@@ -16,6 +16,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
   const body = await req.json().catch(() => ({}));
   const generateType = body.type || "image"; // "image" | "video" | "both"
   const candidateCount = Math.min(Math.max(body.candidateCount || 1, 1), 4); // 1-4
+  const imageModel = body.imageModel as string | undefined;
   const videoModel = body.videoModel as string | undefined;
 
   // Pre-validate: check user has the required models configured
@@ -32,7 +33,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
     }
   }
 
-  // Get all panels for the project
+  // Get all panels ordered by episode → clip → panel sortOrder
   const panels = await prisma.panel.findMany({
     where: {
       clip: {
@@ -40,6 +41,11 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
       },
     },
     select: { id: true, imageUrl: true },
+    orderBy: [
+      { clip: { episode: { sortOrder: "asc" } } },
+      { clip: { sortOrder: "asc" } },
+      { sortOrder: "asc" },
+    ],
   });
 
   const taskIds: string[] = [];
@@ -52,7 +58,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
           userId: auth.session.user.id,
           projectId,
           type: TaskType.GENERATE_PANEL_IMAGE,
-          data: { panelId: panel.id, candidateCount },
+          data: { panelId: panel.id, candidateCount, ...(imageModel && { imageModel }) },
         });
         taskIds.push(taskId);
         taskMap[panel.id] = taskId;

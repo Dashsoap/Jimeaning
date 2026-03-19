@@ -49,10 +49,11 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
   const [videoTaskIds, setVideoTaskIds] = useState<string[] | null>(null);
   const [candidateCount, setCandidateCount] = useState(1);
   const [panelTaskMap, setPanelTaskMap] = useState<Record<string, { taskId: string; type: "image" | "video" }>>({});
+  const [selectedImageModel, setSelectedImageModel] = useState("");
   const [selectedVideoModel, setSelectedVideoModel] = useState("");
   const queryClient = useQueryClient();
 
-  // Fetch available video models for the dropdown
+  // Fetch available models for the dropdowns
   const { data: apiConfig } = useQuery<{
     models: { modelId: string; name: string; type: string; provider: string; enabled: boolean }[];
   }>({
@@ -60,6 +61,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
     queryFn: () => fetch("/api/user/api-config").then((r) => r.json()),
     staleTime: 60_000,
   });
+  const imageModels = apiConfig?.models?.filter((m) => m.type === "image" && m.enabled) || [];
   const videoModels = apiConfig?.models?.filter((m) => m.type === "video" && m.enabled) || [];
 
   const totalPanels = episodes.reduce(
@@ -165,11 +167,24 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
   };
 
   const handleGenerateImages = async () => {
+    // Confirmation for large batches
+    const pendingCount = totalPanels - panelsWithImages;
+    const modelLabel = selectedImageModel
+      ? imageModels.find((m) => `${m.provider}::${m.modelId}` === selectedImageModel)?.name || selectedImageModel
+      : "默认模型";
+    if (pendingCount > 20) {
+      const ok = window.confirm(`即将生成 ${pendingCount} 张图片（模型: ${modelLabel}，每张 ${candidateCount} 候选），确认？`);
+      if (!ok) return;
+    }
     try {
       const res = await fetch(`/api/projects/${project.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "image", candidateCount }),
+        body: JSON.stringify({
+          type: "image",
+          candidateCount,
+          ...(selectedImageModel && { imageModel: selectedImageModel }),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -261,7 +276,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           生成分镜文本
         </button>
 
-        {/* Image generation with candidate count selector */}
+        {/* Image generation with model selector + candidate count */}
         <div className="flex items-center gap-1">
           <button
             onClick={handleGenerateImages}
@@ -275,6 +290,21 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
             )}
             生成图片
           </button>
+          {imageModels.length > 0 && (
+            <select
+              value={selectedImageModel}
+              onChange={(e) => setSelectedImageModel(e.target.value)}
+              className="h-[38px] border-l border-emerald-700 bg-emerald-600 px-2 text-sm text-white hover:bg-emerald-700 cursor-pointer max-w-[120px]"
+              title="选择图片模型"
+            >
+              <option value="">默认</option>
+              {imageModels.map((m) => (
+                <option key={`${m.provider}::${m.modelId}`} value={`${m.provider}::${m.modelId}`}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={candidateCount}
             onChange={(e) => setCandidateCount(Number(e.target.value))}

@@ -7,7 +7,8 @@ import {
 } from "@/lib/llm/prompts/generate-image-prompt";
 import { detectLanguage } from "@/lib/llm/language-detect";
 import { createImageGenerator } from "@/lib/generators/factory";
-import { resolveImageConfig, resolveLlmConfig } from "@/lib/providers/resolve";
+import { resolveImageConfig, resolveProviderConfig, mapToImageProvider, resolveLlmConfig } from "@/lib/providers/resolve";
+import type { ImageProviderType } from "@/lib/generators/types";
 import { withTaskLifecycle } from "@/lib/workers/shared";
 import type { TaskPayload } from "@/lib/task/types";
 import { createScopedLogger } from "@/lib/logging";
@@ -18,6 +19,7 @@ export const handleGeneratePanelImage = withTaskLifecycle(async (payload: TaskPa
   const { userId, projectId, data } = payload;
   const panelId = data.panelId as string;
   const candidateCount = (data.candidateCount as number) || 1;
+  const imageModel = data.imageModel as string | undefined;
 
   const panel = await prisma.panel.findUniqueOrThrow({
     where: { id: panelId },
@@ -101,7 +103,17 @@ export const handleGeneratePanelImage = withTaskLifecycle(async (payload: TaskPa
 
   // Step 2: Generate image(s)
   await ctx.reportProgress(40);
-  const { provider, config } = await resolveImageConfig(userId);
+  let provider: ImageProviderType;
+  let config;
+  if (imageModel) {
+    const resolved = await resolveProviderConfig(userId, "image", imageModel);
+    provider = mapToImageProvider(resolved.provider);
+    config = resolved.config;
+  } else {
+    const resolved = await resolveImageConfig(userId);
+    provider = resolved.provider;
+    config = resolved.config;
+  }
   const generator = createImageGenerator(provider, config);
 
   const aspectRatio = project.aspectRatio || "16:9";
@@ -130,24 +142,25 @@ export const handleGeneratePanelImage = withTaskLifecycle(async (payload: TaskPa
     if (url) candidateUrls.push(url);
   }
 
-  // Save results
-  const imageUrl = candidateUrls[0] || null;
-  const updateData: Record<string, unknown> = {};
-
-  if (imageUrl) {
-    updateData.imageUrl = imageUrl;
+  if (candidateUrls.length === 0) {
+    logger.error("All image generation attempts returned empty results", { panelId, provider, model: config.model });
+    throw new Error(`Image generation returned no results (provider: ${provider}, model: ${config.model})`);
   }
+
+  // Save results
+  const imageUrl = candidateUrls[0];
+  const updateData: Record<string, unknown> = { imageUrl };
+
   if (candidateUrls.length > 1) {
     updateData.candidateImages = JSON.stringify(candidateUrls);
     updateData.selectedImageIndex = 0;
   }
 
-  if (Object.keys(updateData).length > 0) {
-    await prisma.panel.update({
-      where: { id: panelId },
-      data: updateData,
-    });
-  }
+  await prisma.panel.update({
+    where: { id: panelId },
+    data: updateData,
+  });
 
+  logger.info("Image saved", { panelId, provider, model: config.model, candidateCount: candidateUrls.length });
   return { panelId, imageUrl, candidateCount: candidateUrls.length };
 });
