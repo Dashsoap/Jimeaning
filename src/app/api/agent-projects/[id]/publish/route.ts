@@ -138,36 +138,40 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
 
         let panelSortOrder = 0;
         for (const shot of scene.shots ?? []) {
+          // LLM may produce extra fields not in the typed interface
+          const s = shot as Record<string, unknown>;
+
           // Match character names from description
           const matchedCharIds: string[] = [];
+          const desc = (s.visual || s.description || "") as string;
           for (const [name, charId] of characterNameMap) {
-            if (shot.description?.includes(name)) {
+            if (desc.includes(name)) {
               matchedCharIds.push(charId);
             }
           }
 
           // Build videoPrompt from visual + movement + showDontTell
           const videoPromptParts = [
-            shot.visual,
-            shot.movement ? `运镜：${shot.movement}` : "",
-            shot.showDontTell,
-          ].filter(Boolean);
+            s.visual,
+            s.movement ? `运镜：${s.movement}` : "",
+            s.showDontTell,
+          ].filter(Boolean) as string[];
           const videoPrompt = videoPromptParts.join("。");
 
           // Build photographyRules from lighting/color + framing
           const photographyParts = [
-            shot.lightingColor,
-            shot.framing ? `构图：${shot.framing}` : "",
-          ].filter(Boolean);
+            s.lightingColor || s.colorTone,
+            s.framing ? `构图：${s.framing}` : "",
+          ].filter(Boolean) as string[];
           const photographyRules = photographyParts.join("；");
 
           await tx.panel.create({
             data: {
               clipId: clip.id,
-              sceneDescription: shot.visual || shot.description || "",
-              cameraAngle: shot.angle || "",
-              shotType: shot.framing || shot.shotSize || "",
-              cameraMove: shot.movement || shot.cameraMove || "",
+              sceneDescription: (s.visual || s.description || "") as string,
+              cameraAngle: (s.angle || "") as string,
+              shotType: (s.framing || s.shotSize || "") as string,
+              cameraMove: (s.movement || s.cameraMove || "") as string,
               videoPrompt: videoPrompt || undefined,
               photographyRules: photographyRules || undefined,
               imagePrompt: imagePromptMap.get(shot.shotNumber) || "",
