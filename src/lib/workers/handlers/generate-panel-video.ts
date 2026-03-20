@@ -90,18 +90,19 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
 
   await ctx.reportProgress(40);
 
-  // Build enhanced prompt with reference image descriptions
+  // Build video prompt
   const basePrompt = panel.videoPrompt || panel.sceneDescription || "";
-  const enhancedPrompt = buildVideoPromptWithReferences(
-    referenceImages,
-    basePrompt,
-    panel,
-  );
+  // LiblibAI Kling doesn't support reference image instructions in prompt
+  // (it interprets "图1是..." as a question, not a generation prompt)
+  const useEnhancedPrompt = provider !== "liblib";
+  const finalPrompt = useEnhancedPrompt
+    ? buildVideoPromptWithReferences(referenceImages, basePrompt, panel)
+    : basePrompt;
 
-  logger.info("Built enhanced video prompt", {
+  logger.info("Built video prompt", {
     panelId,
-    promptLength: enhancedPrompt.length,
-    hasReferences: referenceImages.length > 1, // >1 means more than just the keyframe
+    promptLength: finalPrompt.length,
+    enhanced: useEnhancedPrompt,
   });
 
   // Check for first-last-frame mode
@@ -127,7 +128,7 @@ export const handleGeneratePanelVideo = withTaskLifecycle(async (payload: TaskPa
 
   const result = await generator.generate({
     imageUrl: panel.imageUrl,
-    prompt: enhancedPrompt,
+    prompt: finalPrompt,
     durationMs: panel.durationMs,
     lastFrameImageUrl,
     referenceImages: referenceImages.filter((r) => r.type !== "keyframe"), // exclude keyframe (already in imageUrl)
