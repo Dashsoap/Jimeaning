@@ -60,7 +60,7 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
       if (isV26(model)) {
         // v2-6 uses `images` array
         base.images = [params.imageUrl];
-        base.sound = "off";
+        base.sound = "on";
       } else {
         base.startFrame = params.imageUrl;
         // endFrame only supported by kling-v1-6 in pro mode

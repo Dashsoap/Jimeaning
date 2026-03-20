@@ -146,15 +146,32 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
             }
           }
 
+          // Build videoPrompt from visual + movement + showDontTell
+          const videoPromptParts = [
+            shot.visual,
+            shot.movement ? `运镜：${shot.movement}` : "",
+            shot.showDontTell,
+          ].filter(Boolean);
+          const videoPrompt = videoPromptParts.join("。");
+
+          // Build photographyRules from lighting/color + framing
+          const photographyParts = [
+            shot.lightingColor,
+            shot.framing ? `构图：${shot.framing}` : "",
+          ].filter(Boolean);
+          const photographyRules = photographyParts.join("；");
+
           await tx.panel.create({
             data: {
               clipId: clip.id,
-              sceneDescription: shot.description || "",
+              sceneDescription: shot.visual || shot.description || "",
               cameraAngle: shot.angle || "",
-              shotType: shot.shotSize || "",
-              cameraMove: shot.cameraMove || "",
+              shotType: shot.framing || shot.shotSize || "",
+              cameraMove: shot.movement || shot.cameraMove || "",
+              videoPrompt: videoPrompt || undefined,
+              photographyRules: photographyRules || undefined,
               imagePrompt: imagePromptMap.get(shot.shotNumber) || "",
-              sourceText: shot.scene || "",
+              sourceText: shot.scene || shot.audio || "",
               durationMs: parseDurationMs(shot.duration || "3s"),
               characterIds: matchedCharIds.length > 0 ? JSON.stringify(matchedCharIds) : undefined,
               sortOrder: panelSortOrder++,
