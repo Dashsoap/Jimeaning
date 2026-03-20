@@ -28,7 +28,7 @@ export function isRetryableError(err: unknown): boolean {
   if (err instanceof Error) {
     const msg = err.message.toLowerCase();
     // Rate limit keywords
-    if (msg.includes("429") || msg.includes("rate limit") || msg.includes("too many requests")) return true;
+    if (msg.includes("429") || msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("请求过多") || msg.includes("稍后重试")) return true;
     // Server errors
     if (msg.includes("502") || msg.includes("503") || msg.includes("504")) return true;
     if (msg.includes("internal server error") || msg.includes("bad gateway") || msg.includes("service unavailable")) return true;
