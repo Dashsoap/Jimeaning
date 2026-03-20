@@ -139,7 +139,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
         let panelSortOrder = 0;
         for (const shot of scene.shots ?? []) {
           // LLM may produce extra fields not in the typed interface
-          const s = shot as Record<string, unknown>;
+          const s = shot as unknown as Record<string, unknown>;
 
           // Match character names from description
           const matchedCharIds: string[] = [];
