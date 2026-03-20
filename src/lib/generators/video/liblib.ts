@@ -36,6 +36,13 @@ function isV26(model: string): boolean {
   return model === "kling-v2-6";
 }
 
+/** Kling only accepts "5" or "10" for duration */
+function clampDuration(durationMs?: number): string {
+  if (!durationMs) return "5";
+  const secs = Math.round(durationMs / 1000);
+  return secs >= 8 ? "10" : "5";
+}
+
 const VIDEO_MODELS: Record<string, VideoModelConfig> = {
   // ─── img2video (default for our pipeline: image → video) ───────────
   "kling-img2video": {
@@ -46,7 +53,7 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
         model,
         prompt: params.prompt || "",
         promptMagic: 0,
-        duration: params.durationMs ? String(Math.round(params.durationMs / 1000)) : "5",
+        duration: clampDuration(params.durationMs),
         mode: "std",
       };
 
@@ -81,7 +88,7 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
       prompt: params.prompt || "",
       promptMagic: 0,
       aspectRatio: "16:9",
-      duration: params.durationMs ? String(Math.round(params.durationMs / 1000)) : "5",
+      duration: clampDuration(params.durationMs),
       mode: model === "kling-v2-5-turbo" ? "pro" : "std",
       ...(isV26(model) ? { sound: "off" } : {}),
     }),
@@ -104,7 +111,7 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
         promptMagic: 0,
         referenceImages: images,
         aspectRatio: "16:9",
-        duration: params.durationMs ? String(Math.round(params.durationMs / 1000)) : "5",
+        duration: clampDuration(params.durationMs),
         mode: "std",
       };
     },
