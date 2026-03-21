@@ -70,8 +70,8 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
         }
       }
 
-      // kling-v2-5-turbo requires pro mode
-      if (model === "kling-v2-5-turbo") {
+      // kling-v2-5-turbo and kling-v2-6 require pro mode
+      if (model === "kling-v2-5-turbo" || isV26(model)) {
         base.mode = "pro";
       }
 
