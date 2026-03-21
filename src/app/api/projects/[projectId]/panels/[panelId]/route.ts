@@ -118,7 +118,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
       userId: auth.session.user.id,
       projectId,
       type: TaskType.GENERATE_PANEL_VIDEO,
-      data: { panelId },
+      data: { panelId, videoModel: body.videoModel },
     });
 
     return NextResponse.json({ taskId });
