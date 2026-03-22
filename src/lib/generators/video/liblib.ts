@@ -38,10 +38,9 @@ function isV26(model: string): boolean {
 
 /** Kling only accepts "5" or "10" for duration */
 function clampDuration(durationMs?: number): string {
-  if (!durationMs) return "5";
+  if (!durationMs) return "10";
   const secs = Math.round(durationMs / 1000);
-  // Default to 10s for better narrative quality; only use 5s if explicitly short
-  return secs <= 3 ? "5" : "10";
+  return secs <= 2 ? "5" : "10";
 }
 
 const VIDEO_MODELS: Record<string, VideoModelConfig> = {
