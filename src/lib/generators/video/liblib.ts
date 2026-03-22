@@ -40,7 +40,8 @@ function isV26(model: string): boolean {
 function clampDuration(durationMs?: number): string {
   if (!durationMs) return "5";
   const secs = Math.round(durationMs / 1000);
-  return secs >= 8 ? "10" : "5";
+  // Default to 10s for better narrative quality; only use 5s if explicitly short
+  return secs <= 3 ? "5" : "10";
 }
 
 const VIDEO_MODELS: Record<string, VideoModelConfig> = {

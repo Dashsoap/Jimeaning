@@ -45,6 +45,7 @@ export const PATCH = apiHandler(async (req: NextRequest, { params }: RouteParams
   if (typeof body.sceneDescription === "string") data.sceneDescription = body.sceneDescription;
   if (typeof body.cameraAngle === "string") data.cameraAngle = body.cameraAngle;
   if (typeof body.imagePrompt === "string") data.imagePrompt = body.imagePrompt;
+  if (typeof body.videoPrompt === "string") data.videoPrompt = body.videoPrompt;
   if (typeof body.durationMs === "number") data.durationMs = body.durationMs;
   if (typeof body.sortOrder === "number") data.sortOrder = body.sortOrder;
   if (typeof body.videoGenerationMode === "string") data.videoGenerationMode = body.videoGenerationMode;
