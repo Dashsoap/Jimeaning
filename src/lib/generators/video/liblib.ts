@@ -58,8 +58,13 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
       };
 
       if (isV26(model)) {
-        // v2-6 uses `images` array
-        base.images = [params.imageUrl];
+        // v2-6 uses `images` array for URL, but falls back to startFrame for base64
+        const isBase64 = params.imageUrl.startsWith("data:");
+        if (isBase64) {
+          base.startFrame = params.imageUrl;
+        } else {
+          base.images = [params.imageUrl];
+        }
         base.sound = "on";
       } else {
         base.startFrame = params.imageUrl;
