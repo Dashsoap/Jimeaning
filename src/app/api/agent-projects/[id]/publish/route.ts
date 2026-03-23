@@ -112,13 +112,16 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
         continue;
       }
 
-      // Parse imagePrompts JSON
+      // Parse imagePrompts JSON — shotNumber may be number (1) or string ("Shot 1")
       const imagePromptMap = new Map<number, string>();
       if (agentEp.imagePrompts) {
         try {
           const imgData: ImageGeneratorResult = JSON.parse(agentEp.imagePrompts);
           for (const entry of imgData.prompts ?? []) {
-            imagePromptMap.set(entry.shotNumber, entry.prompt);
+            // Coerce "Shot 1" → 1, or just parse number
+            const raw = entry.shotNumber;
+            const num = typeof raw === "number" ? raw : parseInt(String(raw).replace(/\D/g, ""), 10);
+            if (!isNaN(num)) imagePromptMap.set(num, entry.prompt);
           }
         } catch {
           // ignore parse errors
