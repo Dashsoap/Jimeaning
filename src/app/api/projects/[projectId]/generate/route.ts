@@ -18,6 +18,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
   const candidateCount = Math.min(Math.max(body.candidateCount || 1, 1), 4); // 1-4
   const imageModel = body.imageModel as string | undefined;
   const videoModel = body.videoModel as string | undefined;
+  const forceRegenerate = body.forceRegenerate === true;
 
   // Pre-validate: check user has the required models configured
   if (generateType === "image" || generateType === "both") {
@@ -53,7 +54,9 @@ export const POST = apiHandler(async (req: NextRequest, { params }: RouteParams)
 
   for (const panel of panels) {
     if (generateType === "image" || generateType === "both") {
-      if (!panel.imageUrl) {
+      // Skip panels that already have images unless forceRegenerate is set
+      const needsImage = !panel.imageUrl || forceRegenerate;
+      if (needsImage) {
         const taskId = await createTask({
           userId: auth.session.user.id,
           projectId,

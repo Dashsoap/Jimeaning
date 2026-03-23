@@ -172,8 +172,17 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
     const modelLabel = selectedImageModel
       ? imageModels.find((m) => `${m.provider}::${m.modelId}` === selectedImageModel)?.name || selectedImageModel
       : "默认模型";
-    if (pendingCount > 20) {
-      const ok = window.confirm(`即将生成 ${pendingCount} 张图片（模型: ${modelLabel}，每张 ${candidateCount} 候选），确认？`);
+
+    // Ask if user wants to force regenerate existing images
+    let forceRegenerate = false;
+    if (panelsWithImages > 0 && pendingCount < totalPanels) {
+      forceRegenerate = window.confirm(
+        `已有 ${panelsWithImages} 张图片。\n\n点"确定"=全部重新生成（${totalPanels}张）\n点"取消"=只生成缺少的（${pendingCount}张）`,
+      );
+    }
+    const generateCount = forceRegenerate ? totalPanels : pendingCount;
+    if (generateCount > 20) {
+      const ok = window.confirm(`即将生成 ${generateCount} 张图片（模型: ${modelLabel}，每张 ${candidateCount} 候选），确认？`);
       if (!ok) return;
     }
     try {
@@ -184,6 +193,7 @@ export function StoryboardTab({ project }: StoryboardTabProps) {
           type: "image",
           candidateCount,
           ...(selectedImageModel && { imageModel: selectedImageModel }),
+          ...(forceRegenerate && { forceRegenerate: true }),
         }),
       });
       if (!res.ok) {
