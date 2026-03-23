@@ -150,13 +150,15 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
             }
           }
 
-          // Build videoPrompt from visual + movement + showDontTell
+          // Prefer Phase 3 video_prompt (dynamic, with character motion);
+          // fallback to legacy concatenation
+          const phase3VideoPrompt = s.video_prompt as string | undefined;
           const videoPromptParts = [
             s.visual,
             s.movement ? `运镜：${s.movement}` : "",
             s.showDontTell,
           ].filter(Boolean) as string[];
-          const videoPrompt = videoPromptParts.join("。");
+          const videoPrompt = phase3VideoPrompt || videoPromptParts.join("。");
 
           // Build photographyRules from lighting/color + framing
           const photographyParts = [
@@ -170,8 +172,8 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
               clipId: clip.id,
               sceneDescription: (s.visual || s.description || "") as string,
               cameraAngle: (s.angle || "") as string,
-              shotType: (s.framing || s.shotSize || "") as string,
-              cameraMove: (s.movement || s.cameraMove || "") as string,
+              shotType: (s.shot_type || s.framing || s.shotSize || "") as string,
+              cameraMove: (s.camera_move || s.movement || s.cameraMove || "") as string,
               videoPrompt: videoPrompt || undefined,
               photographyRules: photographyRules || undefined,
               imagePrompt: imagePromptMap.get(s.shotNumber as number) || "",

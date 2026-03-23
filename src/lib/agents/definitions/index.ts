@@ -19,6 +19,9 @@ export type { StoryboardInput, StoryboardResult } from "./storyboard-director";
 export { visualStorytellerAgent } from "./visual-storyteller";
 export type { VisualStorytellerInput, VisualStorytellerResult } from "./visual-storyteller";
 
+export { storyboardDetailAgent } from "./storyboard-detail";
+export type { StoryboardDetailInput, StoryboardDetailResult } from "./storyboard-detail";
+
 export { imageGeneratorAgent } from "./image-generator";
 export type { ImageGeneratorInput, ImageGeneratorResult } from "./image-generator";
 

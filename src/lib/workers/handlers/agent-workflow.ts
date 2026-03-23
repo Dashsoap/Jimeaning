@@ -82,6 +82,48 @@ async function deriveAndUpdateProjectStatus(agentProjectId: string) {
   });
 }
 
+/**
+ * Merge Phase 3 video_prompt data back into storyboard shots.
+ * Matches by shotNumber, adding video_prompt/shot_type/camera_move to each shot.
+ */
+function mergeVideoPrompts(
+  storyboardData: unknown,
+  detailData: { panels?: Array<Record<string, unknown>> } | null,
+): unknown {
+  if (!detailData?.panels?.length) return storyboardData;
+
+  // Build shotNumber → detail map
+  const detailMap = new Map<number, Record<string, unknown>>();
+  for (const p of detailData.panels) {
+    const num = (p.shotNumber ?? p.panel_number) as number;
+    if (num != null) detailMap.set(num, p);
+  }
+
+  // Deep clone storyboard to avoid mutation
+  const sb = JSON.parse(JSON.stringify(storyboardData)) as Record<string, unknown>;
+
+  // Navigate to shots (could be scenes[].shots[] or flat)
+  const scenes = sb.scenes as Array<{ shots: Array<Record<string, unknown>> }> | undefined;
+  if (scenes) {
+    let globalIdx = 1;
+    for (const scene of scenes) {
+      for (const shot of scene.shots ?? []) {
+        const shotNum = (shot.shotNumber as number) ?? globalIdx;
+        const detail = detailMap.get(shotNum);
+        if (detail) {
+          shot.video_prompt = detail.video_prompt;
+          if (detail.shot_type) shot.shot_type = detail.shot_type;
+          if (detail.camera_move) shot.camera_move = detail.camera_move;
+          if (detail.description) shot.detailDescription = detail.description;
+        }
+        globalIdx++;
+      }
+    }
+  }
+
+  return sb;
+}
+
 /** Check if this project uses visual pipeline (storyboard + image prompts) */
 function needsVisualPipeline(outputFormat: string | null | undefined): boolean {
   return !outputFormat || outputFormat === "script";
@@ -845,10 +887,15 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
     progressRange: [5, 90],
   });
 
-  // Combine storyboard + visual narrative annotations
+  // Combine storyboard + visual narrative + detail (video_prompt)
   const storyboardData = pipelineCtx.results["storyboard"];
   const visualData = pipelineCtx.results["visual-narrative"];
-  const panelCount = Array.isArray(storyboardData) ? storyboardData.length : (storyboardData as { panels?: unknown[] })?.panels?.length ?? "?";
+  const detailData = pipelineCtx.results["storyboard-detail"] as { panels?: Array<Record<string, unknown>> } | null;
+
+  // Merge Phase 3 video_prompt back into storyboard shots
+  const mergedStoryboard = mergeVideoPrompts(storyboardData, detailData);
+
+  const panelCount = Array.isArray(mergedStoryboard) ? mergedStoryboard.length : (mergedStoryboard as { panels?: unknown[] })?.panels?.length ?? "?";
   ctx.publishText(`✅ 分镜完成: ${panelCount}个镜头\n`);
 
   await prisma.agentEpisode.update({
@@ -856,7 +903,7 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
       agentProjectId_episodeNumber: { agentProjectId, episodeNumber },
     },
     data: {
-      storyboard: JSON.stringify({ storyboard: storyboardData, visualNarrative: visualData }),
+      storyboard: JSON.stringify({ storyboard: mergedStoryboard, visualNarrative: visualData }),
       status: "storyboarded",
     },
   });
@@ -1194,7 +1241,8 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         initialData: { episodeNumber: epNum, script, characters: analysis?.characters ?? [], outputFormat },
         progressRange: [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.75],
       });
-      storyboardData = sbCtx.results["storyboard"];
+      const detailData = sbCtx.results["storyboard-detail"] as { panels?: Array<Record<string, unknown>> } | null;
+      storyboardData = mergeVideoPrompts(sbCtx.results["storyboard"], detailData);
       const sbPanelCount = Array.isArray(storyboardData) ? storyboardData.length : "?";
       ctx.publishText(`   ✅ 分镜完成: ${sbPanelCount}个镜头\n`);
       await prisma.agentEpisode.update({
