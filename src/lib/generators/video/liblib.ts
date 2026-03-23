@@ -58,15 +58,17 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
       };
 
       if (isV26(model)) {
-        // v2-6 uses `images` array for URL, but falls back to startFrame for base64
-        const isBase64 = params.imageUrl.startsWith("data:");
-        if (isBase64) {
-          base.startFrame = params.imageUrl;
-        } else {
-          base.images = [params.imageUrl];
+        // v2-6 uses `images` array — requires publicly accessible URL (no base64)
+        if (params.imageUrl.startsWith("data:")) {
+          throw new Error(
+            "Kling v2-6 requires a publicly accessible image URL, not base64 data URI. " +
+            "Use LiblibAI image generator or upload image to get a public URL first.",
+          );
         }
+        base.images = [params.imageUrl];
         base.sound = "on";
       } else {
+        // Other models use startFrame — also requires publicly accessible URL
         base.startFrame = params.imageUrl;
         // endFrame only supported by kling-v1-6 in pro mode
         if (params.lastFrameImageUrl && model === "kling-v1-6") {
@@ -75,8 +77,8 @@ const VIDEO_MODELS: Record<string, VideoModelConfig> = {
         }
       }
 
-      // kling-v2-5-turbo and kling-v2-6 require pro mode
-      if (model === "kling-v2-5-turbo" || isV26(model)) {
+      // kling-v2-5-turbo requires pro mode; v2-6 supports both std and pro
+      if (model === "kling-v2-5-turbo") {
         base.mode = "pro";
       }
 
