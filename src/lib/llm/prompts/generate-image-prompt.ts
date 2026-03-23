@@ -67,8 +67,9 @@ export function buildImagePromptFromContext(
   style: string,
   language: DetectedLanguage = "en",
 ): string | null {
-  if (!panel.photographyRules && !panel.actingNotes) {
-    return null; // No Stage 3 data, need LLM fallback
+  // Need at least some structured data to build a prompt
+  if (!panel.photographyRules && !panel.actingNotes && !panel.videoPrompt && !panel.sceneDescription) {
+    return null; // No data at all, need LLM fallback
   }
 
   const parts: string[] = [];
@@ -81,8 +82,11 @@ export function buildImagePromptFromContext(
     parts.push(`${panel.cameraAngle} angle`);
   }
 
-  // 2. Scene description (core visual)
-  parts.push(panel.sceneDescription);
+  // 2. Scene description (core visual) — prefer sceneDescription, fallback to videoPrompt
+  const sceneDesc = panel.sceneDescription || panel.videoPrompt || "";
+  if (sceneDesc) {
+    parts.push(sceneDesc);
+  }
 
   // 3. Photography rules
   if (panel.photographyRules) {

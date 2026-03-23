@@ -146,7 +146,7 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
 
           // Match character names from description
           const matchedCharIds: string[] = [];
-          const desc = (s.visual || s.description || "") as string;
+          const desc = (s.visual || s.visualDescription || s.description || "") as string;
           for (const [name, charId] of characterNameMap) {
             if (desc.includes(name)) {
               matchedCharIds.push(charId);
@@ -173,10 +173,10 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
           await tx.panel.create({
             data: {
               clipId: clip.id,
-              sceneDescription: (s.visual || s.description || "") as string,
+              sceneDescription: (s.visual || s.visualDescription || s.description || "") as string,
               cameraAngle: (s.angle || "") as string,
               shotType: (s.shot_type || s.framing || s.shotSize || "") as string,
-              cameraMove: (s.camera_move || s.movement || s.cameraMove || "") as string,
+              cameraMove: (s.camera_move || s.cameraMovement || s.movement || s.cameraMove || "") as string,
               videoPrompt: videoPrompt || undefined,
               photographyRules: photographyRules || undefined,
               imagePrompt: imagePromptMap.get(s.shotNumber as number) || "",
