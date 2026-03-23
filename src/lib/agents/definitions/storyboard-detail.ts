@@ -202,26 +202,28 @@ export const storyboardDetailAgent: AgentDef<StoryboardDetailInput, StoryboardDe
 
 【输出格式】
 
-只返回JSON数组，禁止markdown标记或注释。
-在原有panels基础上，为每个分镜补充shot_type、camera_move、video_prompt：
+只返回JSON对象，禁止markdown标记或注释。
+格式：{ "panels": [...] }
 
 示例：
-[
-  {
-    "shotNumber": 1,
-    "shot_type": "平视中景",
-    "camera_move": "缓缓推近",
-    "video_prompt": "年轻男子站在桌前，双手撑在桌面上，表情严肃，正在说话，镜头缓缓推近",
-    "description": "角色A站在桌前，双手撑在桌面上，表情严肃地看着对面的角色B"
-  }
-]
+{
+  "panels": [
+    {
+      "shotNumber": 1,
+      "shot_type": "平视中景",
+      "camera_move": "缓缓推近",
+      "video_prompt": "年轻男子站在桌前，双手撑在桌面上，表情严肃，正在说话，镜头缓缓推近",
+      "description": "角色A站在桌前，双手撑在桌面上，表情严肃地看着对面的角色B"
+    }
+  ]
+}
 
 【严格要求】
 1. 为每个分镜补充shot_type、camera_move、video_prompt
 2. shot_type格式：视角+景别（如"平视中景"、"越肩近景"、"仰拍全景"）
 3. video_prompt必须用年龄段+性别（如"年轻女子"、"中年男子"）而非角色名
 4. 镜头风格必须匹配scene_type
-5. 只返回JSON数组
+5. 只返回JSON对象 { "panels": [...] }
 6. 特写镜头必须使用固定镜头
 7. 对话场景必须在video_prompt中明确写"正在说话"
 8. 根据输入的分镜数量动态处理
@@ -241,10 +243,15 @@ ${charAgeGender || "无角色信息"}`;
   },
 
   parseOutput: (raw) => {
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
-    const parsed = JSON.parse(cleaned);
-    // Handle both { panels: [...] } and bare array [...]
-    const panels = Array.isArray(parsed) ? parsed : (parsed.panels ?? []);
-    return { panels } as StoryboardDetailResult;
+    try {
+      const cleaned = raw.replace(/^```json\s*/i, "").replace(/\s*```$/, "").trim();
+      const parsed = JSON.parse(cleaned);
+      // Handle both { panels: [...] } and bare array [...]
+      const panels = Array.isArray(parsed) ? parsed : (parsed.panels ?? []);
+      return { panels } as StoryboardDetailResult;
+    } catch {
+      // Degrade gracefully — storyboard saved without Phase 3 enrichment
+      return { panels: [] };
+    }
   },
 };

@@ -92,11 +92,11 @@ function mergeVideoPrompts(
 ): unknown {
   if (!detailData?.panels?.length) return storyboardData;
 
-  // Build shotNumber → detail map
+  // Build shotNumber → detail map (coerce to number for reliable matching)
   const detailMap = new Map<number, Record<string, unknown>>();
   for (const p of detailData.panels) {
-    const num = (p.shotNumber ?? p.panel_number) as number;
-    if (num != null) detailMap.set(num, p);
+    const num = Number(p.shotNumber ?? p.panel_number);
+    if (!isNaN(num) && num > 0) detailMap.set(num, p);
   }
 
   // Deep clone storyboard to avoid mutation
@@ -108,7 +108,7 @@ function mergeVideoPrompts(
     let globalIdx = 1;
     for (const scene of scenes) {
       for (const shot of scene.shots ?? []) {
-        const shotNum = (shot.shotNumber as number) ?? globalIdx;
+        const shotNum = Number(shot.shotNumber) || globalIdx;
         const detail = detailMap.get(shotNum);
         if (detail) {
           shot.video_prompt = detail.video_prompt;
@@ -895,7 +895,8 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
   // Merge Phase 3 video_prompt back into storyboard shots
   const mergedStoryboard = mergeVideoPrompts(storyboardData, detailData);
 
-  const panelCount = Array.isArray(mergedStoryboard) ? mergedStoryboard.length : (mergedStoryboard as { panels?: unknown[] })?.panels?.length ?? "?";
+  const sbScenes = (mergedStoryboard as { scenes?: { shots?: unknown[] }[] })?.scenes ?? [];
+  const panelCount = sbScenes.reduce((n, sc) => n + (sc.shots?.length ?? 0), 0) || "?";
   ctx.publishText(`✅ 分镜完成: ${panelCount}个镜头\n`);
 
   await prisma.agentEpisode.update({
@@ -910,7 +911,7 @@ export const handleAgentStoryboard = withTaskLifecycle(async (payload: TaskPaylo
 
   await deriveAndUpdateProjectStatus(agentProjectId);
 
-  return { episodeNumber, storyboard: storyboardData };
+  return { episodeNumber, storyboard: mergedStoryboard };
 });
 
 // ─── AGENT_IMAGE_PROMPTS ─────────────────────────────────────────────
