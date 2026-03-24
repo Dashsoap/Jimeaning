@@ -193,7 +193,35 @@ export class LiblibVideoGenerator implements VideoGenerator {
 
   async generate(params: VideoGenerateParams): Promise<GenerateResult> {
     const modelId = params.model || this.defaultModel;
-    const { config, klingModel } = resolveModelConfig(modelId);
+    let { config, klingModel } = resolveModelConfig(modelId);
+
+    // Auto-switch to multiImg2video when lastFrameImageUrl is present
+    // but the model doesn't support endFrame (only v1-6 pro supports endFrame)
+    if (params.lastFrameImageUrl && klingModel !== "kling-v1-6") {
+      config = VIDEO_MODELS["kling-multi-img"];
+      // Override buildParams to use startFrame + lastFrame as referenceImages
+      const originalBuildParams = config.buildParams;
+      const lastFrameUrl = params.lastFrameImageUrl;
+      config = {
+        ...config,
+        buildParams: (p, _model) => {
+          const images = [p.imageUrl, lastFrameUrl];
+          return {
+            prompt: p.prompt || "",
+            promptMagic: 0,
+            referenceImages: images,
+            aspectRatio: "16:9",
+            duration: clampDuration(p.durationMs),
+            mode: "std",
+          };
+        },
+      };
+      logger.info("Auto-switched to multiImg2video for first-last-frame", {
+        modelId,
+        klingModel,
+        hasLastFrame: true,
+      });
+    }
 
     // Step 1: Submit video generation task
     const generateUuid = await this.submitTask(config, params, klingModel);

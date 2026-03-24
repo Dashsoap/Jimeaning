@@ -11,8 +11,11 @@ import {
   Mic,
   ImageIcon,
   ArrowRight,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useTaskPolling } from "@/hooks/useTaskPolling";
 import type { ProjectData, CharacterData, LocationData } from "./types";
 
 interface AssetsTabProps {
@@ -128,7 +131,42 @@ function CharacterCard({
   const [editingVoice, setEditingVoice] = useState(false);
   const [voiceProvider, setVoiceProvider] = useState(character.voiceProvider || "");
   const [voiceId, setVoiceId] = useState(character.voiceId || "");
+  const [generating, setGenerating] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(character.imageUrl || "");
   const queryClient = useQueryClient();
+
+  // Poll for image generation task
+  const [imageTaskId, setImageTaskId] = useState<string | null>(null);
+  useTaskPolling(imageTaskId, {
+    onComplete: () => {
+      setGenerating(false);
+      setImageTaskId(null);
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      toast.success(`${character.name} 图片生成完成`);
+    },
+    onFailed: (err) => {
+      setGenerating(false);
+      setImageTaskId(null);
+      toast.error(`图片生成失败: ${err}`);
+    },
+  });
+
+  const handleGenerateImage = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch(`/api/asset-hub/characters/${character.id}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error("请求失败");
+      const data = await res.json();
+      setImageTaskId(data.taskId);
+    } catch {
+      setGenerating(false);
+      toast.error("生成图片失败");
+    }
+  };
 
   const handleSaveVoice = async () => {
     try {
@@ -146,23 +184,47 @@ function CharacterCard({
     }
   };
 
+  const imgUrl = currentImageUrl || character.imageUrl;
+
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white overflow-hidden">
       {/* Image */}
-      {character.imageUrl ? (
-        <div className="aspect-square bg-[var(--color-bg-secondary)] overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={character.imageUrl}
-            alt={character.name}
-            className="w-full h-full object-cover"
-          />
+      <div className="relative group">
+        {imgUrl ? (
+          <div className="aspect-square bg-[var(--color-bg-secondary)] overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imgUrl}
+              alt={character.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="aspect-square bg-[var(--color-bg-surface)] flex items-center justify-center">
+            <ImageIcon className="h-8 w-8 text-[var(--color-border-default)]" />
+          </div>
+        )}
+        {/* Generate image overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <button
+            onClick={handleGenerateImage}
+            disabled={generating}
+            className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-800 shadow-sm hover:bg-white disabled:opacity-70"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5" />
+                {imgUrl ? "重新生成" : "AI 生成图片"}
+              </>
+            )}
+          </button>
         </div>
-      ) : (
-        <div className="aspect-square bg-[var(--color-bg-surface)] flex items-center justify-center">
-          <ImageIcon className="h-8 w-8 text-[var(--color-border-default)]" />
-        </div>
-      )}
+      </div>
 
       {/* Info */}
       <div className="p-3 space-y-2">
@@ -228,22 +290,80 @@ function CharacterCard({
 // ─── Location Card ────────────────────────────────────────────────────────
 
 function LocationCard({ location }: { location: LocationData }) {
+  const [generating, setGenerating] = useState(false);
+  const queryClient = useQueryClient();
+
+  const [taskId, setTaskId] = useState<string | null>(null);
+  useTaskPolling(taskId, {
+    onComplete: () => {
+      setGenerating(false);
+      setTaskId(null);
+      // Invalidate project query to refresh location images
+      queryClient.invalidateQueries({ queryKey: ["project"] });
+      toast.success(`${location.name} 图片生成完成`);
+    },
+    onFailed: (err) => {
+      setGenerating(false);
+      setTaskId(null);
+      toast.error(`图片生成失败: ${err}`);
+    },
+  });
+
+  const handleGenerateImage = async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch(`/api/asset-hub/locations/${location.id}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error("请求失败");
+      const data = await res.json();
+      setTaskId(data.taskId);
+    } catch {
+      setGenerating(false);
+      toast.error("生成图片失败");
+    }
+  };
+
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-border-default)] bg-white overflow-hidden">
-      {location.imageUrl ? (
-        <div className="aspect-video bg-[var(--color-bg-secondary)] overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={location.imageUrl}
-            alt={location.name}
-            className="w-full h-full object-cover"
-          />
+      <div className="relative group">
+        {location.imageUrl ? (
+          <div className="aspect-video bg-[var(--color-bg-secondary)] overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={location.imageUrl}
+              alt={location.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="aspect-video bg-[var(--color-bg-surface)] flex items-center justify-center">
+            <MapPin className="h-8 w-8 text-[var(--color-border-default)]" />
+          </div>
+        )}
+        {/* Generate image overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <button
+            onClick={handleGenerateImage}
+            disabled={generating}
+            className="cursor-pointer flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs font-medium text-gray-800 shadow-sm hover:bg-white disabled:opacity-70"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                生成中...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5" />
+                {location.imageUrl ? "重新生成" : "AI 生成图片"}
+              </>
+            )}
+          </button>
         </div>
-      ) : (
-        <div className="aspect-video bg-[var(--color-bg-surface)] flex items-center justify-center">
-          <MapPin className="h-8 w-8 text-[var(--color-border-default)]" />
-        </div>
-      )}
+      </div>
       <div className="p-3">
         <h3 className="font-semibold text-sm">{location.name}</h3>
         {location.description && (

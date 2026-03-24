@@ -43,9 +43,11 @@ interface PanelPromptContext {
   actingNotes?: string;      // JSON string
   videoPrompt?: string;
   sceneType?: string;
+  characterIds?: string;     // JSON string of character IDs
 }
 
 interface CharacterInfo {
+  id?: string;
   name: string;
   description?: string;
 }
@@ -138,6 +140,21 @@ export function buildImagePromptFromContext(
       const notes = JSON.parse(panel.actingNotes);
       if (Array.isArray(notes)) {
         notes.forEach((n: { name: string }) => mentionedInNotes.add(n.name));
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Inject appearance descriptions for characters NOT already in actingNotes
+  // These come from characterIds on the panel (resolved by caller)
+  if (panel.characterIds) {
+    try {
+      const charIds: string[] = JSON.parse(panel.characterIds);
+      for (const charId of charIds) {
+        const char = characters.find((c) => c.id === charId);
+        if (char && !mentionedInNotes.has(char.name) && char.description) {
+          const label = describeCharacterBriefly(char.description, language);
+          parts.push(`Character: ${label}, ${char.description.slice(0, 80)}`);
+        }
       }
     } catch { /* ignore */ }
   }

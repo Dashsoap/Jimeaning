@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { apiHandler } from "@/lib/api-errors";
 import { requireAuth, isErrorResponse } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { createTask } from "@/lib/task/service";
+import { TaskType } from "@/lib/task/types";
 import type { StoryboardResult } from "@/lib/agents/definitions/storyboard-director";
 import type { ImageGeneratorResult } from "@/lib/agents/definitions/image-generator";
 
@@ -190,8 +192,33 @@ export const POST = apiHandler(async (req: NextRequest, { params }: Params) => {
       }
     }
 
-    return { projectId: project.id };
+    // Collect characters that need image generation
+    const charsNeedingImages: { id: string; appearance: string }[] = [];
+    for (const char of characters) {
+      const charId = characterNameMap.get(char.name);
+      const appearance = char.appearance || char.description || "";
+      if (charId && appearance) {
+        charsNeedingImages.push({ id: charId, appearance });
+      }
+    }
+
+    return { projectId: project.id, charsNeedingImages };
   });
 
-  return NextResponse.json(result, { status: 201 });
+  // After transaction: create IMAGE_CHARACTER tasks for characters without images
+  const characterTaskIds: string[] = [];
+  for (const char of result.charsNeedingImages) {
+    const taskId = await createTask({
+      userId: auth.user.id,
+      projectId: result.projectId,
+      type: TaskType.IMAGE_CHARACTER,
+      data: { characterId: char.id, prompt: char.appearance },
+    });
+    characterTaskIds.push(taskId);
+  }
+
+  return NextResponse.json(
+    { projectId: result.projectId, characterTaskIds },
+    { status: 201 },
+  );
 });
