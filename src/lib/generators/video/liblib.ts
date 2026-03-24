@@ -193,14 +193,14 @@ export class LiblibVideoGenerator implements VideoGenerator {
 
   async generate(params: VideoGenerateParams): Promise<GenerateResult> {
     const modelId = params.model || this.defaultModel;
-    let { config, klingModel } = resolveModelConfig(modelId);
+    const resolved = resolveModelConfig(modelId);
+    const klingModel = resolved.klingModel;
+    let config = resolved.config;
 
     // Auto-switch to multiImg2video when lastFrameImageUrl is present
     // but the model doesn't support endFrame (only v1-6 pro supports endFrame)
     if (params.lastFrameImageUrl && klingModel !== "kling-v1-6") {
       config = VIDEO_MODELS["kling-multi-img"];
-      // Override buildParams to use startFrame + lastFrame as referenceImages
-      const originalBuildParams = config.buildParams;
       const lastFrameUrl = params.lastFrameImageUrl;
       config = {
         ...config,
