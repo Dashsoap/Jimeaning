@@ -50,6 +50,42 @@ export function findOriginalNameResidues(
   };
 }
 
+/**
+ * Force-replace all original names with new names in text.
+ * Replaces longer names first to avoid partial replacement issues.
+ */
+export function forceReplaceNames(
+  text: string,
+  nameMapping: NameMapping,
+): { text: string; replacementCount: number } {
+  let result = text;
+  let replacementCount = 0;
+
+  const allMappings: Array<[string, string]> = [];
+  for (const mapping of [nameMapping.characters, nameMapping.locations, nameMapping.organizations]) {
+    if (!mapping) continue;
+    for (const [orig, replacement] of Object.entries(mapping)) {
+      if (orig && replacement && orig !== replacement) {
+        allMappings.push([orig, replacement]);
+      }
+    }
+  }
+
+  // Sort by length descending — replace longer names first to avoid partial matches
+  allMappings.sort((a, b) => b[0].length - a[0].length);
+
+  for (const [orig, replacement] of allMappings) {
+    const regex = new RegExp(escapeRegex(orig), "g");
+    const matches = result.match(regex);
+    if (matches) {
+      replacementCount += matches.length;
+      result = result.replace(regex, replacement);
+    }
+  }
+
+  return { text: result, replacementCount };
+}
+
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

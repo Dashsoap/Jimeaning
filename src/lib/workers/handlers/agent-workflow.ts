@@ -30,7 +30,7 @@ import type { TaskPayload } from "@/lib/task/types";
 import type { RewriteStrategy, NameMapping } from "@/lib/agents/definitions/rewrite-strategist";
 import type { ReflectOutput } from "@/lib/agents/definitions/reflect";
 import { checkSimilarity, findDuplicateSegments } from "@/lib/text/similarity";
-import { findOriginalNameResidues } from "@/lib/text/name-check";
+import { findOriginalNameResidues, forceReplaceNames } from "@/lib/text/name-check";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -754,7 +754,23 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
       ? project.sourceText.slice(episode.sourceStart, episode.sourceEnd)
       : project.sourceText;
     const nameMapping = (project.rewriteStrategy as unknown as { nameMapping?: NameMapping })?.nameMapping;
-    postProcess = await runPostProcessChecks(epSourceText, result.script, nameMapping, ctx);
+
+    // Force-replace original names before checks (deterministic, no LLM needed)
+    let finalScript = result.script;
+    if (nameMapping) {
+      const replaceResult = forceReplaceNames(finalScript, nameMapping);
+      if (replaceResult.replacementCount > 0) {
+        finalScript = replaceResult.text;
+        ctx.publishText(`   🔄 强制替换了 ${replaceResult.replacementCount} 处原名残留\n`);
+        // Update the episode with corrected script
+        await prisma.agentEpisode.update({
+          where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber } },
+          data: { script: finalScript },
+        });
+      }
+    }
+
+    postProcess = await runPostProcessChecks(epSourceText, finalScript, nameMapping, ctx);
 
     const existingReflection = result.reflectResult as Record<string, unknown> | undefined;
     const updatedReflection = { ...(existingReflection ?? {}), postProcess };
@@ -1198,7 +1214,21 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
           : finalProject.sourceText;
         const nameMapping = (rewriteStrategy as unknown as { nameMapping?: NameMapping })?.nameMapping;
 
-        const postResult = await runPostProcessChecks(epSourceText, script, nameMapping, ctx);
+        // Force-replace original names (deterministic, no LLM needed)
+        let correctedScript = script;
+        if (nameMapping) {
+          const replaceResult = forceReplaceNames(correctedScript, nameMapping);
+          if (replaceResult.replacementCount > 0) {
+            correctedScript = replaceResult.text;
+            ctx.publishText(`   🔄 强制替换了 ${replaceResult.replacementCount} 处原名残留\n`);
+            await prisma.agentEpisode.update({
+              where: { agentProjectId_episodeNumber: { agentProjectId, episodeNumber: epNum } },
+              data: { script: correctedScript },
+            });
+          }
+        }
+
+        const postResult = await runPostProcessChecks(epSourceText, correctedScript, nameMapping, ctx);
 
         // Save post-processing results
         const existingReflection = (await prisma.agentEpisode.findUnique({
