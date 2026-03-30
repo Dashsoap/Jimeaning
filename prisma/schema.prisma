@@ -523,6 +523,10 @@ model AgentProject {
   autoMode       Boolean @default(false) // 一键全自动模式
   outputFormat   String? // "script" | "novel" | "same"
 
+  // Rewrite controls
+  rewriteIntensity   Int   @default(3)    // 1=面目全非 … 5=精巧润色
+  preserveDimensions Json? @db.Json       // string[]: ["plot","dialogue","narrative","description","emotion"]
+
   // Workflow state
   status      String  @default("created") // created | analyzing | planning | writing | reviewing | storyboarding | imaging | strategy-designed | strategy-confirmed | completed | failed
   currentStep String? // 当前执行的步骤

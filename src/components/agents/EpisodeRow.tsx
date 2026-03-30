@@ -112,6 +112,22 @@ export function EpisodeRow({
             {t("attempt")}: {ep.rewriteAttempt}
           </span>
         )}
+        {ep.similarityScore != null && (
+          <span className="flex items-center gap-1 text-xs">
+            <span
+              className="inline-block h-2 w-8 rounded-full"
+              style={{
+                backgroundColor:
+                  ep.similarityScore <= 0.05 ? "var(--color-success, #22c55e)" :
+                  ep.similarityScore <= 0.15 ? "var(--color-warning, #eab308)" :
+                  "var(--color-error, #ef4444)",
+              }}
+            />
+            <span className="text-[var(--color-text-tertiary)]">
+              {(ep.similarityScore * 100).toFixed(0)}%
+            </span>
+          </span>
+        )}
         {!!(ep.reflectionData as { totalScore?: number } | null)?.totalScore && (
           <span className="text-xs text-[var(--color-text-tertiary)]">
             {t("reflectScore")}: {(ep.reflectionData as { totalScore: number }).totalScore}/90

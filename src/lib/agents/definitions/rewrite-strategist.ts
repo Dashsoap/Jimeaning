@@ -29,6 +29,10 @@ export interface RewriteStrategyInput {
   sourceTextSample: string;
   /** 总集数 */
   totalEpisodes: number;
+  /** 改写力度 1-5 (1=面目全非, 5=精巧润色) */
+  rewriteIntensity?: number;
+  /** 用户要求保留的维度 */
+  preserveDimensions?: string[];
 }
 
 export interface NameMapping {
@@ -130,7 +134,31 @@ export const rewriteStrategistAgent: AgentDef<RewriteStrategyInput, RewriteStrat
       .map((c) => `- ${c.name}：性格[${c.personality.join("、")}]，外貌[${c.appearance}]`)
       .join("\n");
 
-    return `## 原文风格指纹
+    // Build preserve dimensions & intensity context
+    const intensityLabels: Record<number, string> = {
+      1: "彻底重构（面目全非）— 打乱结构、重组段落、完全改变叙事方式",
+      2: "大幅改写 — 保留核心情节但重写绝大部分表达和结构",
+      3: "标准改写 — 保留故事骨架，彻底重写表达层（默认）",
+      4: "适度润色 — 保留大部分原文结构，重点改写措辞和句式",
+      5: "精巧润色 — 仅替换具体措辞和表达，保留原文整体风格",
+    };
+    const dimLabels: Record<string, string> = {
+      plot: "情节骨架（故事线、人物关系、因果链）",
+      dialogue: "对话风格（语气、节奏、口吻）",
+      narrative: "叙事视角（人称和叙事角度）",
+      description: "描写手法（比喻、修辞手法）",
+      emotion: "情感节奏（情感起伏和张力节奏）",
+    };
+
+    const intensity = input.rewriteIntensity ?? 3;
+    const preserveSection = input.preserveDimensions?.length
+      ? `\n## ⚠️ 用户要求保留的维度（策略设计时必须尊重）\n${input.preserveDimensions.map((d) => `- ✅ ${dimLabels[d] || d}`).join("\n")}\n\n这些维度在改写时应尽量保留原文特征，策略中的 globalStyle 和 chapterPlans 必须体现这些保留要求。`
+      : "";
+    const intensitySection = `\n## 改写力度: ${intensity}/5 — ${intensityLabels[intensity] || intensityLabels[3]}\n请根据此力度级别制定策略。力度越低（1-2），改写幅度越大；力度越高（4-5），越贴近原文。`;
+
+    return `${preserveSection}${intensitySection}
+
+## 原文风格指纹
 - 内容类型: ${input.styleFingerprint.contentType}
 - 叙事视角: ${input.styleFingerprint.narrativeVoice}
 - 句式风格: ${input.styleFingerprint.sentenceStyle}

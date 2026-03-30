@@ -347,6 +347,8 @@ async function runStrategyPhase(
       characters: analysis.characters ?? [],
       sourceTextSample: project.sourceText.slice(0, 8000),
       totalEpisodes: project.episodes.length,
+      rewriteIntensity: project.rewriteIntensity,
+      preserveDimensions: (project.preserveDimensions as string[] | null) ?? undefined,
     },
     progressRange,
   });
@@ -370,6 +372,7 @@ interface EpisodeWriteParams {
   rewriteStrategy: RewriteStrategy | null;
   chapterSummaries: Record<string, { summary: string; tail: string }> | null;
   userFeedback?: string;
+  rewriteIntensity?: number;
 }
 
 /** Run write pipeline for a single episode and save results. Returns final script. */
@@ -379,7 +382,7 @@ async function runEpisodeWritePhase(
   ctx: TaskCtx,
   progressRange: [number, number],
 ): Promise<{ script: string; reflectResult?: ReflectOutput; improved: boolean }> {
-  const { agentProjectId, episode, sourceText: fullSourceText, outputFormat, analysis, styleFingerprint, rewriteStrategy, chapterSummaries, userFeedback } = params;
+  const { agentProjectId, episode, sourceText: fullSourceText, outputFormat, analysis, styleFingerprint, rewriteStrategy, chapterSummaries, userFeedback, rewriteIntensity } = params;
   const epNum = episode.episodeNumber;
   const useNovelMode = isNovelMode(outputFormat) && !!rewriteStrategy;
 
@@ -415,6 +418,7 @@ async function runEpisodeWritePhase(
     characters: analysis?.characters ?? [],
     outputFormat,
     styleFingerprint: styleFingerprint ?? undefined,
+    rewriteIntensity,
     ...(userFeedback ? { userFeedback, currentScript: existingScript } : {}),
   };
 
@@ -449,7 +453,9 @@ async function runEpisodeWritePhase(
   // Step 2: Multi-round reflect/improve loop (novel mode only)
   if (useNovelMode) {
     const MAX_ROUNDS = 3;
-    const PASS_THRESHOLD = 63; // 90 × 70%
+    // Adjust threshold by intensity: lower intensity = more rewrite = higher quality bar
+    const thresholdByIntensity: Record<number, number> = { 1: 70, 2: 65, 3: 63, 4: 58, 5: 50 };
+    const PASS_THRESHOLD = thresholdByIntensity[rewriteIntensity ?? 3] ?? 63;
 
     const strategyCtx = initialData.strategyContext as {
       globalStyle: RewriteStrategy["globalStyle"];
@@ -743,6 +749,7 @@ export const handleAgentWrite = withTaskLifecycle(async (payload: TaskPayload, c
     rewriteStrategy: project.rewriteStrategy as unknown as RewriteStrategy | null,
     chapterSummaries: project.chapterSummaries as Record<string, { summary: string; tail: string }> | null,
     userFeedback,
+    rewriteIntensity: project.rewriteIntensity,
   }, llm, ctx, [5, 90]);
 
   ctx.publishText(`\n✅ 第${episodeNumber}集写作完成 (${result.script.length}字)${result.reflectResult ? ` 反思评分: ${result.reflectResult.totalScore}/90` : ""}${result.improved ? " [已改进]" : ""}\n`);
@@ -1116,6 +1123,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
         styleFingerprint,
         rewriteStrategy,
         chapterSummaries,
+        rewriteIntensity: finalProject.rewriteIntensity,
       }, llm, ctx, [baseProgress, baseProgress + perEpisodeProgress * (isNovel ? 0.7 : 0.3)]);
       script = writeResult.script;
       ctx.publishText(`   ✅ 写作完成 (${script.length}字)\n`);
@@ -1174,6 +1182,7 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
             rewriteStrategy,
             chapterSummaries,
             userFeedback: feedbackText,
+            rewriteIntensity: finalProject.rewriteIntensity,
           }, llm, ctx, [baseProgress + perEpisodeProgress * 0.5, baseProgress + perEpisodeProgress * 0.6]);
           script = fixResult.script;
           ctx.publishText(`   ✅ 修改完成 (${script.length}字)\n`);

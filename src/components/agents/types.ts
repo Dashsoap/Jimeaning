@@ -16,6 +16,7 @@ export interface AgentEpisode {
   rewriteAttempt?: number;
   reflectionData?: unknown;
   chapterNotes?: string | null;
+  similarityScore?: number | null;
 }
 
 export interface AgentProject {
@@ -31,6 +32,8 @@ export interface AgentProject {
   styleData: unknown;
   rewriteStrategy: unknown;
   strategyConfirmed: boolean;
+  rewriteIntensity?: number;
+  preserveDimensions?: string[];
   createdAt: string;
   updatedAt: string;
   episodes: AgentEpisode[];

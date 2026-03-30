@@ -97,6 +97,11 @@ export function ProjectCard({
               {project.outputFormat === "novel" ? t("formatNovel") : t("formatSame")}
             </Badge>
           )}
+          {project.rewriteIntensity != null && project.outputFormat && project.outputFormat !== "script" && (
+            <Badge variant="default">
+              {t(`intensityBadge_${project.rewriteIntensity}`)}
+            </Badge>
+          )}
           {project.episodes?.length > 0 && (
             <span className="text-xs text-[var(--color-text-tertiary)]">
               {project.episodes.length} {t("episodes")}

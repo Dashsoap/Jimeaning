@@ -23,6 +23,7 @@ export const GET = apiHandler(async () => {
           rewriteAttempt: true,
           reflectionData: true,
           chapterNotes: true,
+          similarityScore: true,
         },
       },
     },
@@ -37,10 +38,17 @@ export const POST = apiHandler(async (req: NextRequest) => {
   if (isErrorResponse(auth)) return auth;
 
   const body = await req.json();
-  const { title, sourceText, durationPerEp, autoMode, outputFormat } = body;
+  const { title, sourceText, durationPerEp, autoMode, outputFormat, rewriteIntensity, preserveDimensions } = body;
 
   if (!title?.trim()) return badRequest("title is required");
   if (!sourceText?.trim()) return badRequest("sourceText is required");
+
+  // Validate rewrite controls
+  const intensity = typeof rewriteIntensity === "number" ? Math.min(5, Math.max(1, Math.round(rewriteIntensity))) : 3;
+  const validDimensions = ["plot", "dialogue", "narrative", "description", "emotion"];
+  const dimensions = Array.isArray(preserveDimensions)
+    ? preserveDimensions.filter((d: string) => validDimensions.includes(d))
+    : undefined;
 
   const project = await prisma.agentProject.create({
     data: {
@@ -50,6 +58,8 @@ export const POST = apiHandler(async (req: NextRequest) => {
       durationPerEp: durationPerEp || null,
       autoMode: autoMode ?? false,
       outputFormat: outputFormat || "script",
+      rewriteIntensity: intensity,
+      ...(dimensions ? { preserveDimensions: dimensions } : {}),
     },
   });
 

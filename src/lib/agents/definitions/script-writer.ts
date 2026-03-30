@@ -21,6 +21,8 @@ export interface ScriptWriterInput {
   chapterNotes?: string;
   prevChapterSummaries?: string;
   transitionInstructions?: string;
+  // Rewrite intensity control
+  rewriteIntensity?: number;
   // User feedback for rewrite
   userFeedback?: string;
   currentScript?: string;
@@ -162,10 +164,21 @@ function buildStrategyContext(strategy?: unknown): string {
   return ctx;
 }
 
-function buildNovelSystem(styleFingerprint?: StyleFingerprint, rewriteStrategy?: unknown): string {
+function buildIntensityInstruction(intensity?: number): string {
+  switch (intensity) {
+    case 1: return `\n## 改写力度: 1/5 — 彻底重构\n- 彻底重构叙事，可以打乱段落顺序\n- 不保留任何原文句式，完全用新的方式讲述同一个故事\n- 可以大幅调整场景节奏和叙事方式\n- 唯一不变的是核心情节和人物关系`;
+    case 2: return `\n## 改写力度: 2/5 — 大幅改写\n- 保留核心情节但重写绝大部分表达和结构\n- 可以调整段落顺序和叙事节奏\n- 对话保留意图但完全改写措辞\n- 描写和叙述部分需要大幅重新创作`;
+    case 4: return `\n## 改写力度: 4/5 — 适度润色\n- 保留大部分原文结构和叙事节奏\n- 重点改写措辞和句式，替换关键表达\n- 对话保留大致语气，但换一种说法\n- 确保每段都有明显修改痕迹，但整体风格贴近原文`;
+    case 5: return `\n## 改写力度: 5/5 — 精巧润色\n- 在原文基础上精巧润色，仅替换具体措辞\n- 保留原文句式结构和叙事节奏\n- 对话改写幅度最小，只替换个别词汇\n- 保留原文的修辞手法和描写方式，仅做表层替换`;
+    default: return `\n## 改写力度: 3/5 — 标准改写\n- 保留故事骨架，彻底重写表达层\n- 每一句都要换一种说法，不保留原文句式\n- 对话保留意图但改写措辞和语气\n- 让内容读起来像另一个作者写的全新作品`;
+  }
+}
+
+function buildNovelSystem(styleFingerprint?: StyleFingerprint, rewriteStrategy?: unknown, rewriteIntensity?: number): string {
   return `你是一位资深小说作家/改写专家。你擅长在保留故事骨架的前提下，彻底重写表达层，让内容读起来像另一个作者写的全新作品。你痛恨AI味文字。
 
 ${NOVEL_REWRITE_RULES}
+${buildIntensityInstruction(rewriteIntensity)}
 
 ${CROSS_EPISODE_CONTINUITY}
 
@@ -190,7 +203,7 @@ export const scriptWriterAgent: AgentDef<ScriptWriterInput, ScriptWriterOutput> 
     const fmt = input.outputFormat || "script";
 
     if (fmt === "novel") {
-      return buildNovelSystem(input.styleFingerprint, input.rewriteStrategy);
+      return buildNovelSystem(input.styleFingerprint, input.rewriteStrategy, input.rewriteIntensity);
     }
 
     if (fmt === "same") {
@@ -198,7 +211,7 @@ export const scriptWriterAgent: AgentDef<ScriptWriterInput, ScriptWriterOutput> 
       if (isScript) {
         return SCREENPLAY_SYSTEM + ANTI_AI_RULES;
       }
-      return buildNovelSystem(input.styleFingerprint, input.rewriteStrategy);
+      return buildNovelSystem(input.styleFingerprint, input.rewriteStrategy, input.rewriteIntensity);
     }
 
     // Default: screenplay format

@@ -26,7 +26,11 @@ export function CreateProjectModal({
   const [durationPerEp, setDurationPerEp] = useState("");
   const [autoMode, setAutoMode] = useState(false);
   const [outputFormat, setOutputFormat] = useState<"script" | "novel" | "same">("script");
+  const [rewriteIntensity, setRewriteIntensity] = useState(3);
+  const [preserveDimensions, setPreserveDimensions] = useState<string[]>(["plot", "dialogue", "emotion"]);
   const [submitting, setSubmitting] = useState(false);
+
+  const isRewriteMode = outputFormat === "novel" || outputFormat === "same";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +47,7 @@ export function CreateProjectModal({
           durationPerEp: durationPerEp.trim() || null,
           autoMode,
           outputFormat,
+          ...(isRewriteMode ? { rewriteIntensity, preserveDimensions } : {}),
         }),
       });
       if (!res.ok) throw new Error("Failed");
@@ -111,6 +116,80 @@ export function CreateProjectModal({
             {t(`formatHint_${outputFormat}`)}
           </p>
         </div>
+        {/* Rewrite controls — only for novel/same mode */}
+        {isRewriteMode && (
+          <div className="space-y-4 rounded-[var(--radius-lg)] bg-[var(--color-bg-surface)] p-4">
+            {/* Preserve dimensions */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[var(--color-text-primary)]">
+                {t("preserveDimensions")}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: "plot", label: t("dim_plot"), hint: t("dimHint_plot") },
+                  { key: "dialogue", label: t("dim_dialogue"), hint: t("dimHint_dialogue") },
+                  { key: "narrative", label: t("dim_narrative"), hint: t("dimHint_narrative") },
+                  { key: "description", label: t("dim_description"), hint: t("dimHint_description") },
+                  { key: "emotion", label: t("dim_emotion"), hint: t("dimHint_emotion") },
+                ].map((dim) => {
+                  const checked = preserveDimensions.includes(dim.key);
+                  return (
+                    <label
+                      key={dim.key}
+                      className={`flex items-center gap-2 rounded-[var(--radius-md)] border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                        checked
+                          ? "border-[var(--color-accent)] bg-[var(--color-accent-bg)] text-[var(--color-text-primary)]"
+                          : "border-[var(--color-border-default)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface-hover)]"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setPreserveDimensions((prev) =>
+                            checked ? prev.filter((d) => d !== dim.key) : [...prev, dim.key]
+                          )
+                        }
+                        className="h-3.5 w-3.5 rounded accent-[var(--color-accent)]"
+                      />
+                      <span>{dim.label}</span>
+                      <span className="text-xs text-[var(--color-text-tertiary)]">{dim.hint}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Rewrite intensity */}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-[var(--color-text-primary)]">
+                {t("rewriteIntensity")}
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[var(--color-text-tertiary)] w-16 text-right">{t("intensity_low")}</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setRewriteIntensity(v)}
+                      className={`h-8 w-8 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                        rewriteIntensity === v
+                          ? "bg-[var(--color-btn-primary)] text-white"
+                          : "bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface-hover)]"
+                      }`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+                <span className="text-xs text-[var(--color-text-tertiary)] w-16">{t("intensity_high")}</span>
+              </div>
+              <p className="mt-1.5 text-xs text-[var(--color-text-tertiary)]">
+                {t(`intensityHint_${rewriteIntensity}`)}
+              </p>
+            </div>
+          </div>
+        )}
         {outputFormat === "script" && (
           <Input
             id="duration"
