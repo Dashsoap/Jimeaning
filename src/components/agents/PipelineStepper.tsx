@@ -137,7 +137,8 @@ export function PipelineStepper({ project, onViewContent }: PipelineStepperProps
                 onClick={() => {
                   if (!clickable) return;
                   const content = getStageContent(stage.key, project)!;
-                  onViewContent({ ...content, type: "raw" });
+                  const typeMap: Record<string, string> = { analyze: "analysis", plan: "planning", strategy: "strategy" };
+                  onViewContent({ ...content, type: (typeMap[stage.key] || "raw") as ViewContentPayload["type"] });
                 }}
                 className={`flex flex-col items-center gap-1 ${clickable ? "cursor-pointer group" : ""}`}
                 disabled={!clickable}

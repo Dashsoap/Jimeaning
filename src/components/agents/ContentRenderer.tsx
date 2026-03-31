@@ -7,7 +7,7 @@ import { ComparisonView } from "./ComparisonView";
 
 // ─── Types ─────────────────────────────────────────────────────────
 
-export type ContentType = "script" | "review" | "storyboard" | "imagePrompts" | "comparison" | "raw";
+export type ContentType = "script" | "review" | "storyboard" | "imagePrompts" | "comparison" | "analysis" | "planning" | "strategy" | "raw";
 
 interface ContentRendererProps {
   content: string;
@@ -26,6 +26,12 @@ export function ContentRenderer({ content, type }: ContentRendererProps) {
       return <StoryboardRenderer content={content} />;
     case "imagePrompts":
       return <ImagePromptsRenderer content={content} />;
+    case "analysis":
+      return <AnalysisRenderer content={content} />;
+    case "planning":
+      return <PlanningRenderer content={content} />;
+    case "strategy":
+      return <StrategyRenderer content={content} />;
     case "comparison": {
       try {
         const { original, rewritten } = JSON.parse(content) as { original: string; rewritten: string };
@@ -479,6 +485,320 @@ function PromptCard({
             </p>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Analysis Renderer ──────────────────────────────────────────
+
+interface AnalysisCharacter {
+  name: string;
+  role?: string;
+  identity?: string;
+  appearance?: string;
+  personality?: string[];
+  arc?: string;
+  aliases?: string[];
+  relationships?: string[];
+}
+
+interface AnalysisData {
+  genre?: { main?: string; tone?: string; subTags?: string[]; audience?: string };
+  characters?: AnalysisCharacter[];
+  themes?: string[];
+  plotStructure?: { act1?: string; act2?: string; act3?: string } | string;
+  emotionalCurve?: string;
+  adaptationNotes?: string;
+}
+
+const ROLE_COLORS: Record<string, string> = {
+  "主角": "bg-amber-100 text-amber-700",
+  "配角": "bg-blue-100 text-blue-700",
+  "反派": "bg-red-100 text-red-700",
+};
+
+function AnalysisRenderer({ content }: { content: string }) {
+  let data: AnalysisData;
+  try {
+    data = JSON.parse(content);
+  } catch {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {data.genre && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">题材分类</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.genre.main && (
+              <span className="rounded-full bg-[var(--color-accent-bg)] px-3 py-1 text-sm font-medium text-[var(--color-accent)]">{data.genre.main}</span>
+            )}
+            {data.genre.tone && (
+              <span className="rounded-full bg-purple-100 px-3 py-1 text-sm text-purple-700">{data.genre.tone}</span>
+            )}
+            {data.genre.subTags?.map((tag) => (
+              <span key={tag} className="rounded-full bg-[var(--color-bg-surface)] px-3 py-1 text-sm text-[var(--color-text-secondary)]">{tag}</span>
+            ))}
+          </div>
+          {data.genre.audience && (
+            <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">🎯 {data.genre.audience}</p>
+          )}
+        </section>
+      )}
+
+      {data.themes && data.themes.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">主题</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.themes.map((theme) => (
+              <span key={theme} className="rounded-full border border-[var(--color-border-default)] px-3 py-1 text-sm text-[var(--color-text-secondary)]">{theme}</span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.characters && data.characters.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">角色 ({data.characters.length})</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {data.characters.map((char) => (
+              <div key={char.name} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-4 space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-[var(--color-text-primary)]">{char.name}</span>
+                  {char.aliases?.map((a) => (
+                    <span key={a} className="text-xs text-[var(--color-text-tertiary)]">({a})</span>
+                  ))}
+                  {char.role && (
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_COLORS[char.role] || "bg-gray-100 text-gray-600"}`}>{char.role}</span>
+                  )}
+                </div>
+                {char.identity && <p className="text-sm text-[var(--color-text-secondary)]">{char.identity}</p>}
+                {char.personality && char.personality.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {char.personality.map((p) => (
+                      <span key={p} className="rounded bg-[var(--color-bg-primary)] px-2 py-0.5 text-xs text-[var(--color-text-tertiary)]">{p}</span>
+                    ))}
+                  </div>
+                )}
+                {char.appearance && <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">👤 {char.appearance}</p>}
+                {char.arc && <p className="text-xs text-[var(--color-text-tertiary)] leading-relaxed">📈 {char.arc}</p>}
+                {char.relationships && char.relationships.length > 0 && (
+                  <div className="text-xs text-[var(--color-text-tertiary)] space-y-0.5">
+                    {char.relationships.map((r, i) => <p key={i}>🔗 {r}</p>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.plotStructure && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">情节骨架</h3>
+          {typeof data.plotStructure === "string" ? (
+            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{data.plotStructure}</p>
+          ) : (
+            <div className="space-y-2">
+              {data.plotStructure.act1 && <p className="text-sm text-[var(--color-text-secondary)]"><strong>开端：</strong>{data.plotStructure.act1}</p>}
+              {data.plotStructure.act2 && <p className="text-sm text-[var(--color-text-secondary)]"><strong>发展：</strong>{data.plotStructure.act2}</p>}
+              {data.plotStructure.act3 && <p className="text-sm text-[var(--color-text-secondary)]"><strong>结局：</strong>{data.plotStructure.act3}</p>}
+            </div>
+          )}
+        </section>
+      )}
+
+      {data.emotionalCurve && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">情绪曲线</h3>
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{data.emotionalCurve}</p>
+        </section>
+      )}
+      {data.adaptationNotes && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">改编评估</h3>
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{data.adaptationNotes}</p>
+        </section>
+      )}
+    </div>
+  );
+}
+
+// ─── Planning Renderer ──────────────────────────────────────────
+
+interface PlanningData {
+  totalEpisodes?: number;
+  episodes?: Array<{
+    number?: number;
+    episodeNumber?: number;
+    title?: string;
+    summary?: string;
+    outline?: string;
+    keyScenes?: string[];
+  }>;
+}
+
+function PlanningRenderer({ content }: { content: string }) {
+  let data: PlanningData;
+  try {
+    data = JSON.parse(content);
+  } catch {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
+  }
+
+  if (!data.episodes || !Array.isArray(data.episodes)) {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{JSON.stringify(data, null, 2)}</pre>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {data.totalEpisodes && (
+        <p className="text-sm text-[var(--color-text-tertiary)]">共 {data.totalEpisodes} 集</p>
+      )}
+      <div className="space-y-3">
+        {data.episodes.map((ep, idx) => {
+          const num = ep.number ?? ep.episodeNumber ?? idx + 1;
+          return (
+            <div key={num} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-accent)] text-white text-xs font-bold">{num}</span>
+                <span className="font-medium text-[var(--color-text-primary)]">{ep.title ?? `第${num}集`}</span>
+              </div>
+              {(ep.summary || ep.outline) && (
+                <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                  {ep.summary || (typeof ep.outline === "string" ? ep.outline : JSON.stringify(ep.outline))}
+                </p>
+              )}
+              {ep.keyScenes && ep.keyScenes.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {ep.keyScenes.map((s, i) => (
+                    <span key={i} className="rounded bg-[var(--color-bg-primary)] px-2 py-0.5 text-xs text-[var(--color-text-tertiary)]">{s}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Strategy Renderer ──────────────────────────────────────────
+
+interface StrategyData {
+  humanReadableSummary?: string;
+  globalStyle?: { narrativeVoice?: string; toneAndRegister?: string; dialogueApproach?: string; pacing?: string };
+  characterVoices?: Array<{ name?: string; voiceTraits?: string[] }>;
+  nameMapping?: Record<string, { original: string; replacement: string }>;
+  tabooPatterns?: string[];
+  chapterPlans?: Array<{
+    episodeNumber: number;
+    focusPoints?: string[];
+    keySceneTreatment?: string;
+    emotionalArc?: string;
+  }>;
+}
+
+function StrategyRenderer({ content }: { content: string }) {
+  let data: StrategyData;
+  try {
+    data = JSON.parse(content);
+  } catch {
+    return <pre className="whitespace-pre-wrap text-sm text-[var(--color-text-secondary)]">{content}</pre>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {data.humanReadableSummary && (
+        <section className="rounded-[var(--radius-md)] bg-[var(--color-accent-bg)] p-4">
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{data.humanReadableSummary}</p>
+        </section>
+      )}
+
+      {data.globalStyle && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">全局风格</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Object.entries(data.globalStyle).map(([key, val]) => {
+              const labels: Record<string, string> = { narrativeVoice: "叙事视角", toneAndRegister: "语调语域", dialogueApproach: "对话风格", pacing: "节奏" };
+              return (
+                <div key={key} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3">
+                  <span className="text-xs text-[var(--color-text-tertiary)]">{labels[key] || key}</span>
+                  <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{val}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {data.characterVoices && data.characterVoices.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">角色声纹</h3>
+          <div className="space-y-2">
+            {data.characterVoices.map((cv, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="font-medium text-sm text-[var(--color-text-primary)] shrink-0">{cv.name || `角色${i + 1}`}</span>
+                <div className="flex flex-wrap gap-1">
+                  {cv.voiceTraits?.map((t) => (
+                    <span key={t} className="rounded bg-[var(--color-bg-surface)] px-2 py-0.5 text-xs text-[var(--color-text-tertiary)]">{t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.nameMapping && Object.keys(data.nameMapping).length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">人名替换</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {Object.values(data.nameMapping).map((m) => (
+              <div key={m.original} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-2 text-sm text-center">
+                <span className="text-[var(--color-text-tertiary)] line-through">{m.original}</span>
+                <span className="mx-2">→</span>
+                <span className="text-[var(--color-text-primary)] font-medium">{m.replacement}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.tabooPatterns && data.tabooPatterns.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">禁忌模式</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.tabooPatterns.map((t) => (
+              <span key={t} className="rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs text-red-600">{t}</span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data.chapterPlans && data.chapterPlans.length > 0 && (
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2">分集策略</h3>
+          <div className="space-y-2">
+            {data.chapterPlans.map((cp) => (
+              <div key={cp.episodeNumber} className="rounded-[var(--radius-md)] bg-[var(--color-bg-surface)] p-3 text-sm">
+                <span className="font-medium text-[var(--color-text-primary)]">第{cp.episodeNumber}集</span>
+                {cp.focusPoints && cp.focusPoints.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {cp.focusPoints.map((f, i) => (
+                      <span key={i} className="rounded bg-[var(--color-bg-primary)] px-2 py-0.5 text-xs text-[var(--color-text-tertiary)]">{f}</span>
+                    ))}
+                  </div>
+                )}
+                {cp.emotionalArc && <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">🎭 {cp.emotionalArc}</p>}
+                {cp.keySceneTreatment && <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">🎬 {cp.keySceneTreatment}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

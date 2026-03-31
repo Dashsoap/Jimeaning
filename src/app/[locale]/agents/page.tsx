@@ -210,7 +210,7 @@ export default function AgentsPage() {
         open={!!viewContent}
         onClose={() => setViewContent(null)}
         title={viewContent?.title}
-        className="max-w-3xl max-h-[80vh] overflow-y-auto"
+        className="max-w-5xl w-[90vw] max-h-[85vh] overflow-y-auto"
       >
         {viewContent && (
           <ContentRenderer content={viewContent.content} type={viewContent.type} />
