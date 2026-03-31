@@ -22,6 +22,7 @@ interface EpisodeDetail {
   storyboard?: string | null;
   imagePrompts?: string | null;
   outline?: string | null;
+  sourceTextSection?: string | null;
 }
 
 interface EpisodeRowProps {
@@ -206,20 +207,12 @@ export function EpisodeRow({
                         {detail.script.length.toLocaleString()}字
                       </span>
                     </button>
-                    {isNovelFormat && detail.outline && (
+                    {isNovelFormat && detail.sourceTextSection && (
                       <button
                         onClick={() => {
-                          // Extract source text from outline for comparison
-                          let originalText = "";
-                          try {
-                            const outlineData = JSON.parse(detail.outline!);
-                            originalText = outlineData.sourceTextSection || outlineData.content || detail.outline!;
-                          } catch {
-                            originalText = detail.outline!;
-                          }
                           viewSection(
                             t("compare"),
-                            JSON.stringify({ original: originalText, rewritten: detail.script! }),
+                            JSON.stringify({ original: detail.sourceTextSection!, rewritten: detail.script! }),
                             "comparison",
                           );
                         }}
