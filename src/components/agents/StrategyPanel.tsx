@@ -55,7 +55,7 @@ export function StrategyPanel({ project, onViewContent, t }: StrategyPanelProps)
           onClick={() => onViewContent({
             title: t("strategyTitle"),
             content: JSON.stringify(strategy, null, 2),
-            type: "raw",
+            type: "strategy",
           })}
           className="ml-auto text-xs text-[var(--color-accent)] hover:underline cursor-pointer"
         >
