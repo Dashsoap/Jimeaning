@@ -29,6 +29,46 @@ export const GET = apiHandler(async () => {
     },
   });
 
+  // Auto-heal stuck projects: if status is busy but no running task exists
+  const busyStatuses = ["analyzing", "planning", "writing", "reviewing", "storyboarding", "imaging"];
+  const stuckProjects = projects.filter(
+    (p) => busyStatuses.includes(p.status) && Date.now() - new Date(p.updatedAt).getTime() > 5 * 60 * 1000,
+  );
+
+  if (stuckProjects.length > 0) {
+    // Check if any tasks are actually running for these projects
+    const runningTasks = await prisma.task.findMany({
+      where: {
+        userId: auth.user.id,
+        status: { in: ["pending", "running"] },
+      },
+      select: { payload: true },
+    });
+    const activeProjectIds = new Set(
+      runningTasks
+        .map((t) => (t.payload as Record<string, unknown> | null)?.agentProjectId as string)
+        .filter(Boolean),
+    );
+
+    for (const p of stuckProjects) {
+      if (activeProjectIds.has(p.id)) continue; // Actually running, not stuck
+
+      // Derive correct status
+      let newStatus = "created";
+      if (p.analysisData) newStatus = "analyzed";
+      if (p.planningData && p.episodes.length > 0) newStatus = "planned";
+      if (p.rewriteStrategy && !p.strategyConfirmed) newStatus = "strategy-designed";
+      if (p.rewriteStrategy && p.strategyConfirmed) newStatus = "strategy-confirmed";
+      if (p.episodes.length > 0 && p.episodes.every((e) => e.status === "completed")) newStatus = "completed";
+
+      await prisma.agentProject.update({
+        where: { id: p.id },
+        data: { status: newStatus, currentStep: null },
+      });
+      p.status = newStatus;
+    }
+  }
+
   return NextResponse.json(projects);
 });
 
