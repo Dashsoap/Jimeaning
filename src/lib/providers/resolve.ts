@@ -115,6 +115,27 @@ export async function resolveProviderConfig(
   };
 }
 
+/**
+ * Resolve orchestrator LLM config.
+ * Uses project-specific orchestratorModelKey if set, otherwise falls back to user's default LLM.
+ */
+export async function resolveOrchestratorLlmConfig(
+  userId: string,
+  orchestratorModelKey?: string | null,
+) {
+  if (orchestratorModelKey) {
+    const { resolveModelSelection } = await import("@/lib/api-config");
+    const selection = await resolveModelSelection(userId, orchestratorModelKey, "llm");
+    const providerConfig = await getProviderConfig(userId, selection.provider);
+    return {
+      apiKey: providerConfig.apiKey,
+      baseUrl: providerConfig.baseUrl,
+      model: selection.modelId,
+    };
+  }
+  return resolveLlmConfig(userId);
+}
+
 // ─── Provider Type Mapping ────────────────────────────────────────────────
 // Maps config provider IDs to the generator factory type strings
 

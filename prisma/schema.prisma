@@ -539,6 +539,10 @@ model AgentProject {
   strategyConfirmed Boolean @default(false)
   chapterSummaries  Json? @db.Json // Record<epNum, {summary, tail}>: 跨集摘要累积
 
+  // Orchestrator
+  orchestratorModelKey String?       // 编排器模型 (provider::modelId)，项目级别选择
+  orchestratorLog      Json? @db.Json // Array<OrchestratorLogEntry>
+
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   episodes AgentEpisode[]
 

@@ -38,7 +38,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
   if (isErrorResponse(auth)) return auth;
 
   const body = await req.json();
-  const { title, sourceText, durationPerEp, autoMode, outputFormat, rewriteIntensity, preserveDimensions } = body;
+  const { title, sourceText, durationPerEp, autoMode, outputFormat, rewriteIntensity, preserveDimensions, orchestratorModelKey } = body;
 
   if (!title?.trim()) return badRequest("title is required");
   if (!sourceText?.trim()) return badRequest("sourceText is required");
@@ -60,6 +60,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
       outputFormat: outputFormat || "script",
       rewriteIntensity: intensity,
       ...(dimensions ? { preserveDimensions: dimensions } : {}),
+      ...(orchestratorModelKey ? { orchestratorModelKey } : {}),
     },
   });
 

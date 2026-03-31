@@ -34,13 +34,13 @@ import { findOriginalNameResidues, forceReplaceNames } from "@/lib/text/name-che
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
-async function setupLLM(userId: string) {
+export async function setupLLM(userId: string) {
   const llmCfg = await resolveLlmConfig(userId);
   const client = createLLMClient(llmCfg);
   return { client, model: llmCfg.model };
 }
 
-async function getAgentProject(agentProjectId: string) {
+export async function getAgentProject(agentProjectId: string) {
   const project = await prisma.agentProject.findUniqueOrThrow({
     where: { id: agentProjectId },
     include: { episodes: { orderBy: { episodeNumber: "asc" } } },
@@ -48,7 +48,7 @@ async function getAgentProject(agentProjectId: string) {
   return project;
 }
 
-async function updateProjectStatus(id: string, status: string, currentStep?: string) {
+export async function updateProjectStatus(id: string, status: string, currentStep?: string) {
   await prisma.agentProject.update({
     where: { id },
     data: { status, currentStep },
@@ -56,7 +56,7 @@ async function updateProjectStatus(id: string, status: string, currentStep?: str
 }
 
 /** Derive project status from episode states instead of hardcoding */
-async function deriveAndUpdateProjectStatus(agentProjectId: string) {
+export async function deriveAndUpdateProjectStatus(agentProjectId: string) {
   const project = await prisma.agentProject.findUniqueOrThrow({
     where: { id: agentProjectId },
     include: { episodes: { select: { status: true } } },
@@ -86,7 +86,7 @@ async function deriveAndUpdateProjectStatus(agentProjectId: string) {
  * Merge Phase 3 video_prompt data back into storyboard shots.
  * Matches by shotNumber, adding video_prompt/shot_type/camera_move to each shot.
  */
-function mergeVideoPrompts(
+export function mergeVideoPrompts(
   storyboardData: unknown,
   detailData: { panels?: Array<Record<string, unknown>> } | null,
 ): unknown {
@@ -125,12 +125,12 @@ function mergeVideoPrompts(
 }
 
 /** Check if this project uses visual pipeline (storyboard + image prompts) */
-function needsVisualPipeline(outputFormat: string | null | undefined): boolean {
+export function needsVisualPipeline(outputFormat: string | null | undefined): boolean {
   return !outputFormat || outputFormat === "script";
 }
 
 /** Check if this project is in novel rewrite mode */
-function isNovelMode(outputFormat: string | null | undefined): boolean {
+export function isNovelMode(outputFormat: string | null | undefined): boolean {
   return outputFormat === "novel" || outputFormat === "same";
 }
 
@@ -203,11 +203,11 @@ async function updateChapterSummaries(
 // These functions contain the core logic for each pipeline phase.
 // Both individual handlers and handleAgentAuto call these.
 
-type LLMContext = { client: import("openai").default; model: string };
-type TaskCtx = Parameters<Parameters<typeof withTaskLifecycle>[0]>[1];
+export type LLMContext = { client: import("openai").default; model: string };
+export type TaskCtx = Parameters<Parameters<typeof withTaskLifecycle>[0]>[1];
 
 /** Run analysis pipeline and save results */
-async function runAnalysisPhase(
+export async function runAnalysisPhase(
   agentProjectId: string,
   sourceText: string,
   llm: LLMContext,
@@ -268,7 +268,7 @@ async function upsertEpisodesFromPlan(
 }
 
 /** Run planning pipeline and save results */
-async function runPlanningPhase(
+export async function runPlanningPhase(
   agentProjectId: string,
   project: Awaited<ReturnType<typeof getAgentProject>>,
   llm: LLMContext,
@@ -322,7 +322,7 @@ async function saveChapterNotes(
 }
 
 /** Run strategy pipeline and save results */
-async function runStrategyPhase(
+export async function runStrategyPhase(
   agentProjectId: string,
   project: Awaited<ReturnType<typeof getAgentProject>>,
   llm: LLMContext,
@@ -362,7 +362,7 @@ async function runStrategyPhase(
   return { strategy };
 }
 
-interface EpisodeWriteParams {
+export interface EpisodeWriteParams {
   agentProjectId: string;
   episode: { episodeNumber: number; title: string | null; outline: string | null; chapterNotes: string | null; sourceStart?: number | null; sourceEnd?: number | null };
   sourceText: string;
@@ -376,7 +376,7 @@ interface EpisodeWriteParams {
 }
 
 /** Run write pipeline for a single episode and save results. Returns final script. */
-async function runEpisodeWritePhase(
+export async function runEpisodeWritePhase(
   params: EpisodeWriteParams,
   llm: LLMContext,
   ctx: TaskCtx,
@@ -582,7 +582,7 @@ interface PostProcessResult {
 }
 
 /** Run post-processing checks on a rewritten episode (novel mode) */
-async function runPostProcessChecks(
+export async function runPostProcessChecks(
   originalText: string,
   rewrittenText: string,
   nameMapping: NameMapping | undefined,
@@ -1002,6 +1002,26 @@ export const handleAgentAuto = withTaskLifecycle(async (payload: TaskPayload, ct
   const { userId, data } = payload;
   const agentProjectId = data.agentProjectId as string;
   const targetEpisodes = data.targetEpisodes as number[] | undefined;
+
+  // ─── Orchestrator mode (feature flag) ─────────────────────────
+  if (process.env.USE_ORCHESTRATOR === "true") {
+    const { runOrchestratorLoop } = await import("@/lib/agents/orchestrator");
+    const { resolveOrchestratorLlmConfig } = await import("@/lib/providers/resolve");
+
+    const project = await getAgentProject(agentProjectId);
+    const orchLlm = await resolveOrchestratorLlmConfig(userId, project.orchestratorModelKey);
+
+    ctx.publishText("\n🚀 编排器模式启动\n");
+    const result = await runOrchestratorLoop(agentProjectId, userId, ctx, {
+      orchestratorLlm: orchLlm,
+    });
+
+    if (result.paused) {
+      return { paused: true, reason: result.pauseReason };
+    }
+    return { completed: result.completed, iterations: result.iterations };
+  }
+  // ─── Legacy hardcoded pipeline (below) ─────────────────────────
 
   const project = await getAgentProject(agentProjectId);
   const llm = await setupLLM(userId);
