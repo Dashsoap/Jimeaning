@@ -59,7 +59,7 @@ export const GET = apiHandler(async () => {
       if (p.planningData && p.episodes.length > 0) newStatus = "planned";
       if (p.rewriteStrategy && !p.strategyConfirmed) newStatus = "strategy-designed";
       if (p.rewriteStrategy && p.strategyConfirmed) newStatus = "strategy-confirmed";
-      if (p.episodes.length > 0 && p.episodes.every((e) => e.status === "completed")) newStatus = "completed";
+      if (p.episodes.length > 0 && p.episodes.every((e) => e.status === "completed" || e.status === "similarity-failed")) newStatus = "completed";
 
       await prisma.agentProject.update({
         where: { id: p.id },

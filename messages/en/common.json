@@ -492,6 +492,9 @@
       "drafted": "Drafted",
       "reviewed": "Reviewed",
       "review-failed": "Review Failed",
+      "similarity-failed": "Too Similar",
+      "writing": "Writing",
+      "reviewing": "Reviewing",
       "storyboarded": "Storyboarded",
       "completed": "Completed"
     }

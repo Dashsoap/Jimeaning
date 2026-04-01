@@ -61,9 +61,9 @@ function deriveStageState(key: string, project: AgentProject): StageState {
 
     case "write":
       if (episodes.length === 0) return "pending";
-      if (episodes.every((ep) => ["drafted", "reviewed", "review-failed", "storyboarded", "completed"].includes(ep.status)))
+      if (episodes.every((ep) => ["drafted", "reviewed", "review-failed", "storyboarded", "completed", "similarity-failed"].includes(ep.status)))
         return "completed";
-      if (episodes.some((ep) => ["drafted", "reviewed", "review-failed", "storyboarded", "completed"].includes(ep.status)))
+      if (episodes.some((ep) => ["drafted", "reviewed", "review-failed", "storyboarded", "completed", "similarity-failed"].includes(ep.status)))
         return "active";
       return "pending";
 

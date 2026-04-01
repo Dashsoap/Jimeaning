@@ -42,8 +42,8 @@ export const PATCH = apiHandler(async (_req: NextRequest, { params }: Params) =>
   if (project.analysisData) newStatus = "analyzed";
   if (project.planningData && project.episodes.length > 0) newStatus = "planned";
 
-  const allCompleted = project.episodes.length > 0 && project.episodes.every((e) => e.status === "completed");
-  if (allCompleted) newStatus = "completed";
+  const allDone = project.episodes.length > 0 && project.episodes.every((e) => e.status === "completed" || e.status === "similarity-failed");
+  if (allDone) newStatus = "completed";
 
   await prisma.agentProject.update({
     where: { id },

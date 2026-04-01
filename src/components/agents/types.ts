@@ -46,7 +46,7 @@ export type StatusVariant = "default" | "accent" | "success" | "danger" | "warni
 export function statusVariant(status: string): StatusVariant {
   switch (status) {
     case "completed": return "success";
-    case "failed": case "review-failed": return "danger";
+    case "failed": case "review-failed": case "similarity-failed": return "danger";
     case "analyzing": case "planning": case "writing":
     case "reviewing": case "storyboarding": case "imaging":
       return "accent";

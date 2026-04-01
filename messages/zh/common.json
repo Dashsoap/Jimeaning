@@ -492,6 +492,9 @@
       "drafted": "初稿",
       "reviewed": "已审核",
       "review-failed": "审核未通过",
+      "similarity-failed": "雷同度过高",
+      "writing": "写作中",
+      "reviewing": "审核中",
       "storyboarded": "已分镜",
       "completed": "已完成"
     }
